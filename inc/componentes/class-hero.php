@@ -15,13 +15,13 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 	}
 
 	public function render(): string {
-		$titulo = esc_html( $this->props['titulo'] );
+		$titulo = $this->texto_enriquecido( $this->props['titulo'] );
 		$imagen = esc_url( $this->props['imagen'] );
 
 		$html  = '<section class="sofia-hero">';
 		$html .= '<h1 ' . $this->atributo_editable( 'hero', 'titulo' ) . '>' . $titulo . '</h1>';
 		if ( $imagen ) {
-			$html .= '<img ' . $this->atributo_editable( 'hero', 'imagen' ) . ' src="' . $imagen . '" alt="' . $titulo . '">';
+			$html .= '<img ' . $this->atributo_editable( 'hero', 'imagen' ) . ' src="' . $imagen . '" alt="' . wp_strip_all_tags( $titulo ) . '">';
 		}
 		$html .= '</section>';
 		return $html;

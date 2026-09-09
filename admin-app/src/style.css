@@ -62,3 +62,34 @@ body {
 .sofia-editor-admin__estado--error {
   color: #f87171;
 }
+
+/* Barra de formato: mismo patrón "flotante sobre el iframe" que la barra
+   de estado — position:absolute, coordenadas calculadas dentro del iframe
+   coinciden 1:1 con este documento porque el iframe es full-bleed a
+   inset:0 (ver App.jsx, sin offset que sumar). */
+.sofia-barra-formato {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
+}
+
+.sofia-barra-formato button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.sofia-barra-formato button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

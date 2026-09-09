@@ -71,4 +71,35 @@ abstract class Sofia_Componente {
 	protected function atributo_editable( string $tipo, string $campo ): string {
 		return sprintf( 'data-sofia-campo="%s.%s"', esc_attr( $tipo ), esc_attr( $campo ) );
 	}
+
+	/**
+	 * ETIQUETAS_FORMATO_PERMITIDAS es el whitelist completo de formato
+	 * rico que un campo de texto puede llevar — ver la barra de formato
+	 * flotante del editor (admin-app/src/BarraFormato.jsx), que hoy solo
+	 * ofrece negrita/cursiva. Deliberadamente chico: el contenido de un
+	 * campo sigue siendo "texto con un poco de énfasis", nunca HTML
+	 * arbitrario (sin <div>, <script>, atributos de estilo, etc.) — mismo
+	 * criterio de "estructura fija, solo contenido editable" que el resto
+	 * del producto.
+	 */
+	private const ETIQUETAS_FORMATO_PERMITIDAS = array(
+		'b'      => array(),
+		'strong' => array(),
+		'i'      => array(),
+		'em'     => array(),
+		'br'     => array(),
+	);
+
+	/**
+	 * Devuelve $valor listo para imprimir en HTML, permitiendo SOLO las
+	 * etiquetas de ETIQUETAS_FORMATO_PERMITIDAS — usar esto (nunca
+	 * esc_html()) en cualquier campo de texto que la barra de formato
+	 * pueda editar; esc_html() destruiría el <b>/<i> guardado,
+	 * mostrándolo como texto literal "&lt;b&gt;" en vez de negrita real.
+	 * wp_kses() ya elimina cualquier otra etiqueta/atributo, así que este
+	 * método es seguro de imprimir directo sin escapar de nuevo.
+	 */
+	protected function texto_enriquecido( string $valor ): string {
+		return wp_kses( $valor, self::ETIQUETAS_FORMATO_PERMITIDAS );
+	}
 }

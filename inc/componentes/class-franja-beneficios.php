@@ -20,8 +20,8 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 	public function render(): string {
 		$html = '<section class="sofia-franja-beneficios"><div class="sofia-franja-beneficios__grid">';
 		for ( $i = 1; $i <= 3; $i++ ) {
-			$titulo = esc_html( $this->props[ "titulo_{$i}" ] );
-			$texto  = esc_html( $this->props[ "texto_{$i}" ] );
+			$titulo = $this->texto_enriquecido( $this->props[ "titulo_{$i}" ] );
+			$texto  = $this->texto_enriquecido( $this->props[ "texto_{$i}" ] );
 			$html  .= '<div class="sofia-franja-beneficios__item">';
 			$html  .= '<h3 ' . $this->atributo_editable( 'franja_beneficios', "titulo_{$i}" ) . '>' . $titulo . '</h3>';
 			$html  .= '<p ' . $this->atributo_editable( 'franja_beneficios', "texto_{$i}" ) . '>' . $texto . '</p>';

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { BarraFormato } from "./BarraFormato.jsx";
 
 // debounce simple: junta ediciones rápidas del mismo campo (ej. varias
 // pulsaciones de blur/focus seguidas) antes de llamar al proxy REST — el
@@ -13,7 +14,9 @@ const RETRASO_GUARDADO_MS = 400;
  * producto "Sofia Studio" sobre por qué se eligió pulir el iframe en vez de
  * eliminarlo) con una barra de estado flotante SOBRE el contenido, nunca
  * empujando el layout — mismo patrón documentado en Bricks/Elementor/AEM:
- * los controles viven fuera del documento del iframe, superpuestos.
+ * los controles viven fuera del documento del iframe, superpuestos. La
+ * barra de formato (BarraFormato.jsx) sigue el mismo patrón para
+ * negrita/cursiva al seleccionar texto.
  *
  * El iframe nunca guarda nada por su cuenta (ver inc/js/editor-iframe.js)
  * — solo informa cambios vía postMessage, que este componente escucha y
@@ -24,13 +27,23 @@ export function App({ config }) {
   const iframeRef = useRef(null);
   const timersPorCampo = useRef({});
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
+  const [posicionSeleccion, setPosicionSeleccion] = useState(null);
 
   useEffect(() => {
     function alRecibirMensaje(evento) {
       const datos = evento.data;
       if (!datos || typeof datos !== "object") return;
+
       if (datos.tipo === "sofia:campo-editado") {
         programarGuardado(datos.campo, datos.valor);
+        return;
+      }
+      if (datos.tipo === "sofia:seleccion-texto") {
+        setPosicionSeleccion(datos.rect);
+        return;
+      }
+      if (datos.tipo === "sofia:seleccion-vacia") {
+        setPosicionSeleccion(null);
       }
     }
 
@@ -60,6 +73,13 @@ export function App({ config }) {
     }
   }
 
+  // El propio iframe ejecuta document.execCommand sobre su selección real
+  // (ver alRecibirMensajeDelPadre en editor-iframe.js) — este panel nunca
+  // toca el DOM del iframe directo, solo le pide que aplique el comando.
+  function aplicarFormato(comando) {
+    iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:aplicar-formato", comando }, "*");
+  }
+
   const urlIframe = `${config.urlPagina}${config.urlPagina.includes("?") ? "&" : "?"}sofia_editor=1`;
 
   return (
@@ -75,6 +95,7 @@ export function App({ config }) {
           {estado === "listo" && "Hacé click en un texto o imagen para editarlo"}
         </span>
       </div>
+      <BarraFormato posicion={posicionSeleccion} onAplicarFormato={aplicarFormato} />
       <iframe ref={iframeRef} src={urlIframe} title="Editor de página" className="sofia-editor-admin__iframe" />
     </div>
   );
