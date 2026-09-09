@@ -8,6 +8,10 @@
  */
 class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 
+	public function nombre(): string {
+		return __( 'Franja de beneficios', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		$defaults = array();
 		for ( $i = 1; $i <= 3; $i++ ) {

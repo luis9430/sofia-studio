@@ -54,6 +54,10 @@ export function App({ config }) {
       }
       if (datos.tipo === "sofia:bloque-sin-resaltar") {
         setBloqueResaltado(null);
+        return;
+      }
+      if (datos.tipo === "sofia:estructura-reordenada") {
+        guardarEstructura(datos.tipos);
       }
     }
 
@@ -76,6 +80,30 @@ export function App({ config }) {
           "X-WP-Nonce": config.nonce,
         },
         body: JSON.stringify({ campo, valor }),
+      });
+      setEstado(respuesta.ok ? "guardado" : "error");
+    } catch {
+      setEstado("error");
+    }
+  }
+
+  // Nivel 2 — reordenar bloques: el iframe ya movió los nodos reales
+  // (SortableJS corre ADENTRO del documento del iframe, ver
+  // activarReordenar() en editor-iframe.js) y solo informa el resultado
+  // final (la lista de tipos en el nuevo orden). Este panel no reordena
+  // nada por su cuenta, solo persiste ese orden ya decidido — sin
+  // debounce: a diferencia de un campo de texto (que dispara en cada
+  // "blur"), un drag termina en un único evento "onEnd".
+  async function guardarEstructura(tipos) {
+    setEstado("guardando");
+    try {
+      const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/estructura`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-WP-Nonce": config.nonce,
+        },
+        body: JSON.stringify({ estructura: tipos.map((tipo) => ({ tipo })) }),
       });
       setEstado(respuesta.ok ? "guardado" : "error");
     } catch {

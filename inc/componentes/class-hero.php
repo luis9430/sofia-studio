@@ -7,6 +7,10 @@
  */
 class Sofia_Componente_Hero extends Sofia_Componente {
 
+	public function nombre(): string {
+		return __( 'Hero', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'titulo' => __( 'Escribe el título de tu página', 'sofia-studio' ),

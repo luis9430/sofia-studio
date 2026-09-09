@@ -109,15 +109,31 @@
 		document.execCommand(datos.comando, false, null);
 	}
 
-	// NOMBRES_BLOQUE traduce el "tipo" (prefijo de data-sofia-campo antes
-	// del primer punto, ej. "hero" en "hero.titulo") a un nombre legible —
-	// mismo criterio centralizado que SOFIA_LIBRERIAS_JS del lado PHP
-	// (functions.php): agregar un Componente nuevo al catálogo es agregar
-	// una entrada acá, no tocar la lógica de resaltado.
-	var NOMBRES_BLOQUE = {
-		hero: "Hero",
-		franja_beneficios: "Franja de beneficios",
-	};
+	// nombresBloque se llena al cargar, pidiendo el catálogo REAL a
+	// sofia/v1/catalogo-bloques (ver Sofia_Componente_Factory::catalogo())
+	// — a diferencia de un mapa hardcodeado acá, esto nunca se desincroniza
+	// de qué Componentes existen de verdad en el tema instalado. Mientras
+	// la respuesta no llegó (o si falla), alMoverMouse cae al propio
+	// "tipo" crudo como nombre — mejor mostrar "hero" que nada.
+	//
+	// X-WP-Nonce es OBLIGATORIO acá — bug real encontrado en la práctica:
+	// sin él, la REST API de WordPress devuelve 401 "rest_forbidden" a
+	// pesar de la sesión de admin activa (protección CSRF). Este script
+	// corre en el front público (no wp-admin, donde WordPress inyecta
+	// wpApiSettings automáticamente), así que el nonce llega vía
+	// SofiaEditorIframeConfig (wp_localize_script, ver
+	// Sofia_Modo_Editor::encolar_script).
+	var nombresBloque = {};
+	fetch("/wp-json/sofia/v1/catalogo-bloques", {
+		headers: { "X-WP-Nonce": (window.SofiaEditorIframeConfig || {}).nonce || "" },
+	})
+		.then(function (resp) { return resp.ok ? resp.json() : []; })
+		.then(function (catalogo) {
+			catalogo.forEach(function (bloque) {
+				nombresBloque[bloque.tipo] = bloque.nombre;
+			});
+		})
+		.catch(function () {});
 
 	var seccionResaltada = null;
 
@@ -129,8 +145,15 @@
 	// que la barra de formato: este script solo informa posición+nombre,
 	// el panel padre dibuja el overlay.
 	function alMoverMouse(evento) {
-		var campoEditable = evento.target.closest ? evento.target.closest("[data-sofia-campo]") : null;
-		var seccion = campoEditable ? campoEditable.closest("section") : null;
+		// Se busca la <section> PRIMERO (no un data-sofia-campo primero) —
+		// bug real encontrado en la práctica: buscar el campo primero hacía
+		// que el overlay "parpadeara" al mover el mouse sobre cualquier
+		// zona de la sección que no fuera exactamente un elemento
+		// editable (el padding entre el título y el borde, por ejemplo),
+		// porque closest("[data-sofia-campo]") devolvía null ahí y se
+		// apagaba el resaltado — aunque el mouse siguiera técnicamente
+		// dentro del bloque completo.
+		var seccion = evento.target.closest ? evento.target.closest("section") : null;
 
 		if (!seccion) {
 			if (seccionResaltada) {
@@ -142,16 +165,56 @@
 		if (seccion === seccionResaltada) return; // evita spam de postMessage en cada pixel de movimiento dentro del mismo bloque.
 
 		seccionResaltada = seccion;
-		var tipo = campoEditable.getAttribute("data-sofia-campo").split(".")[0];
+		var campoEditable = seccion.querySelector("[data-sofia-campo]");
+		var tipo = campoEditable ? campoEditable.getAttribute("data-sofia-campo").split(".")[0] : "";
 		var rect = seccion.getBoundingClientRect();
 		window.parent.postMessage(
 			{
 				tipo: "sofia:bloque-resaltado",
-				nombre: NOMBRES_BLOQUE[tipo] || tipo,
+				nombre: nombresBloque[tipo] || tipo,
 				rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
 			},
 			"*"
 		);
+	}
+
+	// activarReordenar (Nivel 2) — SortableJS corre DENTRO de este
+	// documento (ver la memoria de producto "Sofia Studio": ninguna
+	// librería de DnD cruza la frontera del iframe de forma madura, mismo
+	// patrón que Elementor/Bricks: drag en el canvas real, informando solo
+	// el resultado final al padre). "handle" restringe el arrastre a un
+	// ícono propio (".sofia-handle-arrastre", inyectado acá, nunca parte
+	// del HTML que emite cada Componente) — SIN esto, arrastrar por
+	// cualquier parte de la sección competiría con hacer click para editar
+	// el texto/imagen de adentro.
+	function activarReordenar() {
+		var contenedor = document.querySelector(".sofia-pagina");
+		if (!contenedor || typeof Sortable === "undefined") return;
+
+		contenedor.querySelectorAll(":scope > section").forEach(function (seccion) {
+			if (seccion.querySelector(":scope > .sofia-handle-arrastre")) return; // ya tiene handle, evita duplicar si esto corriera dos veces.
+			var handle = document.createElement("div");
+			handle.className = "sofia-handle-arrastre";
+			handle.setAttribute("title", "Arrastrar para reordenar");
+			handle.textContent = "⠿";
+			seccion.prepend(handle);
+		});
+
+		Sortable.create(contenedor, {
+			handle: ".sofia-handle-arrastre",
+			animation: 150,
+			onEnd: function () {
+				var tipos = Array.prototype.map.call(contenedor.querySelectorAll(":scope > section"), function (seccion) {
+					// El tipo de UN bloque es el prefijo (antes del primer
+					// punto) de CUALQUIER data-sofia-campo dentro de él —
+					// mismo criterio ya usado en alMoverMouse.
+					var campoEditable = seccion.querySelector("[data-sofia-campo]");
+					return campoEditable ? campoEditable.getAttribute("data-sofia-campo").split(".")[0] : null;
+				}).filter(Boolean);
+
+				window.parent.postMessage({ tipo: "sofia:estructura-reordenada", tipos: tipos }, "*");
+			},
+		});
 	}
 
 	document.addEventListener("DOMContentLoaded", function () {
@@ -170,5 +233,6 @@
 			window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
 		});
 		window.addEventListener("message", alRecibirMensajeDelPadre);
+		activarReordenar();
 	});
 })();

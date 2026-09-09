@@ -44,6 +44,16 @@ class Sofia_REST_Editor {
 				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
 			)
 		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/catalogo-bloques',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'catalogo_bloques' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
 	}
 
 	/**
@@ -152,6 +162,17 @@ class Sofia_REST_Editor {
 
 		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'estructura' => $estructura ) );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/catalogo-bloques — lista los Componentes REALES
+	 * del tema instalado (ver Sofia_Componente_Factory::catalogo()), para
+	 * el panel "agregar bloque" del editor (Nivel 2). Nunca llama a
+	 * GoPress: esto es 100% local al tema, GoPress no tiene ni necesita
+	 * saber qué Componentes PHP existen en cada sitio.
+	 */
+	public static function catalogo_bloques( WP_REST_Request $request ) {
+		return rest_ensure_response( Sofia_Componente_Factory::catalogo() );
 	}
 }
 

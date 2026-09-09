@@ -62,6 +62,16 @@ abstract class Sofia_Componente {
 	abstract public function render(): string;
 
 	/**
+	 * Nombre legible del Componente (ej. "Hero", "Franja de beneficios")
+	 * — fuente de verdad ÚNICA para el catálogo de bloques insertables del
+	 * editor (ver Sofia_Componente_Factory::catalogo(), consumido por
+	 * Sofia_REST_Editor vía sofia/v1/catalogo-bloques) y para el overlay
+	 * de resaltado dentro del iframe (ver editor-iframe.js — el JS ya NO
+	 * mantiene su propio mapa NOMBRES_BLOQUE, lo pide a este endpoint).
+	 */
+	abstract public function nombre(): string;
+
+	/**
 	 * Atributo data-sofia-campo="bloque.campo" en el elemento editable —
 	 * el editor in-place (panel de GoPress) lo usa para saber qué campo
 	 * de PaginaSitio.Contenido actualizar al editar ese elemento del
