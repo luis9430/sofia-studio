@@ -109,6 +109,51 @@
 		document.execCommand(datos.comando, false, null);
 	}
 
+	// NOMBRES_BLOQUE traduce el "tipo" (prefijo de data-sofia-campo antes
+	// del primer punto, ej. "hero" en "hero.titulo") a un nombre legible —
+	// mismo criterio centralizado que SOFIA_LIBRERIAS_JS del lado PHP
+	// (functions.php): agregar un Componente nuevo al catálogo es agregar
+	// una entrada acá, no tocar la lógica de resaltado.
+	var NOMBRES_BLOQUE = {
+		hero: "Hero",
+		franja_beneficios: "Franja de beneficios",
+	};
+
+	var seccionResaltada = null;
+
+	// Resalta el BLOQUE completo (la <section> que contiene el campo bajo
+	// el mouse), no el campo individual — decisión explícita: ayuda a
+	// orientarse entre bloques distintos de una página con varios, sin el
+	// ruido visual de resaltar cada texto/imagen suelto (ver la memoria de
+	// producto "Sofia Studio"). Mismo patrón "controles fuera del iframe"
+	// que la barra de formato: este script solo informa posición+nombre,
+	// el panel padre dibuja el overlay.
+	function alMoverMouse(evento) {
+		var campoEditable = evento.target.closest ? evento.target.closest("[data-sofia-campo]") : null;
+		var seccion = campoEditable ? campoEditable.closest("section") : null;
+
+		if (!seccion) {
+			if (seccionResaltada) {
+				seccionResaltada = null;
+				window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
+			}
+			return;
+		}
+		if (seccion === seccionResaltada) return; // evita spam de postMessage en cada pixel de movimiento dentro del mismo bloque.
+
+		seccionResaltada = seccion;
+		var tipo = campoEditable.getAttribute("data-sofia-campo").split(".")[0];
+		var rect = seccion.getBoundingClientRect();
+		window.parent.postMessage(
+			{
+				tipo: "sofia:bloque-resaltado",
+				nombre: NOMBRES_BLOQUE[tipo] || tipo,
+				rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+			},
+			"*"
+		);
+	}
+
 	document.addEventListener("DOMContentLoaded", function () {
 		document.querySelectorAll("[data-sofia-campo]").forEach(function (el) {
 			if (el.tagName === "IMG") {
@@ -119,6 +164,11 @@
 		});
 
 		document.addEventListener("selectionchange", alCambiarSeleccion);
+		document.addEventListener("mouseover", alMoverMouse);
+		document.addEventListener("mouseleave", function () {
+			seccionResaltada = null;
+			window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
+		});
 		window.addEventListener("message", alRecibirMensajeDelPadre);
 	});
 })();

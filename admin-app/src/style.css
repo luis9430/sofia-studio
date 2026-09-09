@@ -93,3 +93,29 @@ body {
 .sofia-barra-formato button:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* Overlay de resaltado de bloque: pointer-events:none es crítico — sin
+   esto, el propio overlay (que se dibuja ARRIBA del iframe en el z-index)
+   capturaría los clicks/mouseover que en realidad tienen que llegar al
+   contenido real dentro del iframe. */
+.sofia-resaltado-bloque {
+  position: absolute;
+  z-index: 5;
+  border: 2px dashed #7ea3d9;
+  border-radius: 4px;
+  pointer-events: none;
+  transition: top 0.08s ease-out, left 0.08s ease-out, width 0.08s ease-out, height 0.08s ease-out;
+}
+
+.sofia-resaltado-bloque__etiqueta {
+  position: absolute;
+  top: -24px;
+  left: -2px;
+  background: #7ea3d9;
+  color: #1e1e1e;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px 4px 0 0;
+  white-space: nowrap;
+}

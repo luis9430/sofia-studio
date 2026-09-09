@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { BarraFormato } from "./BarraFormato.jsx";
+import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 
 // debounce simple: junta ediciones rápidas del mismo campo (ej. varias
 // pulsaciones de blur/focus seguidas) antes de llamar al proxy REST — el
@@ -28,6 +29,7 @@ export function App({ config }) {
   const timersPorCampo = useRef({});
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
   const [posicionSeleccion, setPosicionSeleccion] = useState(null);
+  const [bloqueResaltado, setBloqueResaltado] = useState(null);
 
   useEffect(() => {
     function alRecibirMensaje(evento) {
@@ -44,6 +46,14 @@ export function App({ config }) {
       }
       if (datos.tipo === "sofia:seleccion-vacia") {
         setPosicionSeleccion(null);
+        return;
+      }
+      if (datos.tipo === "sofia:bloque-resaltado") {
+        setBloqueResaltado({ rect: datos.rect, nombre: datos.nombre });
+        return;
+      }
+      if (datos.tipo === "sofia:bloque-sin-resaltar") {
+        setBloqueResaltado(null);
       }
     }
 
@@ -95,6 +105,7 @@ export function App({ config }) {
           {estado === "listo" && "Hacé click en un texto o imagen para editarlo"}
         </span>
       </div>
+      <ResaltadoBloque bloque={bloqueResaltado} />
       <BarraFormato posicion={posicionSeleccion} onAplicarFormato={aplicarFormato} />
       <iframe ref={iframeRef} src={urlIframe} title="Editor de página" className="sofia-editor-admin__iframe" />
     </div>
