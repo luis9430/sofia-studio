@@ -98,4 +98,45 @@ class Sofia_Cliente_GoPress {
 
 		return 200 === wp_remote_retrieve_response_code( $respuesta );
 	}
+
+	/**
+	 * Guarda la estructura COMPLETA de bloques de una página — Nivel 2 del
+	 * editor (reordenar/agregar/quitar). Manda a
+	 * PUT /sites/{sitio}/paginas/{slug}/estructura?token=... (ver
+	 * internal/server/plantillas_pagina.go,
+	 * handleActualizarEstructuraPaginaSitio). Mismo criterio que
+	 * guardar_contenido(): $estructura siempre va COMPLETA, nunca "moví
+	 * este bloque a tal posición".
+	 *
+	 * @param array<int,array{tipo:string}> $estructura
+	 * @return bool true si GoPress confirmó el guardado (200 OK).
+	 */
+	public static function guardar_estructura( string $slug, array $estructura ): bool {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return false;
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return false;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/paginas/' . rawurlencode( $slug ) . '/estructura';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'PUT',
+				'timeout' => 5,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array( 'estructura' => $estructura ) ),
+			)
+		);
+		if ( is_wp_error( $respuesta ) ) {
+			return false;
+		}
+
+		return 200 === wp_remote_retrieve_response_code( $respuesta );
+	}
 }

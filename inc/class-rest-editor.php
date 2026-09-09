@@ -34,6 +34,16 @@ class Sofia_REST_Editor {
 				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
 			)
 		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/paginas/(?P<slug>[a-z0-9-]+)/estructura',
+			array(
+				'methods'             => 'PUT',
+				'callback'            => array( __CLASS__, 'guardar_estructura' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
 	}
 
 	/**
@@ -45,6 +55,28 @@ class Sofia_REST_Editor {
 	 */
 	public static function permiso_editar(): bool {
 		return current_user_can( 'edit_pages' );
+	}
+
+	/**
+	 * Purga la caché de página completa (mu-plugin
+	 * gopress-pagecache.php, ya existente — ver
+	 * gopress_pagecache_purgar_todo(), hoy enganchada a save_post/
+	 * switch_theme/activated_plugin/deactivated_plugin) tras un guardado
+	 * exitoso del editor. Bug real encontrado en la práctica: guardar
+	 * contenido o estructura vía este proxy NUNCA toca la base de datos de
+	 * WordPress (el dato real vive en GoPress), así que ninguno de esos
+	 * hooks nativos se dispara — sin esta purga explícita, una página ya
+	 * cacheada (típicamente la home, marcada page_on_front) seguía
+	 * sirviendo el HTML viejo indefinidamente después de editar, hasta que
+	 * algo más disparara una purga por otro motivo. function_exists()
+	 * porque el mu-plugin es infraestructura de GoPress, no del tema — un
+	 * sitio sin ese mu-plugin instalado (entorno de desarrollo del tema
+	 * sin GoPress detrás) no debe romper el guardado por esto.
+	 */
+	private static function purgar_cache_pagina_completa(): void {
+		if ( function_exists( 'gopress_pagecache_purgar_todo' ) ) {
+			gopress_pagecache_purgar_todo();
+		}
 	}
 
 	/**
@@ -94,7 +126,32 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
 		}
 
+		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'contenido' => $contenido ) );
+	}
+
+	/**
+	 * PUT /wp-json/sofia/v1/paginas/{slug}/estructura — recibe el árbol
+	 * COMPLETO de bloques (reordenar/agregar/quitar, Nivel 2 del editor) y
+	 * lo reenvía tal cual a Sofia_Cliente_GoPress::guardar_estructura().
+	 * A diferencia de guardar_campo(), acá no hace falta leer+mergear:
+	 * Nivel 2 siempre opera sobre el árbol entero (mismo criterio que ya
+	 * usa GoPress del lado del store).
+	 */
+	public static function guardar_estructura( WP_REST_Request $request ) {
+		$slug       = $request->get_param( 'slug' );
+		$estructura = $request->get_param( 'estructura' );
+
+		if ( ! is_array( $estructura ) || empty( $estructura ) ) {
+			return new WP_Error( 'sofia_estructura_requerida', 'El parámetro "estructura" necesita al menos un bloque.', array( 'status' => 400 ) );
+		}
+
+		if ( ! Sofia_Cliente_GoPress::guardar_estructura( $slug, $estructura ) ) {
+			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
+		}
+
+		self::purgar_cache_pagina_completa();
+		return rest_ensure_response( array( 'ok' => true, 'estructura' => $estructura ) );
 	}
 }
 
