@@ -51,4 +51,51 @@ class Sofia_Cliente_GoPress {
 
 		return $cuerpo;
 	}
+
+	/**
+	 * Guarda el contenido COMPLETO de una página — llamado por el proxy
+	 * REST del editor in-place (ver la memoria de producto "Sofia Studio":
+	 * el editor vive DENTRO de wp-admin, este método es la mitad
+	 * server-side de ese proxy, nunca se llama directo desde JS del
+	 * navegador). Manda a
+	 * PUT /sites/{sitio}/paginas/{slug}/contenido?token=... — mismo
+	 * endpoint que en teoría también podría usar el dashboard de GoPress
+	 * con cookie (ver internal/server/plantillas_pagina.go,
+	 * handleActualizarContenidoPaginaSitio: acepta AMBOS mecanismos).
+	 *
+	 * $contenido siempre va COMPLETO (todo el contenido actual de la
+	 * página, no un campo suelto) — mismo criterio que
+	 * store.ActualizarContenidoPaginaSitio del lado de GoPress.
+	 *
+	 * @param array<string,string> $contenido
+	 * @return bool true si GoPress confirmó el guardado (200 OK).
+	 */
+	public static function guardar_contenido( string $slug, array $contenido ): bool {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return false;
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return false;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/paginas/' . rawurlencode( $slug ) . '/contenido';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'PUT',
+				'timeout' => 5,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array( 'contenido' => $contenido ) ),
+			)
+		);
+		if ( is_wp_error( $respuesta ) ) {
+			return false;
+		}
+
+		return 200 === wp_remote_retrieve_response_code( $respuesta );
+	}
 }

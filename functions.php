@@ -10,6 +10,9 @@ require_once __DIR__ . '/inc/class-componente.php';
 require_once __DIR__ . '/inc/class-componente-factory.php';
 require_once __DIR__ . '/inc/class-pagina.php';
 require_once __DIR__ . '/inc/class-cliente-gopress.php';
+require_once __DIR__ . '/inc/class-rest-editor.php';
+require_once __DIR__ . '/inc/class-modo-editor.php';
+require_once __DIR__ . '/inc/class-panel-editor.php';
 require_once __DIR__ . '/inc/componentes/class-hero.php';
 require_once __DIR__ . '/inc/componentes/class-franja-beneficios.php';
 
