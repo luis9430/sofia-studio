@@ -233,7 +233,16 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato,
         </div>
 
         {tab === "estilo" && (
-          <div className="sofia-drawer-estilo__cuerpo" onMouseDown={(evento) => evento.preventDefault()}>
+          // Sin preventDefault en mousedown acá — bug real encontrado en la
+          // práctica: bloqueaba el foco de CUALQUIER control, inputs de
+          // texto/número incluidos (tamaño de fuente, margen, relleno), no
+          // solo los botones tipo swatch para los que se había agregado
+          // originalmente. El blur del campo editable en el iframe ya tiene
+          // su propio setTimeout (ver activarTexto en editor-iframe.js) que
+          // da margen de sobra para que un click en un botón del drawer
+          // llegue antes de leerse el valor final — este preventDefault era
+          // una capa redundante que rompía los inputs nuevos.
+          <div className="sofia-drawer-estilo__cuerpo">
             <div className="sofia-drawer-estilo__grupo">
               <span className="sofia-drawer-estilo__etiqueta">Texto</span>
               <div className="sofia-drawer-estilo__formato">
