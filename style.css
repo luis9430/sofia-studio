@@ -13,6 +13,25 @@ Text Domain: sofia-studio
    (ver la memoria de producto: verificado contra costalegre, que corre
    Elementor + hello-elementor encima de esto). */
 
+/* Defaults de estilo GLOBAL (Nivel 3) — Sofia_Estilo_Global::imprimir()
+   emite un <style> aparte en el <head> SOLO si el sitio configuró algo (ver
+   inc/class-estilo-global.php); estos defaults acá garantizan que las
+   custom properties existan SIEMPRE, aunque el sitio nunca haya tocado el
+   panel "Estilo global" — evita que cualquier var(--sofia-color-acento)
+   usado en el futuro (ej. un swatch del drawer que referencie la paleta
+   del sitio) quede sin valor de caída neutro. Los valores acá son
+   deliberadamente neutros (grises/negro/blanco), NO la paleta naranja del
+   panel admin de Preact (esa es ajena, solo del editor — ver admin-app/src/
+   style.css, --gp-accent) — un sitio real define su propia paleta acá. */
+:root {
+	--sofia-color-texto: #1c1a17;
+	--sofia-color-texto-suave: #6b6459;
+	--sofia-color-acento: #1c1a17;
+	--sofia-color-fondo: #ffffff;
+	--sofia-fuente-display: inherit;
+	--sofia-fuente-texto: inherit;
+}
+
 /* --sofia-columnas: custom property que el drawer de estilo de BLOQUE
    (Nivel 2, ver Sofia_Componente::atributo_estilo_bloque()) escribe en el
    style="..." de la <section> cuando el usuario elige un número de

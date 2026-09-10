@@ -4,6 +4,7 @@ import { DrawerEstilo } from "./DrawerEstilo.jsx";
 import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
 import { MenuContextualBloque } from "./MenuContextualBloque.jsx";
+import { PanelEstiloGlobal } from "./PanelEstiloGlobal.jsx";
 
 // debounce simple: junta ediciones rápidas del mismo campo (ej. varias
 // pulsaciones de blur/focus seguidas) antes de llamar al proxy REST — el
@@ -56,6 +57,11 @@ export function App({ config }) {
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [catalogoBloques, setCatalogoBloques] = useState([]);
   const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
+  // Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
+  // (paleta/tipografía), sin relación con ningún campo/bloque seleccionado
+  // — vive detrás de su propio botón en la barra superior, ver
+  // PanelEstiloGlobal.jsx.
+  const [panelGlobalAbierto, setPanelGlobalAbierto] = useState(false);
   // Menú contextual de un bloque (click derecho, ver
   // alHacerClickDerecho en editor-iframe.js) — reemplaza un primer intento
   // con un botón "✕" flotante en el overlay de resaltado, que tenía un bug
@@ -341,6 +347,13 @@ export function App({ config }) {
         </span>
         <button
           type="button"
+          className="sofia-editor-admin__estilo-global"
+          onClick={() => setPanelGlobalAbierto(true)}
+        >
+          Estilo global
+        </button>
+        <button
+          type="button"
           className="sofia-editor-admin__agregar-bloque"
           onClick={() => setMenuAgregarAbierto((abierto) => !abierto)}
         >
@@ -354,6 +367,7 @@ export function App({ config }) {
           onCerrar={() => setMenuAgregarAbierto(false)}
         />
       )}
+      {panelGlobalAbierto && <PanelEstiloGlobal config={config} onCerrar={() => setPanelGlobalAbierto(false)} />}
       <div className="sofia-lienzo-wrap">
         <div className="sofia-sitio-frame">
           <div className="sofia-sitio-chrome">

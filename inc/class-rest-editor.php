@@ -54,6 +54,23 @@ class Sofia_REST_Editor {
 				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
 			)
 		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/estilo-global',
+			array(
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( __CLASS__, 'obtener_estilo_global' ),
+					'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+				),
+				array(
+					'methods'             => 'PUT',
+					'callback'            => array( __CLASS__, 'guardar_estilo_global' ),
+					'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -244,6 +261,39 @@ class Sofia_REST_Editor {
 	 */
 	public static function catalogo_bloques( WP_REST_Request $request ) {
 		return rest_ensure_response( Sofia_Componente_Factory::catalogo() );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/estilo-global — trae el JSON de paleta/
+	 * tipografía del SITIO completo (Nivel 3, distinto del Contenido por
+	 * página) para el panel "Estilo global" del editor, ver
+	 * Sofia_Cliente_GoPress::obtener_estilo_global(). Nunca devuelve error
+	 * — un sitio sin nada configurado responde {} (array vacío en JSON),
+	 * el panel simplemente arranca con los controles vacíos.
+	 */
+	public static function obtener_estilo_global( WP_REST_Request $request ) {
+		return rest_ensure_response( Sofia_Cliente_GoPress::obtener_estilo_global() );
+	}
+
+	/**
+	 * PUT /wp-json/sofia/v1/estilo-global — guarda el JSON completo de
+	 * estilo global (siempre el objeto entero, mismo criterio que
+	 * guardar_estructura(): nunca "cambié solo el color de acento", el
+	 * panel Preact manda el objeto {colores, tipografia} completo cada
+	 * vez).
+	 */
+	public static function guardar_estilo_global( WP_REST_Request $request ) {
+		$estilo_global = $request->get_param( 'estilo_global' );
+		if ( ! is_array( $estilo_global ) ) {
+			return new WP_Error( 'sofia_estilo_global_invalido', 'El parámetro "estilo_global" debe ser un objeto.', array( 'status' => 400 ) );
+		}
+
+		if ( ! Sofia_Cliente_GoPress::guardar_estilo_global( $estilo_global ) ) {
+			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
+		}
+
+		self::purgar_cache_pagina_completa();
+		return rest_ensure_response( array( 'ok' => true, 'estilo_global' => $estilo_global ) );
 	}
 }
 

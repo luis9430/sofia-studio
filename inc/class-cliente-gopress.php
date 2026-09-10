@@ -139,4 +139,88 @@ class Sofia_Cliente_GoPress {
 
 		return 200 === wp_remote_retrieve_response_code( $respuesta );
 	}
+
+	/**
+	 * Trae el estilo GLOBAL del sitio (Nivel 3 — paleta de colores/
+	 * tipografía base, distinto del contenido de una página individual) vía
+	 * GET /sites/{sitio}/tema/estilo-global?token=... (ver
+	 * internal/server/estilo_global.go, handleObtenerEstiloGlobalParaTema).
+	 * Llamado en CADA render público (ver Sofia_Tema::imprimir_estilo_global
+	 * o similar) para imprimir las custom properties en el <head> — mismo
+	 * criterio "JSON opaco" que obtener_pagina(): el shape interno no se
+	 * valida acá, la whitelist real vive en Sofia_Componente.
+	 *
+	 * @return array<string,mixed> Array vacío si GoPress no está
+	 *         configurado, la petición falla, o el sitio no tiene estilo
+	 *         global guardado — nunca null, para que el llamador no
+	 *         necesite un chequeo aparte antes de iterarlo.
+	 */
+	public static function obtener_estilo_global(): array {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return array();
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return array();
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/tema/estilo-global';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 5,
+			)
+		);
+		if ( is_wp_error( $respuesta ) || 200 !== wp_remote_retrieve_response_code( $respuesta ) ) {
+			return array();
+		}
+
+		$cuerpo = json_decode( wp_remote_retrieve_body( $respuesta ), true );
+		$estilo = is_array( $cuerpo ) ? ( $cuerpo['estilo_global'] ?? null ) : null;
+		return is_array( $estilo ) ? $estilo : array();
+	}
+
+	/**
+	 * Guarda el estilo GLOBAL completo del sitio — llamado por el proxy
+	 * REST del editor (panel "Estilo global" en la barra superior, distinto
+	 * del drawer por campo/bloque). Manda a
+	 * PUT /sites/{sitio}/estilo-global?token=... (ver
+	 * internal/server/estilo_global.go, handleActualizarEstiloGlobal:
+	 * acepta cookie de sesión O token, mismo mecanismo dual que
+	 * guardar_contenido()).
+	 *
+	 * @param array<string,mixed> $estilo_global
+	 * @return bool true si GoPress confirmó el guardado (200 OK).
+	 */
+	public static function guardar_estilo_global( array $estilo_global ): bool {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return false;
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return false;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/estilo-global';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'PUT',
+				'timeout' => 5,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array( 'estilo_global' => $estilo_global ) ),
+			)
+		);
+		if ( is_wp_error( $respuesta ) ) {
+			return false;
+		}
+
+		return 200 === wp_remote_retrieve_response_code( $respuesta );
+	}
 }
