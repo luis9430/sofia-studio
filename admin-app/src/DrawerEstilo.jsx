@@ -24,9 +24,14 @@ import { useRef, useState } from "preact/hooks";
  * bloque de una página, el drawer anclado a la esquina superior derecha
  * tapaba contenido sin espacio para esquivarlo. offsetArrastre es un
  * desplazamiento relativo a la posición CSS de anclaje (top/right fijos en
- * style.css) — se resetea a {0,0} en cada campo nuevo (ver la key en
- * App.jsx) para que el drawer siempre "aparezca" en su esquina de siempre,
- * en vez de arrastrar la posición vieja de un campo distinto.
+ * style.css) — persiste mientras el drawer sigue MONTADO, aunque el
+ * usuario cambie de campo activo (ver App.jsx: el drawer no se remonta al
+ * cambiar de campo, solo al cerrarse y volver a abrirse) — bug real
+ * encontrado en la práctica: una key por campo remontaba el componente en
+ * cada cambio de campo, reseteando la posición arrastrada de golpe cada
+ * vez que el usuario elegía otro texto sin cerrar el drawer primero. Solo
+ * vuelve a {0,0} cuando App.jsx desmonta el componente entero (drawerEstilo
+ * pasa a null) y lo vuelve a montar desde cero.
  */
 const PALETA_COLORES = [
   { valor: "", etiqueta: "Por defecto" },

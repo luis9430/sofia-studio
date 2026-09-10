@@ -357,7 +357,6 @@ export function App({ config }) {
             )}
             {drawerEstilo && (
               <DrawerEstilo
-                key={drawerEstilo.campo}
                 campo={drawerEstilo.campo}
                 estilo={drawerEstilo.estilo}
                 onCambiarEstilo={cambiarEstiloDrawer}
