@@ -144,13 +144,47 @@ abstract class Sofia_Componente {
 	 * hiciera falta — hoy coinciden).
 	 */
 	private const ESTILOS_CAMPO_PERMITIDOS = array(
-		'alineacion'    => 'text-align',
-		'color'         => 'color',
-		'tamano_fuente' => 'font-size',
-		'negrita'       => 'font-weight',
-		'color_fondo'   => 'background-color',
-		'sombra_texto'  => 'text-shadow',
+		'alineacion'      => 'text-align',
+		'color'           => 'color',
+		'tamano_fuente'   => 'font-size',
+		'tipo_fuente'     => 'font-family',
+		'negrita'         => 'font-weight',
+		'color_fondo'     => 'background-color',
+		'sombra_texto'    => 'text-shadow',
+		'margen'          => 'margin',
+		'relleno'         => 'padding',
 	);
+
+	/**
+	 * FUENTES_PERMITIDAS: whitelist de valores completos de font-family que
+	 * "tipo_fuente" puede tomar — a diferencia del resto de
+	 * ESTILOS_CAMPO_PERMITIDOS (que solo mapea NOMBRE→propiedad CSS y deja
+	 * el VALOR libre), font-family sí necesita restringir también el
+	 * valor: una fuente que el tema no cargó rompe silenciosamente a la
+	 * fuente por defecto del navegador. Clave = valor guardado en el JSON
+	 * (lo que manda el drawer), valor = la declaración font-family real,
+	 * con su fallback — mismas 2 fuentes que ya carga el tema (ver
+	 * functions.php / Google Fonts), nunca una fuente arbitraria de
+	 * Internet que exigiría cargar un <link> nuevo dentro del iframe.
+	 */
+	private const FUENTES_PERMITIDAS = array(
+		'display' => "'Fraunces', serif",
+		'texto'   => "'Inter', sans-serif",
+	);
+
+	/**
+	 * PATRON_MEDIDA_CSS valida un valor de tamaño de fuente/espaciado antes
+	 * de emitirlo — necesario porque, a diferencia de alineación/color
+	 * (opciones fijas elegidas por el drawer), "tamano_fuente"/"margen"/
+	 * "relleno" llegan como INPUT LIBRE del usuario (ver DrawerEstilo.jsx).
+	 * Sin este chequeo, un valor corrupto o con intención maliciosa
+	 * ("expression(...)", "javascript:", etc.) pasaría directo a esc_attr()
+	 * — que sanea comillas/HTML pero NO valida que el contenido sea CSS
+	 * válido. El patrón acepta 1 a 4 números (separados por espacio, para
+	 * el shorthand de margin/padding) con unidad px/rem/%, cada uno
+	 * opcionalmente negativo (margin negativo es válido CSS).
+	 */
+	private const PATRON_MEDIDA_CSS = '/^-?\d+(\.\d+)?(px|rem|%)( -?\d+(\.\d+)?(px|rem|%)){0,3}$/';
 
 	/**
 	 * Atributo style="..." armado desde el estilo guardado de $campo.
@@ -196,14 +230,37 @@ abstract class Sofia_Componente {
 
 		$declaraciones = array();
 		foreach ( self::ESTILOS_CAMPO_PERMITIDOS as $clave => $propiedad_css ) {
-			if ( empty( $estilo[ $clave ] ) || ! is_string( $estilo[ $clave ] ) ) {
+			$valor = $estilo[ $clave ] ?? null;
+			if ( empty( $valor ) || ! is_string( $valor ) ) {
 				continue;
 			}
+
+			// "tipo_fuente" no emite su valor tal cual — resuelve contra la
+			// whitelist de FUENTES_PERMITIDAS (ver el comentario ahí: una
+			// fuente que el tema no cargó rompe silenciosamente). Un valor
+			// desconocido (dato corrupto) se ignora en silencio, igual que
+			// cualquier otra clave no reconocida.
+			if ( 'tipo_fuente' === $clave ) {
+				if ( ! isset( self::FUENTES_PERMITIDAS[ $valor ] ) ) {
+					continue;
+				}
+				$declaraciones[] = $propiedad_css . ':' . self::FUENTES_PERMITIDAS[ $valor ];
+				continue;
+			}
+
+			// tamano_fuente/margen/relleno son INPUT LIBRE del usuario (ver
+			// DrawerEstilo.jsx) — a diferencia del resto (opciones fijas
+			// elegidas por el drawer), necesitan validarse como una medida
+			// CSS real antes de emitirse, no solo escaparse.
+			if ( in_array( $clave, array( 'tamano_fuente', 'margen', 'relleno' ), true ) && ! preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
+				continue;
+			}
+
 			// esc_attr() sobre el VALOR completo de cada propiedad —
 			// suficiente porque los valores vienen de un swatch/alineación
 			// controlados por el drawer (nunca texto libre del usuario),
 			// pero se sanea igual por si el JSON llegara manipulado.
-			$declaraciones[] = $propiedad_css . ':' . esc_attr( $estilo[ $clave ] );
+			$declaraciones[] = $propiedad_css . ':' . esc_attr( $valor );
 		}
 
 		if ( empty( $declaraciones ) ) {

@@ -533,6 +533,58 @@ body {
   color: var(--gp-accent-text);
 }
 
+/* Inputs/selects genéricos del drawer (tamaño numérico, tipo de fuente,
+   espaciado) — mismo look que el resto de controles (fondo --gp-panel-2,
+   borde --gp-panel-border) para que no desentonen con los botones. */
+.sofia-drawer-estilo__cuerpo input[type="number"],
+.sofia-drawer-estilo__cuerpo select {
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.sofia-drawer-estilo__tamano-numerico {
+  display: flex;
+  gap: 6px;
+}
+
+.sofia-drawer-estilo__tamano-numerico input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sofia-drawer-estilo__tamano-numerico select {
+  width: 64px;
+}
+
+.sofia-drawer-estilo__select-fuente {
+  width: 100%;
+}
+
+.sofia-drawer-estilo__espaciado {
+  display: flex;
+  gap: 6px;
+  align-items: start;
+}
+
+.sofia-drawer-estilo__espaciado-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.sofia-drawer-estilo__espaciado-grid input {
+  width: 100%;
+}
+
+.sofia-drawer-estilo__espaciado select {
+  width: 56px;
+}
+
 /* Overlay de resaltado de bloque: pointer-events:none es crítico — sin
    esto, el propio overlay (que se dibuja ARRIBA del iframe en el z-index)
    capturaría los clicks/mouseover que en realidad tienen que llegar al

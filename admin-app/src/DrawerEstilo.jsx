@@ -47,20 +47,97 @@ const ALINEACIONES = [
   { valor: "right", etiqueta: "Derecha", icono: "≡" },
 ];
 
-// TAMANOS_FUENTE/SOMBRA_TEXTO: valores PRE-ARMADOS (no un input libre de
-// px/rgba) — mismo criterio de whitelist que el resto del drawer, evita que
-// el usuario termine con un tamaño de 200px o una sombra ilegible por
-// accidente. "Set completo tipo Elementor, veamos qué tal se ve" (pedido
-// explícito del usuario) — de acá se decide después qué se queda.
-const TAMANOS_FUENTE = [
+// SOMBRA_TEXTO: valor PRE-ARMADO (no un input libre de rgba) — mismo
+// criterio de whitelist que alineación/color, evita una sombra ilegible
+// por accidente. "Set completo tipo Elementor, veamos qué tal se ve"
+// (pedido explícito del usuario) — de acá se decide después qué se queda.
+const SOMBRA_TEXTO = "0 2px 4px rgba(0, 0, 0, 0.35)";
+
+// FUENTES: mismas 2 claves que Sofia_Componente::FUENTES_PERMITIDAS del
+// lado PHP — lista corta curada (no cualquier fuente de Google Fonts, ver
+// la decisión explícita del usuario) para no romper la cohesión visual del
+// tema con una fuente que no combina.
+const FUENTES = [
   { valor: "", etiqueta: "Por defecto" },
-  { valor: "0.875rem", etiqueta: "Chico" },
-  { valor: "1.125rem", etiqueta: "Normal" },
-  { valor: "1.5rem", etiqueta: "Grande" },
-  { valor: "2.25rem", etiqueta: "Extra grande" },
+  { valor: "display", etiqueta: "Display (Fraunces)" },
+  { valor: "texto", etiqueta: "Texto (Inter)" },
 ];
 
-const SOMBRA_TEXTO = "0 2px 4px rgba(0, 0, 0, 0.35)";
+// parsearMedida/formatearMedida: separan un shorthand CSS de 1-4 valores
+// ("12px 8px" → {valores: ["12","8"], unidad: "px"}) para poder editarlos
+// como inputs numéricos independientes por lado (arriba/derecha/abajo/
+// izquierda) sin que el usuario escriba CSS a mano — mismo criterio de
+// "nunca CSS arbitrario" que el resto del drawer, con más control que un
+// select de 3 opciones (pedido explícito: "like Elementor", los 4 lados).
+function parsearMedida(shorthand) {
+  if (!shorthand) return { top: "", right: "", bottom: "", left: "", unidad: "px" };
+  const partes = shorthand.trim().split(/\s+/);
+  const unidad = (partes[0].match(/[a-z%]+$/) || ["px"])[0];
+  const numeros = partes.map((p) => p.replace(/[a-z%]+$/, ""));
+  // Shorthand CSS: 1 valor = los 4 lados, 2 = vertical/horizontal, 4 = cada lado.
+  if (numeros.length === 1) return { top: numeros[0], right: numeros[0], bottom: numeros[0], left: numeros[0], unidad };
+  if (numeros.length === 2) return { top: numeros[0], right: numeros[1], bottom: numeros[0], left: numeros[1], unidad };
+  return { top: numeros[0] || "", right: numeros[1] || "", bottom: numeros[2] || "", left: numeros[3] || "", unidad };
+}
+
+function formatearMedida({ top, right, bottom, left, unidad }) {
+  if (!top && !right && !bottom && !left) return "";
+  const n = (v) => `${v || 0}${unidad}`;
+  return `${n(top)} ${n(right)} ${n(bottom)} ${n(left)}`;
+}
+
+// EspaciadoLados: 4 inputs numéricos (arriba/derecha/abajo/izquierda) +
+// selector de unidad, compartido entre margen y relleno.
+function EspaciadoLados({ etiqueta, valor, onCambiar }) {
+  const medida = parsearMedida(valor);
+
+  function actualizarLado(lado, nuevoValor) {
+    onCambiar(formatearMedida({ ...medida, [lado]: nuevoValor }));
+  }
+
+  function actualizarUnidad(nuevaUnidad) {
+    onCambiar(formatearMedida({ ...medida, unidad: nuevaUnidad }));
+  }
+
+  return (
+    <div className="sofia-drawer-estilo__grupo">
+      <span className="sofia-drawer-estilo__etiqueta">{etiqueta}</span>
+      <div className="sofia-drawer-estilo__espaciado">
+        <div className="sofia-drawer-estilo__espaciado-grid">
+          <input
+            type="number"
+            placeholder="Arriba"
+            value={medida.top}
+            onInput={(evento) => actualizarLado("top", evento.currentTarget.value)}
+          />
+          <input
+            type="number"
+            placeholder="Derecha"
+            value={medida.right}
+            onInput={(evento) => actualizarLado("right", evento.currentTarget.value)}
+          />
+          <input
+            type="number"
+            placeholder="Abajo"
+            value={medida.bottom}
+            onInput={(evento) => actualizarLado("bottom", evento.currentTarget.value)}
+          />
+          <input
+            type="number"
+            placeholder="Izquierda"
+            value={medida.left}
+            onInput={(evento) => actualizarLado("left", evento.currentTarget.value)}
+          />
+        </div>
+        <select value={medida.unidad} onChange={(evento) => actualizarUnidad(evento.currentTarget.value)}>
+          <option value="px">px</option>
+          <option value="rem">rem</option>
+          <option value="%">%</option>
+        </select>
+      </div>
+    </div>
+  );
+}
 
 export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato, onCerrar }) {
   const [tab, setTab] = useState("estilo");
@@ -188,18 +265,45 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato,
 
             <div className="sofia-drawer-estilo__grupo">
               <span className="sofia-drawer-estilo__etiqueta">Tamaño de fuente</span>
-              <div className="sofia-drawer-estilo__tamanos">
-                {TAMANOS_FUENTE.map((op) => (
-                  <button
-                    key={op.valor || "default"}
-                    type="button"
-                    className={`sofia-drawer-estilo__tamano ${estilo.tamano_fuente === op.valor ? "sofia-drawer-estilo__tamano--activo" : ""}`}
-                    onClick={() => actualizar({ tamano_fuente: op.valor })}
-                  >
-                    {op.etiqueta}
-                  </button>
-                ))}
+              <div className="sofia-drawer-estilo__tamano-numerico">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Por defecto"
+                  value={parsearMedida(estilo.tamano_fuente).top}
+                  onInput={(evento) => {
+                    const numero = evento.currentTarget.value;
+                    const unidad = parsearMedida(estilo.tamano_fuente).unidad;
+                    actualizar({ tamano_fuente: numero ? `${numero}${unidad}` : "" });
+                  }}
+                />
+                <select
+                  value={parsearMedida(estilo.tamano_fuente).unidad}
+                  onChange={(evento) => {
+                    const numero = parsearMedida(estilo.tamano_fuente).top;
+                    actualizar({ tamano_fuente: numero ? `${numero}${evento.currentTarget.value}` : "" });
+                  }}
+                >
+                  <option value="px">px</option>
+                  <option value="rem">rem</option>
+                  <option value="%">%</option>
+                </select>
               </div>
+            </div>
+
+            <div className="sofia-drawer-estilo__grupo">
+              <span className="sofia-drawer-estilo__etiqueta">Tipo de fuente</span>
+              <select
+                className="sofia-drawer-estilo__select-fuente"
+                value={estilo.tipo_fuente || ""}
+                onChange={(evento) => actualizar({ tipo_fuente: evento.currentTarget.value })}
+              >
+                {FUENTES.map((op) => (
+                  <option key={op.valor || "default"} value={op.valor}>
+                    {op.etiqueta}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
@@ -255,6 +359,18 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato,
                 {estilo.sombra_texto ? "Activada" : "Desactivada"}
               </button>
             </div>
+
+            <EspaciadoLados
+              etiqueta="Margen (arriba / derecha / abajo / izquierda)"
+              valor={estilo.margen}
+              onCambiar={(valor) => actualizar({ margen: valor })}
+            />
+
+            <EspaciadoLados
+              etiqueta="Relleno (arriba / derecha / abajo / izquierda)"
+              valor={estilo.relleno}
+              onCambiar={(valor) => actualizar({ relleno: valor })}
+            />
           </div>
         )}
       </div>

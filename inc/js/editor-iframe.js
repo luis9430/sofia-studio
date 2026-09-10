@@ -121,14 +121,34 @@
 	// tal cual como clave del JSON guardado. Mismo objeto viaja sin
 	// traducción en todo el recorrido: iframe → postMessage → drawer
 	// (Preact) → postMessage → iframe → guardado.
+	// Mismas 2 claves que Sofia_Componente::FUENTES_PERMITIDAS del lado PHP
+	// — "tipo_fuente" guarda la CLAVE lógica ("display"/"texto"), nunca el
+	// font-family crudo, así que estiloActualDe necesita este mapa para
+	// reconstruir la clave a partir del font-family ya aplicado al
+	// elemento (ver alAplicarEstilo, que sí conoce la clave directo).
+	var FUENTES_PERMITIDAS = {
+		display: "'Fraunces', serif",
+		texto: "'Inter', sans-serif",
+	};
+
+	function claveDeFuente(fontFamily) {
+		for (var clave in FUENTES_PERMITIDAS) {
+			if (FUENTES_PERMITIDAS[clave] === fontFamily) return clave;
+		}
+		return "";
+	}
+
 	function estiloActualDe(el) {
 		return {
 			alineacion: el.style.textAlign || "",
 			color: el.style.color || "",
 			tamano_fuente: el.style.fontSize || "",
+			tipo_fuente: claveDeFuente(el.style.fontFamily),
 			negrita: el.style.fontWeight || "",
 			color_fondo: el.style.backgroundColor || "",
 			sombra_texto: el.style.textShadow || "",
+			margen: el.style.margin || "",
+			relleno: el.style.padding || "",
 		};
 	}
 
@@ -151,9 +171,12 @@
 		el.style.textAlign = estilo.alineacion || "";
 		el.style.color = estilo.color || "";
 		el.style.fontSize = estilo.tamano_fuente || "";
+		el.style.fontFamily = FUENTES_PERMITIDAS[estilo.tipo_fuente] || "";
 		el.style.fontWeight = estilo.negrita || "";
 		el.style.backgroundColor = estilo.color_fondo || "";
 		el.style.textShadow = estilo.sombra_texto || "";
+		el.style.margin = estilo.margen || "";
+		el.style.padding = estilo.relleno || "";
 
 		notificarCambio(campo + "._estilo", estilo);
 	}
