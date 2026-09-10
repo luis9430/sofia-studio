@@ -385,7 +385,7 @@
 				tipo: "sofia:menu-contextual-bloque",
 				indice: indice,
 				id: seccion.getAttribute("data-sofia-bloque-id") || "",
-				tipo: seccion.getAttribute("data-sofia-bloque-tipo") || "",
+				tipoBloque: seccion.getAttribute("data-sofia-bloque-tipo") || "",
 				estiloBloque: estiloBloqueActualDe(seccion),
 				item: itemInfo,
 				x: evento.clientX,
