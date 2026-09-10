@@ -313,6 +313,20 @@ body {
   overflow: hidden;
 }
 
+/* Overlay transparente que cubre TODO el viewport (iframe incluido)
+   mientras dura un arrastre del drawer — bug real encontrado en la
+   práctica: el iframe es un documento distinto con su propio contexto de
+   eventos, así que en cuanto el cursor entraba en su área durante el drag
+   los "mousemove" dejaban de llegar a este documento, y el drawer se
+   quedaba pegado. z-index entre el iframe y el drawer: absorbe el mouse
+   sin taparlo a él. */
+.sofia-drawer-estilo__overlay-arrastre {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  cursor: move;
+}
+
 .sofia-drawer-estilo__cabecera {
   display: flex;
   align-items: center;
