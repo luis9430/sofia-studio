@@ -15,6 +15,17 @@ import { useRef, useState } from "preact/hooks";
  * formato aparte) — mismo criterio de "un solo lugar para todo lo de este
  * campo" que motivó el drawer en primer lugar.
  *
+ * Un mismo componente sirve para 2 niveles de estilo, según la prop
+ * `nivel`: "campo" (default, Nivel 1 — alineación/tipografía/color/
+ * espaciado de UN elemento, abierto con el botón ✏️ de BotonEditarCampo)
+ * y "bloque" (Nivel 2 — columnas de grid/color de fondo/espaciado vertical
+ * de la <section> completa, abierto desde "Estilo del bloque" en el menú
+ * contextual, ver App.jsx). Mismas pestañas/cabecera/arrastre para los 2,
+ * solo cambia qué controles se listan en el cuerpo — evita duplicar toda
+ * la mecánica de drawer (arrastre, overlay, pestañas) en un componente
+ * aparte para un caso que en el fondo es "el mismo panel con otro grupo de
+ * controles".
+ *
  * Vive FUERA del documento del iframe, nunca toca su DOM directo — manda
  * "sofia:aplicar-estilo"/"sofia:aplicar-formato" y deja que sea el propio
  * iframe quien aplique el cambio al elemento real (ver alAplicarEstilo /
@@ -139,7 +150,11 @@ function EspaciadoLados({ etiqueta, valor, onCambiar }) {
   );
 }
 
-export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato, onCerrar }) {
+// COLUMNAS: mismas 3 opciones que Sofia_Componente::COLUMNAS_PERMITIDAS del
+// lado PHP — un grid solo tiene sentido en un rango chico (2 a 4).
+const COLUMNAS = ["2", "3", "4"];
+
+export function DrawerEstilo({ campo, estilo, nivel = "campo", onCambiarEstilo, onAplicarFormato, onCerrar }) {
   const [tab, setTab] = useState("estilo");
   const [offsetArrastre, setOffsetArrastre] = useState({ x: 0, y: 0 });
   const [arrastrando, setArrastrando] = useState(false);
@@ -243,143 +258,211 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato,
           // llegue antes de leerse el valor final — este preventDefault era
           // una capa redundante que rompía los inputs nuevos.
           <div className="sofia-drawer-estilo__cuerpo">
-            <div className="sofia-drawer-estilo__grupo">
-              <span className="sofia-drawer-estilo__etiqueta">Texto</span>
-              <div className="sofia-drawer-estilo__formato">
-                <button type="button" onClick={() => onAplicarFormato("bold")} title="Negrita">
-                  <strong>B</strong>
-                </button>
-                <button type="button" onClick={() => onAplicarFormato("italic")} title="Cursiva">
-                  <em>I</em>
-                </button>
-              </div>
-            </div>
+            {nivel === "campo" && (
+              <>
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Texto</span>
+                  <div className="sofia-drawer-estilo__formato">
+                    <button type="button" onClick={() => onAplicarFormato("bold")} title="Negrita">
+                      <strong>B</strong>
+                    </button>
+                    <button type="button" onClick={() => onAplicarFormato("italic")} title="Cursiva">
+                      <em>I</em>
+                    </button>
+                  </div>
+                </div>
 
-            <div className="sofia-drawer-estilo__grupo">
-              <span className="sofia-drawer-estilo__etiqueta">Alineación</span>
-              <div className="sofia-drawer-estilo__alineaciones">
-                {ALINEACIONES.map((op) => (
-                  <button
-                    key={op.valor}
-                    type="button"
-                    className={`sofia-drawer-estilo__alineacion ${estilo.alineacion === op.valor ? "sofia-drawer-estilo__alineacion--activo" : ""}`}
-                    title={op.etiqueta}
-                    onClick={() => actualizar({ alineacion: estilo.alineacion === op.valor ? "" : op.valor })}
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Alineación</span>
+                  <div className="sofia-drawer-estilo__alineaciones">
+                    {ALINEACIONES.map((op) => (
+                      <button
+                        key={op.valor}
+                        type="button"
+                        className={`sofia-drawer-estilo__alineacion ${estilo.alineacion === op.valor ? "sofia-drawer-estilo__alineacion--activo" : ""}`}
+                        title={op.etiqueta}
+                        onClick={() => actualizar({ alineacion: estilo.alineacion === op.valor ? "" : op.valor })}
+                      >
+                        {op.icono}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Tamaño de fuente</span>
+                  <div className="sofia-drawer-estilo__tamano-numerico">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Por defecto"
+                      value={parsearMedida(estilo.tamano_fuente).top}
+                      onInput={(evento) => {
+                        const numero = evento.currentTarget.value;
+                        const unidad = parsearMedida(estilo.tamano_fuente).unidad;
+                        actualizar({ tamano_fuente: numero ? `${numero}${unidad}` : "" });
+                      }}
+                    />
+                    <select
+                      value={parsearMedida(estilo.tamano_fuente).unidad}
+                      onChange={(evento) => {
+                        const numero = parsearMedida(estilo.tamano_fuente).top;
+                        actualizar({ tamano_fuente: numero ? `${numero}${evento.currentTarget.value}` : "" });
+                      }}
+                    >
+                      <option value="px">px</option>
+                      <option value="rem">rem</option>
+                      <option value="%">%</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Tipo de fuente</span>
+                  <select
+                    className="sofia-drawer-estilo__select-fuente"
+                    value={estilo.tipo_fuente || ""}
+                    onChange={(evento) => actualizar({ tipo_fuente: evento.currentTarget.value })}
                   >
-                    {op.icono}
+                    {FUENTES.map((op) => (
+                      <option key={op.valor || "default"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
+                  <span className="sofia-drawer-estilo__etiqueta">Negrita</span>
+                  <button
+                    type="button"
+                    className={`sofia-drawer-estilo__toggle ${estilo.negrita === "700" ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                    onClick={() => actualizar({ negrita: estilo.negrita === "700" ? "" : "700" })}
+                  >
+                    {estilo.negrita === "700" ? "Activada" : "Desactivada"}
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <div className="sofia-drawer-estilo__grupo">
-              <span className="sofia-drawer-estilo__etiqueta">Tamaño de fuente</span>
-              <div className="sofia-drawer-estilo__tamano-numerico">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Por defecto"
-                  value={parsearMedida(estilo.tamano_fuente).top}
-                  onInput={(evento) => {
-                    const numero = evento.currentTarget.value;
-                    const unidad = parsearMedida(estilo.tamano_fuente).unidad;
-                    actualizar({ tamano_fuente: numero ? `${numero}${unidad}` : "" });
-                  }}
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Color del texto</span>
+                  <div className="sofia-drawer-estilo__swatches">
+                    {PALETA_COLORES.map((op) => (
+                      <button
+                        key={op.valor || "default"}
+                        type="button"
+                        className={`sofia-drawer-estilo__swatch ${estilo.color === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
+                        style={op.valor ? { backgroundColor: op.valor } : undefined}
+                        title={op.etiqueta}
+                        onClick={() => actualizar({ color: op.valor })}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Color de fondo</span>
+                  <div className="sofia-drawer-estilo__swatches">
+                    {PALETA_COLORES.map((op) => (
+                      <button
+                        key={op.valor || "default"}
+                        type="button"
+                        className={`sofia-drawer-estilo__swatch ${estilo.color_fondo === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
+                        style={op.valor ? { backgroundColor: op.valor } : undefined}
+                        title={op.etiqueta}
+                        onClick={() => actualizar({ color_fondo: op.valor })}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
+                  <span className="sofia-drawer-estilo__etiqueta">Sombra de texto</span>
+                  <button
+                    type="button"
+                    className={`sofia-drawer-estilo__toggle ${estilo.sombra_texto ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                    onClick={() => actualizar({ sombra_texto: estilo.sombra_texto ? "" : SOMBRA_TEXTO })}
+                  >
+                    {estilo.sombra_texto ? "Activada" : "Desactivada"}
+                  </button>
+                </div>
+
+                <EspaciadoLados
+                  etiqueta="Margen (arriba / derecha / abajo / izquierda)"
+                  valor={estilo.margen}
+                  onCambiar={(valor) => actualizar({ margen: valor })}
                 />
-                <select
-                  value={parsearMedida(estilo.tamano_fuente).unidad}
-                  onChange={(evento) => {
-                    const numero = parsearMedida(estilo.tamano_fuente).top;
-                    actualizar({ tamano_fuente: numero ? `${numero}${evento.currentTarget.value}` : "" });
-                  }}
-                >
-                  <option value="px">px</option>
-                  <option value="rem">rem</option>
-                  <option value="%">%</option>
-                </select>
-              </div>
-            </div>
 
-            <div className="sofia-drawer-estilo__grupo">
-              <span className="sofia-drawer-estilo__etiqueta">Tipo de fuente</span>
-              <select
-                className="sofia-drawer-estilo__select-fuente"
-                value={estilo.tipo_fuente || ""}
-                onChange={(evento) => actualizar({ tipo_fuente: evento.currentTarget.value })}
-              >
-                {FUENTES.map((op) => (
-                  <option key={op.valor || "default"} value={op.valor}>
-                    {op.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <EspaciadoLados
+                  etiqueta="Relleno (arriba / derecha / abajo / izquierda)"
+                  valor={estilo.relleno}
+                  onCambiar={(valor) => actualizar({ relleno: valor })}
+                />
+              </>
+            )}
 
-            <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
-              <span className="sofia-drawer-estilo__etiqueta">Negrita</span>
-              <button
-                type="button"
-                className={`sofia-drawer-estilo__toggle ${estilo.negrita === "700" ? "sofia-drawer-estilo__toggle--activo" : ""}`}
-                onClick={() => actualizar({ negrita: estilo.negrita === "700" ? "" : "700" })}
-              >
-                {estilo.negrita === "700" ? "Activada" : "Desactivada"}
-              </button>
-            </div>
+            {nivel === "bloque" && (
+              <>
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Columnas</span>
+                  <div className="sofia-drawer-estilo__tamanos">
+                    {COLUMNAS.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={`sofia-drawer-estilo__tamano ${estilo.columnas === n ? "sofia-drawer-estilo__tamano--activo" : ""}`}
+                        onClick={() => actualizar({ columnas: estilo.columnas === n ? "" : n })}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="sofia-drawer-estilo__grupo">
-              <span className="sofia-drawer-estilo__etiqueta">Color del texto</span>
-              <div className="sofia-drawer-estilo__swatches">
-                {PALETA_COLORES.map((op) => (
-                  <button
-                    key={op.valor || "default"}
-                    type="button"
-                    className={`sofia-drawer-estilo__swatch ${estilo.color === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
-                    style={op.valor ? { backgroundColor: op.valor } : undefined}
-                    title={op.etiqueta}
-                    onClick={() => actualizar({ color: op.valor })}
-                  />
-                ))}
-              </div>
-            </div>
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Color de fondo de la sección</span>
+                  <div className="sofia-drawer-estilo__swatches">
+                    {PALETA_COLORES.map((op) => (
+                      <button
+                        key={op.valor || "default"}
+                        type="button"
+                        className={`sofia-drawer-estilo__swatch ${estilo.color_fondo === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
+                        style={op.valor ? { backgroundColor: op.valor } : undefined}
+                        title={op.etiqueta}
+                        onClick={() => actualizar({ color_fondo: op.valor })}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-            <div className="sofia-drawer-estilo__grupo">
-              <span className="sofia-drawer-estilo__etiqueta">Color de fondo</span>
-              <div className="sofia-drawer-estilo__swatches">
-                {PALETA_COLORES.map((op) => (
-                  <button
-                    key={op.valor || "default"}
-                    type="button"
-                    className={`sofia-drawer-estilo__swatch ${estilo.color_fondo === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
-                    style={op.valor ? { backgroundColor: op.valor } : undefined}
-                    title={op.etiqueta}
-                    onClick={() => actualizar({ color_fondo: op.valor })}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
-              <span className="sofia-drawer-estilo__etiqueta">Sombra de texto</span>
-              <button
-                type="button"
-                className={`sofia-drawer-estilo__toggle ${estilo.sombra_texto ? "sofia-drawer-estilo__toggle--activo" : ""}`}
-                onClick={() => actualizar({ sombra_texto: estilo.sombra_texto ? "" : SOMBRA_TEXTO })}
-              >
-                {estilo.sombra_texto ? "Activada" : "Desactivada"}
-              </button>
-            </div>
-
-            <EspaciadoLados
-              etiqueta="Margen (arriba / derecha / abajo / izquierda)"
-              valor={estilo.margen}
-              onCambiar={(valor) => actualizar({ margen: valor })}
-            />
-
-            <EspaciadoLados
-              etiqueta="Relleno (arriba / derecha / abajo / izquierda)"
-              valor={estilo.relleno}
-              onCambiar={(valor) => actualizar({ relleno: valor })}
-            />
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Espaciado vertical (arriba y abajo)</span>
+                  <div className="sofia-drawer-estilo__tamano-numerico">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Por defecto"
+                      value={parsearMedida(estilo.espaciado_vertical).top}
+                      onInput={(evento) => {
+                        const numero = evento.currentTarget.value;
+                        const unidad = parsearMedida(estilo.espaciado_vertical).unidad;
+                        actualizar({ espaciado_vertical: numero ? `${numero}${unidad}` : "" });
+                      }}
+                    />
+                    <select
+                      value={parsearMedida(estilo.espaciado_vertical).unidad}
+                      onChange={(evento) => {
+                        const numero = parsearMedida(estilo.espaciado_vertical).top;
+                        actualizar({ espaciado_vertical: numero ? `${numero}${evento.currentTarget.value}` : "" });
+                      }}
+                    >
+                      <option value="px">px</option>
+                      <option value="rem">rem</option>
+                      <option value="%">%</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

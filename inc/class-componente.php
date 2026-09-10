@@ -105,20 +105,30 @@ abstract class Sofia_Componente {
 	abstract public function nombre(): string;
 
 	/**
-	 * Atributos data-sofia-bloque-id/data-sofia-bloque-tipo en la <section>
-	 * raíz de este Componente — editor-iframe.js los lee directo (en vez
-	 * de "adivinar" el tipo a partir del primer data-sofia-campo, que ya
-	 * no lo contiene desde que atributo_editable() usa el ID) para
-	 * reconstruir {id, tipo} de cada bloque al reordenar/eliminar un
-	 * bloque de nivel superior — ver activarReordenar()/alEliminarBloque().
-	 * Cada Componente debe usar esto al abrir su <section>, ej.:
+	 * Atributos data-sofia-bloque-id/data-sofia-bloque-tipo (+ el
+	 * style="..." de atributo_estilo_bloque(), si el bloque tiene uno
+	 * guardado) en la <section> raíz de este Componente — editor-iframe.js
+	 * los lee directo (en vez de "adivinar" el tipo a partir del primer
+	 * data-sofia-campo, que ya no lo contiene desde que atributo_editable()
+	 * usa el ID) para reconstruir {id, tipo} de cada bloque al reordenar/
+	 * eliminar un bloque de nivel superior — ver
+	 * activarReordenar()/alEliminarBloque(). Cada Componente debe usar esto
+	 * al abrir su <section>, ej.:
 	 *   '<section class="sofia-hero" ' . $this->atributos_seccion() . '>'
+	 *
+	 * El estilo de BLOQUE (Nivel 2 — columnas de grid, color de fondo de la
+	 * sección, padding vertical) se agrega ACÁ (una sola vez, para los 6
+	 * Componentes) en vez de que cada uno llame un método aparte — mismo
+	 * criterio que atributo_editable(): centralizar en la clase base lo que
+	 * es igual para cualquier Componente, así un Componente nuevo lo
+	 * hereda gratis sin tener que acordarse de nada.
 	 */
 	protected function atributos_seccion(): string {
 		return sprintf(
-			'data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s"',
+			'data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s" %s',
 			esc_attr( $this->id ),
-			esc_attr( $this->tipo )
+			esc_attr( $this->tipo ),
+			$this->atributo_estilo_bloque()
 		);
 	}
 
@@ -185,6 +195,60 @@ abstract class Sofia_Componente {
 	 * opcionalmente negativo (margin negativo es válido CSS).
 	 */
 	private const PATRON_MEDIDA_CSS = '/^-?\d+(\.\d+)?(px|rem|%)( -?\d+(\.\d+)?(px|rem|%)){0,3}$/';
+
+	/**
+	 * Valores permitidos para "columnas" — a diferencia de un color/medida
+	 * libre, el número de columnas solo tiene sentido en un rango chico
+	 * (2 a 4, mismo criterio que cualquier grid de contenido real); un
+	 * valor fuera de esta lista se ignora en silencio.
+	 */
+	private const COLUMNAS_PERMITIDAS = array( '2', '3', '4' );
+
+	/**
+	 * Atributo style="..." para la <section> del bloque — estilo de NIVEL 2
+	 * (el bloque completo, no un campo individual dentro de él), guardado
+	 * en la clave especial "{id}._estilo_bloque" — nunca colisiona con un
+	 * nombre de campo real porque empieza con guion bajo, mismo criterio
+	 * que "_estilo" como sufijo reservado en Nivel 1.
+	 *
+	 * A diferencia de atributo_estilo() (Nivel 1), acá cada propiedad se
+	 * valida a mano en vez de recorrer una whitelist genérica {clave =>
+	 * propiedad_css} — "columnas" no es una propiedad CSS 1:1 (se emite
+	 * como custom property --sofia-columnas, que el CSS de cada Componente
+	 * con grid, Franja de beneficios/Testimonios, consume vía
+	 * grid-template-columns: repeat(var(--sofia-columnas, 3), 1fr); un
+	 * Componente sin grid como Hero/CTA simplemente nunca lee esa
+	 * variable, definirla ahí no tiene efecto ni rompe nada) y
+	 * "espaciado_vertical" expande a DOS propiedades (padding-top Y
+	 * padding-bottom) desde un único valor.
+	 */
+	protected function atributo_estilo_bloque(): string {
+		$estilo = $this->props['_estilo_bloque'] ?? null;
+		if ( ! is_array( $estilo ) || empty( $estilo ) ) {
+			return '';
+		}
+
+		$declaraciones = array();
+
+		if ( ! empty( $estilo['columnas'] ) && in_array( (string) $estilo['columnas'], self::COLUMNAS_PERMITIDAS, true ) ) {
+			$declaraciones[] = '--sofia-columnas:' . (int) $estilo['columnas'];
+		}
+
+		if ( ! empty( $estilo['color_fondo'] ) && is_string( $estilo['color_fondo'] ) ) {
+			$declaraciones[] = 'background-color:' . esc_attr( $estilo['color_fondo'] );
+		}
+
+		if ( ! empty( $estilo['espaciado_vertical'] ) && is_string( $estilo['espaciado_vertical'] ) && preg_match( self::PATRON_MEDIDA_CSS, $estilo['espaciado_vertical'] ) ) {
+			$valor            = esc_attr( $estilo['espaciado_vertical'] );
+			$declaraciones[] = 'padding-top:' . $valor;
+			$declaraciones[] = 'padding-bottom:' . $valor;
+		}
+
+		if ( empty( $declaraciones ) ) {
+			return '';
+		}
+		return 'style="' . implode( ';', $declaraciones ) . '"';
+	}
 
 	/**
 	 * Atributo style="..." armado desde el estilo guardado de $campo.

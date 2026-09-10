@@ -46,7 +46,12 @@ export function App({ config }) {
   // mueva el mouse hacia los propios controles del drawer (fuera del
   // iframe) — sin esto, un segundo click en el mismo campo o un drag del
   // drawer podría perder el campo activo a mitad de camino.
-  const [drawerEstilo, setDrawerEstilo] = useState(null); // { campo, estilo } | null
+  // { campo, estilo, nivel } | null — nivel "campo" (default) usa `campo`
+  // como identificador ("{id}.subcampo..."), nivel "bloque" usa `campo`
+  // como el ID DIRECTO del bloque (mismo shape, distinto significado —
+  // más simple que 2 estados separados que solo uno puede estar activo a
+  // la vez).
+  const [drawerEstilo, setDrawerEstilo] = useState(null);
   const drawerAbierto = useRef(false);
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [catalogoBloques, setCatalogoBloques] = useState([]);
@@ -109,7 +114,14 @@ export function App({ config }) {
         return;
       }
       if (datos.tipo === "sofia:menu-contextual-bloque") {
-        setMenuContextual({ indice: datos.indice, item: datos.item, x: datos.x, y: datos.y });
+        setMenuContextual({
+          indice: datos.indice,
+          id: datos.id,
+          estiloBloque: datos.estiloBloque,
+          item: datos.item,
+          x: datos.x,
+          y: datos.y,
+        });
         return;
       }
       if (datos.tipo === "sofia:abrir-insertar-bloque") {
@@ -201,17 +213,34 @@ export function App({ config }) {
     setCampoClickeado(null);
   }
 
-  // El iframe aplica el estilo al elemento real Y notifica el cambio para
-  // persistir (ver alAplicarEstilo en editor-iframe.js) — este panel nunca
-  // toca el DOM del iframe directo, mismo patrón que aplicarFormato().
-  // Actualiza el estado local del drawer de inmediato (sin esperar el
-  // roundtrip del iframe) para que los swatches reflejen la selección al
-  // instante.
+  // Abre el drawer de estilo en modo "bloque" (Nivel 2) — desde "Estilo
+  // del bloque" en el menú contextual (ver MenuContextualBloque.jsx). A
+  // diferencia del Nivel 1, no depende de ningún click previo sobre un
+  // campo: el id/estilo ya vienen en menuContextual (ver
+  // "sofia:menu-contextual-bloque" arriba, que el iframe manda con TODO lo
+  // necesario de una vez, sin roundtrip aparte).
+  function abrirDrawerEstiloBloque() {
+    if (!menuContextual?.id) return;
+    drawerAbierto.current = true;
+    setDrawerEstilo({ campo: menuContextual.id, estilo: menuContextual.estiloBloque || {}, nivel: "bloque" });
+    setMenuContextual(null);
+  }
+
+  // El iframe aplica el estilo al elemento/sección real Y notifica el
+  // cambio para persistir (ver alAplicarEstilo/alAplicarEstiloBloque en
+  // editor-iframe.js) — este panel nunca toca el DOM del iframe directo,
+  // mismo patrón que aplicarFormato(). Actualiza el estado local del
+  // drawer de inmediato (sin esperar el roundtrip del iframe) para que los
+  // controles reflejen el cambio al instante. El nivel decide qué mensaje
+  // mandar y qué significa "campo" en cada caso (clave de campo vs. ID de
+  // bloque directo).
   function cambiarEstiloDrawer(estiloNuevo) {
     if (!drawerEstilo) return;
     setDrawerEstilo({ ...drawerEstilo, estilo: estiloNuevo });
+    const tipoMensaje = drawerEstilo.nivel === "bloque" ? "sofia:aplicar-estilo-bloque" : "sofia:aplicar-estilo";
+    const clave = drawerEstilo.nivel === "bloque" ? "id" : "campo";
     iframeRef.current?.contentWindow.postMessage(
-      { tipo: "sofia:aplicar-estilo", campo: drawerEstilo.campo, estilo: estiloNuevo },
+      { tipo: tipoMensaje, [clave]: drawerEstilo.campo, estilo: estiloNuevo },
       "*"
     );
   }
@@ -359,6 +388,7 @@ export function App({ config }) {
               <DrawerEstilo
                 campo={drawerEstilo.campo}
                 estilo={drawerEstilo.estilo}
+                nivel={drawerEstilo.nivel || "campo"}
                 onCambiarEstilo={cambiarEstiloDrawer}
                 onAplicarFormato={aplicarFormato}
                 onCerrar={cerrarDrawerEstilo}
@@ -368,6 +398,7 @@ export function App({ config }) {
               posicion={menuContextual}
               onEliminarBloque={eliminarBloque}
               onEliminarItem={eliminarItemDeLista}
+              onEstiloBloque={abrirDrawerEstiloBloque}
               onCerrar={() => setMenuContextual(null)}
             />
             {menuAgregarEnPosicion && (

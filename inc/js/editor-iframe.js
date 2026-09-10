@@ -181,6 +181,46 @@
 		notificarCambio(campo + "._estilo", estilo);
 	}
 
+	// Lee el estilo de BLOQUE (Nivel 2) ya aplicado a la <section> — mismo
+	// criterio de "editar lo que ves" que estiloActualDe() (Nivel 1).
+	// --sofia-columnas se lee vía getPropertyValue (no el objeto style
+	// plano, que no expone custom properties de la misma forma que
+	// propiedades CSS estándar).
+	function estiloBloqueActualDe(seccion) {
+		return {
+			columnas: seccion.style.getPropertyValue("--sofia-columnas").trim() || "",
+			color_fondo: seccion.style.backgroundColor || "",
+			espaciado_vertical: seccion.style.paddingTop || "",
+		};
+	}
+
+	// Aplica el estilo de bloque elegido en el drawer directo a la
+	// <section> real — mismo patrón que alAplicarEstilo() (Nivel 1), pero
+	// buscando por [data-sofia-bloque-id] en vez de [data-sofia-campo].
+	function alAplicarEstiloBloque(id, estilo) {
+		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
+		if (!seccion) return;
+
+		if (estilo.columnas) {
+			seccion.style.setProperty("--sofia-columnas", estilo.columnas);
+		} else {
+			seccion.style.removeProperty("--sofia-columnas");
+		}
+		seccion.style.backgroundColor = estilo.color_fondo || "";
+		seccion.style.paddingTop = estilo.espaciado_vertical || "";
+		seccion.style.paddingBottom = estilo.espaciado_vertical || "";
+
+		notificarCambio(id + "._estilo_bloque", estilo);
+
+		// Cambiar columnas/padding altera la altura real de la <section> —
+		// mismo motivo que en alAgregarItemALista()/activarLineasInsertar():
+		// el grid de nivel superior necesita refrescar sus dimensiones
+		// cacheadas para no superponer el bloque siguiente.
+		if (gridNivelSuperior) {
+			gridNivelSuperior.refreshItems().layout();
+		}
+	}
+
 	function alRecibirMensajeDelPadre(evento) {
 		var datos = evento.data;
 		if (!datos) return;
@@ -191,6 +231,10 @@
 		}
 		if (datos.tipo === "sofia:aplicar-estilo") {
 			alAplicarEstilo(datos.campo, datos.estilo);
+			return;
+		}
+		if (datos.tipo === "sofia:aplicar-estilo-bloque") {
+			alAplicarEstiloBloque(datos.id, datos.estilo);
 			return;
 		}
 		if (datos.tipo === "sofia:eliminar-bloque") {
@@ -327,10 +371,22 @@
 			};
 		}
 
+		// id/tipo/estilo del bloque — necesarios para "Estilo del bloque"
+		// (Nivel 2): a diferencia de eliminar (que solo necesita la
+		// POSICIÓN, indice), abrir el drawer de estilo necesita la clave
+		// real "{id}._estilo_bloque" para guardar (ver
+		// Sofia_Componente::atributo_estilo_bloque()) y el estilo YA
+		// aplicado para que el drawer abra reflejando el estado real (mismo
+		// criterio de "editar lo que ves" que el resto del editor) — se
+		// manda directo acá, en vez de un roundtrip aparte cuando el
+		// usuario elige la opción del menú.
 		window.parent.postMessage(
 			{
 				tipo: "sofia:menu-contextual-bloque",
 				indice: indice,
+				id: seccion.getAttribute("data-sofia-bloque-id") || "",
+				tipo: seccion.getAttribute("data-sofia-bloque-tipo") || "",
+				estiloBloque: estiloBloqueActualDe(seccion),
 				item: itemInfo,
 				x: evento.clientX,
 				y: evento.clientY,

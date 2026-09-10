@@ -13,9 +13,20 @@ Text Domain: sofia-studio
    (ver la memoria de producto: verificado contra costalegre, que corre
    Elementor + hello-elementor encima de esto). */
 
+/* --sofia-columnas: custom property que el drawer de estilo de BLOQUE
+   (Nivel 2, ver Sofia_Componente::atributo_estilo_bloque()) escribe en el
+   style="..." de la <section> cuando el usuario elige un número de
+   columnas — con fallback a 3 si nunca se configuró nada (mismo layout de
+   siempre, el bloque no rompe por no tener estilo de bloque guardado). */
+.sofia-franja-beneficios__grid {
+	display: grid;
+	grid-template-columns: repeat(var(--sofia-columnas, 3), 1fr);
+	gap: 24px;
+}
+
 .sofia-testimonios__grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(var(--sofia-columnas, 3), 1fr);
 	gap: 24px;
 }
 

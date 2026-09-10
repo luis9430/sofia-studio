@@ -174,6 +174,13 @@ class Sofia_REST_Editor {
 	 *   pisar el valor real del campo — ambos conviven como claves
 	 *   hermanas en el mismo objeto (el propio $contenido de nivel
 	 *   superior, o el mismo item de la lista).
+	 * - "id._estilo_bloque" (2 segmentos — "_estilo_bloque" es el "campo",
+	 *   nunca colisiona con un nombre real de campo por el guion bajo
+	 *   inicial, ver Sofia_Componente::atributo_estilo_bloque()): Nivel 2,
+	 *   estilo del BLOQUE completo (columnas de grid, color de fondo de la
+	 *   sección, padding vertical) — cae en el caso "2 segmentos" de
+	 *   arriba sin ningún cambio; el estilo de bloque nunca tiene sufijo
+	 *   "._estilo" (eso es exclusivo del estilo POR CAMPO, Nivel 3).
 	 */
 	private static function asignar_valor_de_campo( array &$contenido, string $campo, $valor ): void {
 		$es_estilo = str_ends_with( $campo, '._estilo' );
