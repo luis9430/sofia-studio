@@ -220,13 +220,23 @@ class Sofia_Modo_Editor {
 			   width explícito en el item: position:absolute no hereda el
 			   ancho automático que tenía en flujo normal (grid/flex). */
 			[data-sofia-lista] { position: relative; }
-			/* width fijo a 3 columnas — mismo criterio que el layout real
-			   del Componente (Franja de beneficios siempre en 3 columnas
-			   hoy, ver class-franja-beneficios.php). Si en el futuro un
-			   Componente admite N columnas variables, este ancho fijo
-			   necesitará leerse dinámicamente en vez de hardcodearse acá. */
+			/* width vía --sofia-columnas (default 3) — Muuri en modo editor
+			   NUNCA usa CSS Grid/display:grid real (cada item se posiciona a
+			   mano con position:absolute + transform, ver el comentario largo
+			   sobre Muuri en activarReordenar(), editor-iframe.js), así que
+			   el ancho de cada item tiene que calcularse en JS/CSS acá — el
+			   grid-template-columns real de .sofia-franja-beneficios__grid/
+			   .sofia-testimonios__grid (ver style.css) solo aplica en el
+			   sitio PÚBLICO, sin Muuri encima. Bug real encontrado en la
+			   práctica: "Estilo del bloque" → Columnas cambiaba
+			   --sofia-columnas en la <section>, pero acá seguía hardcodeado a
+			   33.333% (3 columnas fijas) — el control no tenía NINGÚN efecto
+			   visible dentro del editor, solo hubiera funcionado en el sitio
+			   público. --sofia-columnas hereda de la <section> (heredable por
+			   ser custom property) hasta [data-sofia-item], sin necesitar que
+			   editor-iframe.js la vuelva a fijar en cada item individual. */
 			[data-sofia-item] {
-				position: absolute; width: calc(33.333% - 20px); box-sizing: border-box;
+				position: absolute; width: calc((100% / var(--sofia-columnas, 3)) - 20px); box-sizing: border-box;
 			}
 			/* Handle de un ITEM dentro de una lista repetible (ej. un
 			   "Beneficio" de la Franja) — mismo criterio que el handle de
