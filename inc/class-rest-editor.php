@@ -107,6 +107,60 @@ class Sofia_REST_Editor {
 	}
 
 	/**
+	 * con_lock_de_pagina() ejecuta $accion con un lock EXCLUSIVO (flock())
+	 * sobre un archivo propio de $slug — necesario porque guardar_campo()/
+	 * guardar_estructura() son "leer todo el contenido → mutar UNA clave →
+	 * escribir todo de vuelta" (ver el comentario de asignar_valor_de_campo()
+	 * abajo), sin ningún lock esto es una condición de carrera clásica:
+	 *
+	 * Bug real encontrado en la práctica: dos PUT /campo casi simultáneos
+	 * (ej. el autosave con debounce de un texto recién editado, más el
+	 * guardado inmediato de una condición de Visibilidad desde el drawer)
+	 * pueden ambos LEER el mismo contenido base antes de que cualquiera
+	 * termine de escribir — el que ESCRIBE segundo pisa por completo el
+	 * cambio del primero con una versión vieja del resto del contenido. En
+	 * la práctica esto se manifestó como items de una lista repetible
+	 * (Franja de beneficios) "desapareciendo" al guardar una condición de
+	 * Visibilidad justo después de editar un texto.
+	 *
+	 * flock() (no un transient de WordPress) porque es un lock REAL a nivel
+	 * de sistema operativo — funciona sin importar si el sitio tiene un
+	 * object cache persistente configurado (muchos no lo tienen, y un
+	 * transient respaldado solo por la base de datos no da ninguna garantía
+	 * dura de exclusión mutua, es solo un check-and-set con su propia
+	 * carrera). LOCK_EX bloquea el request ACTUAL hasta que el lock quede
+	 * libre — el pequeño costo de latencia (milisegundos, mientras dura un
+	 * guardado normal) es aceptable a cambio de nunca perder contenido.
+	 *
+	 * Un archivo POR SLUG (no un lock global de todo el sitio) — páginas
+	 * distintas se editan en paralelo sin bloquearse entre sí.
+	 */
+	private static function con_lock_de_pagina( string $slug, callable $accion ) {
+		$directorio = trailingslashit( get_temp_dir() ) . 'sofia-studio-locks';
+		if ( ! is_dir( $directorio ) ) {
+			wp_mkdir_p( $directorio );
+		}
+
+		$ruta_lock = $directorio . '/' . sanitize_file_name( $slug ) . '.lock';
+		$manejador = fopen( $ruta_lock, 'c' );
+		if ( false === $manejador ) {
+			// Sin poder abrir el archivo de lock (permisos, disco), se
+			// ejecuta igual SIN lock — mejor arriesgar la carrera rara que
+			// romper el guardado por completo en un entorno con
+			// restricciones de filesystem inusuales.
+			return $accion();
+		}
+
+		flock( $manejador, LOCK_EX );
+		try {
+			return $accion();
+		} finally {
+			flock( $manejador, LOCK_UN );
+			fclose( $manejador );
+		}
+	}
+
+	/**
 	 * GET /wp-json/sofia/v1/paginas/{slug} — trae {slug, estructura,
 	 * contenido} tal cual los devuelve GoPress, sin transformar: el panel
 	 * Preact arma su UI directo a partir de esto (reusa exactamente el
@@ -149,20 +203,29 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_campo_requerido', 'El parámetro "campo" es obligatorio.', array( 'status' => 400 ) );
 		}
 
-		$pagina = Sofia_Cliente_GoPress::obtener_pagina( $slug );
-		if ( null === $pagina ) {
-			return new WP_Error( 'sofia_pagina_no_encontrada', 'No se pudo obtener la página desde GoPress.', array( 'status' => 502 ) );
-		}
+		// con_lock_de_pagina(): ver el comentario largo ahí — sin esto, dos
+		// PUT /campo casi simultáneos (autosave de un texto + guardado
+		// inmediato de una condición de Visibilidad, por ejemplo) podían
+		// pisarse entre sí y perder contenido ya guardado.
+		return self::con_lock_de_pagina(
+			$slug,
+			function () use ( $slug, $campo, $valor ) {
+				$pagina = Sofia_Cliente_GoPress::obtener_pagina( $slug );
+				if ( null === $pagina ) {
+					return new WP_Error( 'sofia_pagina_no_encontrada', 'No se pudo obtener la página desde GoPress.', array( 'status' => 502 ) );
+				}
 
-		$contenido = $pagina['contenido'];
-		self::asignar_valor_de_campo( $contenido, $campo, $valor );
+				$contenido = $pagina['contenido'];
+				self::asignar_valor_de_campo( $contenido, $campo, $valor );
 
-		if ( ! Sofia_Cliente_GoPress::guardar_contenido( $slug, $contenido ) ) {
-			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
-		}
+				if ( ! Sofia_Cliente_GoPress::guardar_contenido( $slug, $contenido ) ) {
+					return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
+				}
 
-		self::purgar_cache_pagina_completa();
-		return rest_ensure_response( array( 'ok' => true, 'contenido' => $contenido ) );
+				self::purgar_cache_pagina_completa();
+				return rest_ensure_response( array( 'ok' => true, 'contenido' => $contenido ) );
+			}
+		);
 	}
 
 	/**
