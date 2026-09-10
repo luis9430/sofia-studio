@@ -1,7 +1,32 @@
-/* Full-bleed: el panel ocupa toda la altura disponible del viewport de
-   wp-admin (ya sin admin bar ni menú lateral, ver
+/* Paleta y tipografía tomadas directo del mockup de diseño original
+   ("Editor de Contenido", Artifact) — mismos tokens exactos
+   (--gp-panel/--gp-accent/etc.), para que el editor real se vea igual que
+   el diseño ya aprobado en vez de una paleta improvisada. Inter (UI) vía
+   Google Fonts, mismo criterio que el mockup — Fraunces (para contenido
+   del sitio) queda fuera de este archivo porque vive DENTRO del iframe,
+   es responsabilidad del CSS del propio sitio, no de este panel. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --gp-panel: #1c1a17;
+  --gp-panel-2: #262320;
+  --gp-panel-border: #38342f;
+  --gp-panel-text: #ede9e3;
+  --gp-panel-text-dim: #a39c92;
+  --gp-accent: #d97a4d;
+  --gp-accent-soft: rgba(217, 122, 77, 0.16);
+  --gp-accent-text: #f3a983;
+  --gp-danger: #e08787;
+  --gp-danger-soft: rgba(224, 135, 135, 0.18);
+}
+
+/* El panel ocupa toda la altura disponible del viewport de wp-admin (ya
+   sin admin bar ni menú lateral, ver
    Sofia_Panel_Editor::ocultar_chrome_admin en el tema PHP) — mismo criterio
-   que Bricks/Elementor, el iframe nunca queda apretado en un rincón. */
+   que Bricks/Elementor. El IFRAME en sí ya NO es full-bleed (ver
+   .sofia-sitio-frame abajo): es una tarjeta centrada con marco, mismo
+   diseño del mockup original ("Editor de Contenido", Artifact) — full-bleed
+   se sentía "en crudo" en vez de "editando dentro de un estudio". */
 html,
 body {
   height: 100%;
@@ -10,57 +35,237 @@ body {
 .sofia-editor-admin {
   position: fixed;
   inset: 0;
-  background: #1e1e1e;
+  background: var(--gp-panel);
+  font-family: "Inter", -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
-.sofia-editor-admin__iframe {
+/* Fondo punteado detrás de la tarjeta — mismo patrón visual del mockup
+   (radial-gradient de puntos, sutil) para que el marco alrededor del sitio
+   se lea como "lienzo de trabajo", no como espacio vacío sin sentido.
+   Margen lateral real (no un max-width angosto tipo mockup original) —
+   mismo criterio que Bricks/Elementor: la tarjeta ocupa casi todo el
+   ancho disponible, con espacio de sobra a los costados para que un
+   handle de arrastre pueda sobresalir del borde del canvas y seguir
+   siendo visible (bug real ya vivido: un max-width angosto + handle
+   fuera del borde lo dejaba recortado fuera del viewport). overflow:
+   hidden (no auto) — el SCROLL real de contenido largo vive DENTRO del
+   iframe (ver .sofia-editor-admin__iframe, height:100%), este wrapper
+   solo centra la tarjeta, nunca scrollea un doble scrollbar. */
+.sofia-lienzo-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  padding: 20px 56px;
+  position: relative;
+}
+
+.sofia-lienzo-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--gp-panel-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* sofia-sitio-frame: la tarjeta que simula el sitio real — SOLO el marco
+   visual (chrome falso + contenedor), ya NO es el contenedor directo de
+   los overlays (ver .sofia-sitio-viewport abajo: bug real encontrado en
+   la práctica — cuando el chrome y el iframe eran ambos hijos directos de
+   este mismo :relative, el resaltado de bloque aparecía corrido hacia
+   arriba exactamente la altura del chrome falso, porque
+   getBoundingClientRect() dentro del iframe es relativo a SU PROPIO
+   viewport, que no incluye esa barra).
+   max-width generoso (mismo criterio de ancho que Bricks: casi todo el
+   viewport, no una maqueta angosta) + height:100% (alto completo del
+   lienzo disponible, no un alto fijo en píxeles que recorta contenido y
+   fuerza doble scroll) — "a nuestro estilo": conserva el marco/sombra del
+   mockup, pero dimensionado como un editor real de trabajo, no una
+   vidriera de demo. */
+.sofia-sitio-frame {
   width: 100%;
+  max-width: 1400px;
   height: 100%;
-  border: none;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.sofia-sitio-chrome {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e7e3dc;
+  border-radius: 10px 10px 0 0;
+  background: #fff;
+}
+
+.sofia-sitio-chrome__trafico {
+  display: flex;
+  gap: 5px;
+}
+
+.sofia-sitio-chrome__trafico span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2ddd3;
   display: block;
 }
 
-/* Flotante SOBRE el iframe, nunca dentro de su documento — mismo patrón
-   documentado en AEM/Bricks: los controles de edición viven en el
-   documento padre, superpuestos por posición absoluta. */
+.sofia-sitio-chrome__url {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  color: var(--gp-panel-text-dim);
+  letter-spacing: 0.01em;
+}
+
+/* sofia-sitio-viewport: contenedor real de coordenadas — envuelve SOLO el
+   iframe y sus overlays (resaltados, barra de formato, menú contextual),
+   nunca el chrome falso de arriba. position:relative del MISMO tamaño
+   exacto que el iframe (flex:1 dentro de .sofia-sitio-frame en columna) —
+   así getBoundingClientRect() calculado DENTRO del iframe (relativo a su
+   propio viewport) coincide 1:1 con la posición del overlay en este
+   documento, sin ningún offset que sumar a mano en JS. */
+.sofia-sitio-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.sofia-editor-admin__iframe {
+  display: block;
+  /* 100% del padre (.sofia-sitio-viewport, ya dimensionado por flex — ver
+     arriba), no flex propio: este elemento ya no es un item flex directo
+     del layout en columna, es hijo de un contenedor position:relative
+     simple. El iframe scrollea su propio contenido si la página es larga. */
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0 0 10px 10px;
+}
+
+/* Barra de estado como topbar normal del flujo (no flotante encima del
+   lienzo) — mismo criterio del mockup: una franja fija arriba, el iframe
+   vive debajo de ella, no superpuesto. Los overlays de EDICIÓN (resaltado,
+   menú contextual) siguen siendo position:absolute, pero relativos a
+   .sofia-sitio-frame (ver arriba), no a esta barra. */
 .sofia-editor-admin__barra-flotante {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
+  flex: 0 0 auto;
   z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
-  background: rgba(30, 30, 30, 0.92);
-  color: #fff;
-  border-radius: 6px;
-  font-size: 13px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--gp-panel);
+  border-bottom: 1px solid var(--gp-panel-border);
+  color: var(--gp-panel-text);
+  font-size: 12.5px;
 }
 
 .sofia-editor-admin__salir {
-  color: #fff;
+  color: var(--gp-panel-text-dim);
   text-decoration: none;
-  opacity: 0.85;
+  font-size: 12.5px;
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 7px;
+  padding: 6px 12px;
 }
 
 .sofia-editor-admin__salir:hover {
-  opacity: 1;
-  text-decoration: underline;
+  color: var(--gp-panel-text);
+  border-color: #4a453e;
 }
 
 .sofia-editor-admin__estado--guardando {
-  color: #ffcf5c;
+  color: var(--gp-accent-text);
 }
 
 .sofia-editor-admin__estado--guardado {
-  color: #4ade80;
+  color: #7cb88f;
 }
 
 .sofia-editor-admin__estado--error {
-  color: #f87171;
+  color: var(--gp-danger);
+}
+
+.sofia-editor-admin__agregar-bloque {
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sofia-editor-admin__agregar-bloque:hover {
+  border-color: #4a453e;
+  color: var(--gp-panel-text);
+}
+
+/* Menú de agregar bloque: fondo cubre toda la pantalla para poder cerrar
+   con un click afuera (mismo patrón que cualquier dropdown), el menú en
+   sí no forma parte del documento del iframe — mismo criterio "controles
+   fuera del iframe" del resto del panel. */
+.sofia-menu-agregar__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+.sofia-menu-agregar {
+  position: absolute;
+  top: 56px;
+  right: 12px;
+  width: 240px;
+  background: var(--gp-panel);
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sofia-menu-agregar__titulo {
+  color: var(--gp-panel-text-dim);
+  font-size: 11px;
+  padding: 6px 8px 4px;
+}
+
+.sofia-menu-agregar__vacio {
+  color: var(--gp-panel-text-dim);
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+.sofia-menu-agregar__opcion {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text);
+  font-size: 13px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sofia-menu-agregar__opcion:hover {
+  background: var(--gp-panel-2);
 }
 
 /* Barra de formato: mismo patrón "flotante sobre el iframe" que la barra
@@ -72,10 +277,11 @@ body {
   z-index: 20;
   display: flex;
   gap: 2px;
-  background: #1e1e1e;
-  border-radius: 6px;
+  background: var(--gp-panel);
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 9px;
   padding: 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
   transform: translateX(-50%);
 }
 
@@ -84,24 +290,27 @@ body {
   height: 28px;
   border: none;
   background: transparent;
-  color: #fff;
-  border-radius: 4px;
+  color: var(--gp-panel-text-dim);
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
 }
 
 .sofia-barra-formato button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
 }
 
 /* Overlay de resaltado de bloque: pointer-events:none es crítico — sin
    esto, el propio overlay (que se dibuja ARRIBA del iframe en el z-index)
    capturaría los clicks/mouseover que en realidad tienen que llegar al
-   contenido real dentro del iframe. */
+   contenido real dentro del iframe. Color: mismo naranja de acento del
+   mockup (--gp-accent), en vez del azul genérico anterior — coherente
+   con la paleta real en vez de una elegida sin referencia. */
 .sofia-resaltado-bloque {
   position: absolute;
   z-index: 5;
-  border: 2px dashed #7ea3d9;
+  border: 2px dashed var(--gp-accent);
   border-radius: 4px;
   pointer-events: none;
   transition: top 0.08s ease-out, left 0.08s ease-out, width 0.08s ease-out, height 0.08s ease-out;
@@ -111,11 +320,55 @@ body {
   position: absolute;
   top: -24px;
   left: -2px;
-  background: #7ea3d9;
-  color: #1e1e1e;
+  background: var(--gp-accent);
+  color: #1c0f08;
+  font-family: "Inter", sans-serif;
   font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px 4px 0 0;
   white-space: nowrap;
+}
+
+/* Menú contextual de un bloque (click derecho, ver
+   alHacerClickDerecho en editor-iframe.js) — mismo patrón de fondo
+   full-screen que el menú de agregar bloque, para poder cerrar con un
+   click afuera. */
+.sofia-menu-contextual__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+.sofia-menu-contextual {
+  position: absolute;
+  background: var(--gp-panel);
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  min-width: 160px;
+}
+
+.sofia-menu-contextual__opcion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sofia-menu-contextual__opcion:hover {
+  background: var(--gp-panel-2);
+}
+
+.sofia-menu-contextual__opcion--eliminar:hover {
+  background: var(--gp-danger-soft);
+  color: var(--gp-danger);
 }

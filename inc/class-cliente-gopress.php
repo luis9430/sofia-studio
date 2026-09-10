@@ -16,7 +16,7 @@ class Sofia_Cliente_GoPress {
 	 * no está configurado, la página no existe, o la request falla (el
 	 * llamador decide qué mostrar en ese caso, ver page.php).
 	 *
-	 * @return array{slug:string,estructura:array<int,array{tipo:string}>,contenido:array<string,string>}|null
+	 * @return array{slug:string,estructura:array<int,array{id:string,tipo:string}>,contenido:array<string,mixed>}|null
 	 */
 	public static function obtener_pagina( string $slug ): ?array {
 		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
@@ -67,7 +67,7 @@ class Sofia_Cliente_GoPress {
 	 * página, no un campo suelto) — mismo criterio que
 	 * store.ActualizarContenidoPaginaSitio del lado de GoPress.
 	 *
-	 * @param array<string,string> $contenido
+	 * @param array<string,mixed> $contenido
 	 * @return bool true si GoPress confirmó el guardado (200 OK).
 	 */
 	public static function guardar_contenido( string $slug, array $contenido ): bool {
@@ -108,7 +108,7 @@ class Sofia_Cliente_GoPress {
 	 * guardar_contenido(): $estructura siempre va COMPLETA, nunca "moví
 	 * este bloque a tal posición".
 	 *
-	 * @param array<int,array{tipo:string}> $estructura
+	 * @param array<int,array{id?:string,tipo:string}> $estructura
 	 * @return bool true si GoPress confirmó el guardado (200 OK).
 	 */
 	public static function guardar_estructura( string $slug, array $estructura ): bool {

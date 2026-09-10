@@ -11,16 +11,20 @@
 class Sofia_Componente_Factory {
 
 	/**
-	 * @param string               $tipo  ej. "hero", "franja_beneficios".
-	 * @param array<string,string> $props Props YA recortadas a este bloque
+	 * @param string             $tipo  ej. "hero", "franja_beneficios".
+	 * @param string             $id    ID de INSTANCIA de este bloque en la
+	 *                                  página (ver Sofia_Componente::$id) —
+	 *                                  distinto del tipo, generado por
+	 *                                  GoPress (store.GenerarIDBloque).
+	 * @param array<string,mixed> $props Props YA recortadas a este bloque
 	 *                                    (ver Sofia_Pagina::componentes()).
 	 */
-	public static function crear( string $tipo, array $props = array() ): ?Sofia_Componente {
+	public static function crear( string $tipo, string $id, array $props = array() ): ?Sofia_Componente {
 		switch ( $tipo ) {
 			case 'hero':
-				return new Sofia_Componente_Hero( $props );
+				return new Sofia_Componente_Hero( $tipo, $id, $props );
 			case 'franja_beneficios':
-				return new Sofia_Componente_Franja_Beneficios( $props );
+				return new Sofia_Componente_Franja_Beneficios( $tipo, $id, $props );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -53,7 +57,11 @@ class Sofia_Componente_Factory {
 	public static function catalogo(): array {
 		$catalogo = array();
 		foreach ( self::TIPOS_REGISTRADOS as $tipo ) {
-			$componente = self::crear( $tipo );
+			// ID dummy: este Componente nunca se renderiza como bloque real
+			// de página, solo se instancia para leer su nombre() — el ID de
+			// instancia real lo asigna GoPress (store.GenerarIDBloque) recién
+			// cuando el usuario elige este tipo en "+ Agregar bloque".
+			$componente = self::crear( $tipo, 'catalogo' );
 			if ( null === $componente ) {
 				continue;
 			}

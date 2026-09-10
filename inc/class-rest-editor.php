@@ -114,11 +114,19 @@ class Sofia_REST_Editor {
 	 * completo de la página: informa un campo a la vez, este endpoint
 	 * hace el merge — evita que un autosave de un campo pise el valor de
 	 * otro editado momentos antes en la misma sesión.
+	 *
+	 * $valor NO se castea a string: desde Nivel 2, un campo de tipo "lista
+	 * repetible" (ej. "franja_beneficios.items") manda un ARRAY de
+	 * objetos ({titulo, texto} por item), no texto plano — mismo mecanismo
+	 * que GoPress ya acepta (PaginaSitio.Contenido es map[string]any, ver
+	 * la memoria de producto "tema WP con editor de contenido"). Un campo
+	 * de texto normal (ej. "hero.titulo") sigue llegando como string sin
+	 * ningún cambio.
 	 */
 	public static function guardar_campo( WP_REST_Request $request ) {
 		$slug  = $request->get_param( 'slug' );
 		$campo = (string) $request->get_param( 'campo' );
-		$valor = (string) $request->get_param( 'valor' );
+		$valor = $request->get_param( 'valor' );
 
 		if ( '' === $campo ) {
 			return new WP_Error( 'sofia_campo_requerido', 'El parámetro "campo" es obligatorio.', array( 'status' => 400 ) );
@@ -129,8 +137,8 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_pagina_no_encontrada', 'No se pudo obtener la página desde GoPress.', array( 'status' => 502 ) );
 		}
 
-		$contenido          = $pagina['contenido'];
-		$contenido[ $campo ] = $valor;
+		$contenido = $pagina['contenido'];
+		self::asignar_valor_de_campo( $contenido, $campo, $valor );
 
 		if ( ! Sofia_Cliente_GoPress::guardar_contenido( $slug, $contenido ) ) {
 			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
@@ -138,6 +146,44 @@ class Sofia_REST_Editor {
 
 		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'contenido' => $contenido ) );
+	}
+
+	/**
+	 * Muta $contenido en el lugar correcto según la notación de $campo:
+	 *
+	 * - "id.campo" (2 segmentos, el caso normal): asigna directo,
+	 *   $contenido["id.campo"] = $valor — mismo comportamiento de siempre
+	 *   ("id" es el ID de instancia del bloque, ver
+	 *   Sofia_Componente::atributo_editable()).
+	 * - "id.lista.indice.subcampo" (4 segmentos, Nivel 2 — un item DENTRO
+	 *   de un campo de tipo lista repetible, ej.
+	 *   "a3f92c1b.items.0.titulo"): la clave real en $contenido es
+	 *   "id.lista" (ej. "a3f92c1b.items"), cuyo valor es un ARRAY de
+	 *   objetos — se muta el subcampo del item en ese índice, sin tocar el
+	 *   resto de la lista. Mismo "campo" que ya emite
+	 *   Sofia_Componente::atributo_editable() para cada item (ver
+	 *   class-franja-beneficios.php), el iframe nunca supo que esto era
+	 *   distinto de un campo normal — la interpretación vive acá, en un
+	 *   solo lugar.
+	 */
+	private static function asignar_valor_de_campo( array &$contenido, string $campo, $valor ): void {
+		$segmentos = explode( '.', $campo );
+		if ( 4 !== count( $segmentos ) ) {
+			$contenido[ $campo ] = $valor;
+			return;
+		}
+
+		list( $id, $lista, $indice, $subcampo ) = $segmentos;
+		$clave_lista = "{$id}.{$lista}";
+		$items       = is_array( $contenido[ $clave_lista ] ?? null ) ? $contenido[ $clave_lista ] : array();
+		$indice      = (int) $indice;
+
+		if ( ! isset( $items[ $indice ] ) || ! is_array( $items[ $indice ] ) ) {
+			$items[ $indice ] = array();
+		}
+		$items[ $indice ][ $subcampo ] = $valor;
+
+		$contenido[ $clave_lista ] = $items;
 	}
 
 	/**

@@ -14,19 +14,52 @@
  */
 abstract class Sofia_Componente {
 	/**
-	 * @var array<string,string> Valores ya resueltos para este bloque —
-	 *      clave corta (sin el prefijo "bloque."), ej. "titulo" en vez de
-	 *      "hero.titulo".
+	 * ID de INSTANCIA de este bloque — separado del "tipo" (que decide qué
+	 * clase PHP instanciar, ver Sofia_Componente_Factory::crear()), mismo
+	 * criterio confirmado contra Elementor/Bricks Builder (investigación
+	 * real: ambos separan "id" de "elType"/"name" como campos hermanos).
+	 * Bug real que este campo resuelve: sin ID de instancia, dos bloques
+	 * del MISMO tipo en la misma página (ej. 2 "Franja de beneficios")
+	 * compartían la misma clave de contenido ("franja_beneficios.items")
+	 * — editar uno pisaba el contenido guardado del otro. Con ID, la clave
+	 * pasa a ser "{id}.campo" — nunca ambigua entre instancias.
+	 */
+	protected string $id;
+
+	/**
+	 * Tipo de este Componente (ej. "hero", "franja_beneficios") — el mismo
+	 * que decide qué clase PHP instanciar en
+	 * Sofia_Componente_Factory::crear(). Guardado acá SOLO para poder
+	 * imprimirlo en atributos_seccion() (ver abajo): el JS del editor
+	 * necesita saber tanto el ID como el TIPO de cada bloque de nivel
+	 * superior para reconstruir la estructura completa tras reordenar o
+	 * eliminar uno — antes de este campo, el tipo se perdía por completo
+	 * una vez que atributo_editable() empezó a usar el ID en vez del tipo.
+	 */
+	protected string $tipo;
+
+	/**
+	 * @var array<string,mixed> Valores ya resueltos para este bloque —
+	 *      clave corta (sin el prefijo "id."), ej. "titulo" en vez de
+	 *      "a3f92c1b.titulo". La mayoría de campos son string (texto/URL
+	 *      de imagen), pero un campo de "lista repetible" (Nivel 2, ej.
+	 *      "items" de Franja de beneficios) es un array de objetos —
+	 *      mismo criterio que PaginaSitio.Contenido del lado GoPress
+	 *      (map[string]any, ver la memoria de producto "tema WP con
+	 *      editor de contenido").
 	 */
 	protected array $props = array();
 
 	/**
-	 * Construye un Componente ya con sus props resueltas — usado por
-	 * Sofia_Componente_Factory::crear(), nunca instanciado directo.
+	 * Construye un Componente ya con su tipo, ID de instancia y props
+	 * resueltas — usado por Sofia_Componente_Factory::crear(), nunca
+	 * instanciado directo.
 	 *
-	 * @param array<string,string> $props
+	 * @param array<string,mixed> $props
 	 */
-	final public function __construct( array $props = array() ) {
+	final public function __construct( string $tipo, string $id, array $props = array() ) {
+		$this->tipo  = $tipo;
+		$this->id    = $id;
 		$this->props = array_merge( $this->props_por_defecto(), $props );
 	}
 
@@ -35,7 +68,7 @@ abstract class Sofia_Componente {
 	 * para este bloque (ej. una página recién creada) — cada Componente
 	 * decide los suyos, para no mostrar una sección vacía en blanco.
 	 *
-	 * @return array<string,string>
+	 * @return array<string,mixed>
 	 */
 	protected function props_por_defecto(): array {
 		return array();
@@ -72,14 +105,60 @@ abstract class Sofia_Componente {
 	abstract public function nombre(): string;
 
 	/**
-	 * Atributo data-sofia-campo="bloque.campo" en el elemento editable —
-	 * el editor in-place (panel de GoPress) lo usa para saber qué campo
-	 * de PaginaSitio.Contenido actualizar al editar ese elemento del
-	 * iframe. $tipo debe ser el mismo "tipo" del bloque en la estructura
-	 * de la plantilla (ver class-componente-factory.php).
+	 * Atributos data-sofia-bloque-id/data-sofia-bloque-tipo en la <section>
+	 * raíz de este Componente — editor-iframe.js los lee directo (en vez
+	 * de "adivinar" el tipo a partir del primer data-sofia-campo, que ya
+	 * no lo contiene desde que atributo_editable() usa el ID) para
+	 * reconstruir {id, tipo} de cada bloque al reordenar/eliminar un
+	 * bloque de nivel superior — ver activarReordenar()/alEliminarBloque().
+	 * Cada Componente debe usar esto al abrir su <section>, ej.:
+	 *   '<section class="sofia-hero" ' . $this->atributos_seccion() . '>'
 	 */
-	protected function atributo_editable( string $tipo, string $campo ): string {
-		return sprintf( 'data-sofia-campo="%s.%s"', esc_attr( $tipo ), esc_attr( $campo ) );
+	protected function atributos_seccion(): string {
+		return sprintf(
+			'data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s"',
+			esc_attr( $this->id ),
+			esc_attr( $this->tipo )
+		);
+	}
+
+	/**
+	 * Atributo data-sofia-campo="{id}.campo" en el elemento editable — el
+	 * editor in-place (panel de GoPress) lo usa para saber qué campo de
+	 * PaginaSitio.Contenido actualizar al editar ese elemento del iframe.
+	 * Usa $this->id (la INSTANCIA), no el tipo — desde que dos bloques del
+	 * mismo tipo dejaron de compartir contenido (ver el comentario de
+	 * $id arriba), cada Componente arma esta notación con su propio ID.
+	 */
+	protected function atributo_editable( string $campo ): string {
+		return sprintf( 'data-sofia-campo="%s.%s"', esc_attr( $this->id ), esc_attr( $campo ) );
+	}
+
+	/**
+	 * Botón "+ Agregar item" al final de una lista repetible (Nivel 2,
+	 * sub-items — ver class-franja-beneficios.php) — SOLO se imprime en
+	 * modo editor (Sofia_Modo_Editor::activo()), nunca en una visita
+	 * pública real, mismo criterio que el resto de chrome de edición
+	 * (handles de arrastre, contenteditable). editor-iframe.js engancha
+	 * el click y manda "sofia:agregar-item-lista" al panel padre — el
+	 * HTML del item nuevo lo emite PHP tras guardar, mismo patrón que
+	 * "agregar bloque" de nivel superior: el iframe nunca inventa HTML de
+	 * un Componente.
+	 *
+	 * $nombre_campo es el nombre corto del campo de lista dentro de ESTE
+	 * Componente (ej. "items") — se le antepone $this->id para armar la
+	 * clave completa ("{id}.items"), igual que atributo_editable().
+	 */
+	protected function boton_agregar_item( string $nombre_campo ): string {
+		if ( ! class_exists( 'Sofia_Modo_Editor' ) || ! Sofia_Modo_Editor::activo() ) {
+			return '';
+		}
+		return sprintf(
+			'<button type="button" class="sofia-boton-agregar-item" data-sofia-agregar-item="%s.%s">+ %s</button>',
+			esc_attr( $this->id ),
+			esc_attr( $nombre_campo ),
+			esc_html__( 'Agregar', 'sofia-studio' )
+		);
 	}
 
 	/**
