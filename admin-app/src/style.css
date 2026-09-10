@@ -268,54 +268,35 @@ body {
   background: var(--gp-panel-2);
 }
 
-/* Barra de formato: mismo patrón "flotante sobre el iframe" que la barra
-   de estado — position:absolute, coordenadas calculadas dentro del iframe
-   coinciden 1:1 con este documento porque el iframe es full-bleed a
-   inset:0 (ver App.jsx, sin offset que sumar). */
-.sofia-barra-formato {
+/* Botón "editar estilo" (✏️): aparece pegado al borde derecho del campo
+   tras un solo click (ver BotonEditarCampo.jsx) — reemplaza la barra de
+   formato flotante que antes exigía SELECCIONAR texto (arrastrando), un
+   gesto poco descubierto por el usuario con un simple click. */
+.sofia-boton-editar-campo {
   position: absolute;
   z-index: 20;
-  display: flex;
-  gap: 2px;
-  background: var(--gp-panel);
-  border: 1px solid var(--gp-panel-border);
-  border-radius: 9px;
-  padding: 4px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
-  transform: translateX(-50%);
-}
-
-.sofia-barra-formato button {
-  min-width: 28px;
+  width: 28px;
   height: 28px;
-  padding: 0 8px;
-  border: none;
-  background: transparent;
-  color: var(--gp-panel-text-dim);
-  border-radius: 6px;
+  margin-left: 4px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel);
+  border-radius: 7px;
   cursor: pointer;
   font-size: 13px;
-  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-.sofia-barra-formato button:hover {
+.sofia-boton-editar-campo:hover {
   background: var(--gp-panel-2);
-  color: var(--gp-panel-text);
 }
 
-.sofia-barra-formato__separador {
-  width: 1px;
-  margin: 4px 2px;
-  background: var(--gp-panel-border);
-}
-
-/* Drawer de estilo (Nivel 3) — panel lateral fijo a la derecha del
-   viewport del iframe, mismo criterio de "controles fuera del documento
-   del iframe" que BarraFormato/MenuContextualBloque. Ancla a la derecha
-   (no a la posición de la selección, como la barra de formato) porque el
-   drawer es más alto/persistente — seguir la selección lo haría saltar de
-   lugar cada vez que el usuario elige otro campo mientras lo tiene
-   abierto. */
+/* Drawer de estilo (Nivel 3) — panel lateral, ancla inicial a la esquina
+   superior derecha del viewport del iframe (mismo criterio de "controles
+   fuera del documento del iframe" que MenuContextualBloque), arrastrable
+   desde ahí por su cabecera — pedido explícito del usuario: en el último
+   bloque de una página, el drawer fijo tapaba contenido sin forma de
+   esquivarlo. El offset de arrastre se aplica vía transform (ver
+   DrawerEstilo.jsx), top/right/bottom siguen fijos como posición base. */
 .sofia-drawer-estilo {
   position: absolute;
   top: 16px;
@@ -336,6 +317,7 @@ body {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--gp-panel-border);
+  cursor: move; /* arrastra el drawer — ver alPresionarCabecera en DrawerEstilo.jsx */
 }
 
 .sofia-drawer-estilo__tabs {
@@ -412,6 +394,26 @@ body {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--gp-panel-text-dim);
+}
+
+.sofia-drawer-estilo__formato {
+  display: flex;
+  gap: 6px;
+}
+
+.sofia-drawer-estilo__formato button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.sofia-drawer-estilo__formato button:hover {
+  color: var(--gp-panel-text);
 }
 
 .sofia-drawer-estilo__alineaciones {

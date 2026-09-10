@@ -10,14 +10,14 @@
  * decide cuándo/cómo persistir (autosave, debounce, llamada al proxy REST
  * sofia/v1) — ver la memoria de producto "Sofia Studio".
  *
- * La barra de formato flotante (negrita/cursiva) vive en el panel padre,
- * NUNCA acá — mismo patrón "controles fuera del documento del iframe"
- * validado contra Bricks/AEM (ver la memoria de producto). Este script
- * solo informa POSICIÓN de la selección vía postMessage; el padre dibuja
- * la barra y, al hacer click en un botón, manda un mensaje de vuelta
- * ("sofia:aplicar-formato") que este script ejecuta con
- * document.execCommand — el único lugar donde el DOM real del texto se
- * toca es acá, dentro del iframe.
+ * El drawer de estilo (alineación, color, negrita/cursiva) vive en el
+ * panel padre, NUNCA acá — mismo patrón "controles fuera del documento del
+ * iframe" validado contra Bricks/AEM (ver la memoria de producto). Este
+ * script solo informa un click sobre un campo vía postMessage
+ * ("sofia:campo-clickeado"); el padre dibuja el botón ✏️ y el drawer, y al
+ * cambiar algo manda un mensaje de vuelta ("sofia:aplicar-formato" /
+ * "sofia:aplicar-estilo") que este script ejecuta — el único lugar donde
+ * el DOM real del texto se toca es acá, dentro del iframe.
  */
 (function () {
 	"use strict";
@@ -47,6 +47,22 @@
 				notificarCambio(campo, el.innerHTML.trim());
 			}, 50);
 		});
+		// Un solo click (sin seleccionar texto) muestra un botón pequeño
+		// "editar estilo" pegado al campo — pedido explícito del usuario:
+		// antes solo aparecía al SELECCIONAR texto (arrastrando), lo cual no
+		// era descubrible con un click simple.
+		el.addEventListener("click", function () {
+			var rect = el.getBoundingClientRect();
+			window.parent.postMessage(
+				{
+					tipo: "sofia:campo-clickeado",
+					campo: campo,
+					rect: { top: rect.top, left: rect.left, width: rect.width, bottom: rect.bottom },
+					estilo: estiloActualDe(el),
+				},
+				"*"
+			);
+		});
 	}
 
 	function activarImagen(el) {
@@ -69,39 +85,25 @@
 		});
 	}
 
-	// Detecta selección de texto DENTRO de un elemento editable y avisa al
-	// padre dónde dibujar la barra flotante — las coordenadas de
-	// getBoundingClientRect() son relativas a ESTE documento (el del
-	// iframe), por eso el padre las usa tal cual: un iframe con
-	// posición fija a inset:0 hace que las coordenadas internas coincidan
-	// con las del documento padre sin ningún offset que sumar.
+	// Solo actualiza elementoConSeleccion — la referencia que
+	// alAplicarEstilo()/"sofia:aplicar-formato" (negrita/cursiva, ver
+	// alRecibirMensajeDelPadre) necesitan para saber sobre qué elemento
+	// aplicar document.execCommand. Ya NO dibuja ninguna UI en el padre: el
+	// drawer se abre con un click simple (ver "sofia:campo-clickeado" en
+	// activarTexto), no con este evento — antes, la única forma de llegar
+	// al control de estilo era ARRASTRAR para seleccionar texto, un gesto
+	// poco descubrible que el usuario señaló explícitamente.
 	function alCambiarSeleccion() {
 		var seleccion = window.getSelection();
 		if (!seleccion || seleccion.isCollapsed || seleccion.rangeCount === 0) {
 			elementoConSeleccion = null;
-			window.parent.postMessage({ tipo: "sofia:seleccion-vacia" }, "*");
 			return;
 		}
 
 		var nodo = seleccion.anchorNode;
 		var elemento = nodo && nodo.nodeType === Node.TEXT_NODE ? nodo.parentElement : nodo;
 		var campoEditable = elemento ? elemento.closest("[data-sofia-campo][contenteditable]") : null;
-		if (!campoEditable) {
-			elementoConSeleccion = null;
-			return;
-		}
-
-		elementoConSeleccion = campoEditable;
-		var rect = seleccion.getRangeAt(0).getBoundingClientRect();
-		window.parent.postMessage(
-			{
-				tipo: "sofia:seleccion-texto",
-				rect: { top: rect.top, left: rect.left, width: rect.width, bottom: rect.bottom },
-				campo: campoEditable.getAttribute("data-sofia-campo"),
-				estilo: estiloActualDe(campoEditable),
-			},
-			"*"
-		);
+		elementoConSeleccion = campoEditable || null;
 	}
 
 	// Lee el estilo YA APLICADO al elemento (por Sofia_Componente::atributo_estilo()

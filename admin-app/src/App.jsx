@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { BarraFormato } from "./BarraFormato.jsx";
+import { BotonEditarCampo } from "./BotonEditarCampo.jsx";
 import { DrawerEstilo } from "./DrawerEstilo.jsx";
 import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
@@ -18,9 +18,11 @@ const RETRASO_GUARDADO_MS = 400;
  * producto "Sofia Studio" sobre por qué se eligió pulir el iframe en vez de
  * eliminarlo) con una barra de estado flotante SOBRE el contenido, nunca
  * empujando el layout — mismo patrón documentado en Bricks/Elementor/AEM:
- * los controles viven fuera del documento del iframe, superpuestos. La
- * barra de formato (BarraFormato.jsx) sigue el mismo patrón para
- * negrita/cursiva al seleccionar texto.
+ * los controles viven fuera del documento del iframe, superpuestos. Todo
+ * control de un campo (negrita/cursiva, alineación, color) vive en el
+ * drawer de estilo (DrawerEstilo.jsx), abierto con el botón ✏️ que aparece
+ * al hacer click en el campo (BotonEditarCampo.jsx) — un solo control por
+ * campo, en vez de una barra de formato aparte más el drawer.
  *
  * El iframe nunca guarda nada por su cuenta (ver inc/js/editor-iframe.js)
  * — solo informa cambios vía postMessage, que este componente escucha y
@@ -31,17 +33,21 @@ export function App({ config }) {
   const iframeRef = useRef(null);
   const timersPorCampo = useRef({});
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
-  const [posicionSeleccion, setPosicionSeleccion] = useState(null);
-  // Campo+estilo del drawer de estilo (Nivel 3) — se llenan al recibir
-  // "sofia:seleccion-texto" (ver estiloActualDe() en editor-iframe.js) y se
-  // RETIENEN mientras el drawer sigue abierto, aunque la selección de texto
-  // en el iframe se vacíe (ej. el usuario mueve el mouse hacia los
-  // controles del drawer, fuera del iframe) — sin esto, el drawer se
-  // cerraría solo apenas el foco saliera del iframe, antes de que el click
-  // en un swatch de color llegara a procesarse.
+  // Botón "editar estilo" (✏️) que aparece al hacer UN SOLO click sobre un
+  // campo editable (ver "sofia:campo-clickeado" en editor-iframe.js,
+  // activarTexto) — reemplaza la barra de formato flotante que antes solo
+  // aparecía al SELECCIONAR texto (arrastrando), un gesto poco descubrible
+  // que el usuario señaló explícitamente. Retiene {campo, rect, estilo} del
+  // ÚLTIMO click, insumo para abrir el drawer al presionar el botón.
+  const [campoClickeado, setCampoClickeado] = useState(null); // { campo, rect, estilo } | null
+  // Campo+estilo del drawer de estilo (Nivel 3) — RETENIDO mientras el
+  // drawer sigue abierto, aunque el usuario haga click en otro campo (en
+  // ese caso el drawer simplemente cambia de campo, ver alRecibirMensaje) o
+  // mueva el mouse hacia los propios controles del drawer (fuera del
+  // iframe) — sin esto, un segundo click en el mismo campo o un drag del
+  // drawer podría perder el campo activo a mitad de camino.
   const [drawerEstilo, setDrawerEstilo] = useState(null); // { campo, estilo } | null
   const drawerAbierto = useRef(false);
-  const ultimaSeleccion = useRef(null); // { campo, estilo } del último "sofia:seleccion-texto" — insumo para abrir el drawer desde el botón "Estilo".
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [catalogoBloques, setCatalogoBloques] = useState([]);
   const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
@@ -83,19 +89,15 @@ export function App({ config }) {
         programarGuardado(datos.campo, datos.valor);
         return;
       }
-      if (datos.tipo === "sofia:seleccion-texto") {
-        setPosicionSeleccion(datos.rect);
-        ultimaSeleccion.current = { campo: datos.campo, estilo: datos.estilo };
-        // Mientras el drawer está abierto, sigue el campo seleccionado
-        // (el usuario puede seleccionar otro texto sin cerrar el drawer) —
-        // fuera de eso, solo actualiza posición, sin tocar el drawer.
+      if (datos.tipo === "sofia:campo-clickeado") {
+        setCampoClickeado({ campo: datos.campo, rect: datos.rect, estilo: datos.estilo });
+        // Si el drawer YA estaba abierto, un click en otro campo lo mueve
+        // a ese campo nuevo directo — evita el paso extra de cerrar y
+        // volver a abrir con el botón ✏️ cuando el usuario va editando
+        // varios campos seguidos.
         if (drawerAbierto.current) {
           setDrawerEstilo({ campo: datos.campo, estilo: datos.estilo });
         }
-        return;
-      }
-      if (datos.tipo === "sofia:seleccion-vacia") {
-        setPosicionSeleccion(null);
         return;
       }
       if (datos.tipo === "sofia:bloque-resaltado") {
@@ -181,19 +183,22 @@ export function App({ config }) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:aplicar-formato", comando }, "*");
   }
 
-  // Abre el drawer de estilo (Nivel 3) sobre el campo con selección activa
-  // — reusa ultimaSeleccion.current en vez de un nuevo postMessage
-  // "¿cuál es el campo seleccionado?": el iframe ya lo manda con cada
-  // "sofia:seleccion-texto" (ver estiloActualDe() en editor-iframe.js).
+  // Abre el drawer de estilo (Nivel 3) sobre el campo del último click (ver
+  // campoClickeado, llenado por "sofia:campo-clickeado" en
+  // editor-iframe.js) — el botón ✏️ que lo dispara solo se muestra cuando
+  // campoClickeado existe, así que este chequeo es más una guarda de tipos
+  // que un caso real esperado.
   function abrirDrawerEstilo() {
-    if (!ultimaSeleccion.current) return;
+    if (!campoClickeado) return;
     drawerAbierto.current = true;
-    setDrawerEstilo(ultimaSeleccion.current);
+    setDrawerEstilo({ campo: campoClickeado.campo, estilo: campoClickeado.estilo });
+    setCampoClickeado(null); // el drawer ya abierto reemplaza al botón ✏️.
   }
 
   function cerrarDrawerEstilo() {
     drawerAbierto.current = false;
     setDrawerEstilo(null);
+    setCampoClickeado(null);
   }
 
   // El iframe aplica el estilo al elemento real Y notifica el cambio para
@@ -347,12 +352,16 @@ export function App({ config }) {
           <div className="sofia-sitio-viewport">
             <iframe ref={iframeRef} src={urlIframe} title="Editor de página" className="sofia-editor-admin__iframe" />
             <ResaltadoBloque bloque={bloqueResaltado} />
-            <BarraFormato posicion={posicionSeleccion} onAplicarFormato={aplicarFormato} onAbrirEstilo={abrirDrawerEstilo} />
+            {campoClickeado && !drawerEstilo && (
+              <BotonEditarCampo rect={campoClickeado.rect} onClick={abrirDrawerEstilo} />
+            )}
             {drawerEstilo && (
               <DrawerEstilo
+                key={drawerEstilo.campo}
                 campo={drawerEstilo.campo}
                 estilo={drawerEstilo.estilo}
                 onCambiarEstilo={cambiarEstiloDrawer}
+                onAplicarFormato={aplicarFormato}
                 onCerrar={cerrarDrawerEstilo}
               />
             )}

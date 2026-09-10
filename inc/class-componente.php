@@ -237,9 +237,9 @@ abstract class Sofia_Componente {
 
 	/**
 	 * ETIQUETAS_FORMATO_PERMITIDAS es el whitelist completo de formato
-	 * rico que un campo de texto puede llevar — ver la barra de formato
-	 * flotante del editor (admin-app/src/BarraFormato.jsx), que hoy solo
-	 * ofrece negrita/cursiva. Deliberadamente chico: el contenido de un
+	 * rico que un campo de texto puede llevar — ver el drawer de estilo del
+	 * editor (admin-app/src/DrawerEstilo.jsx), que hoy solo ofrece
+	 * negrita/cursiva. Deliberadamente chico: el contenido de un
 	 * campo sigue siendo "texto con un poco de énfasis", nunca HTML
 	 * arbitrario (sin <div>, <script>, atributos de estilo, etc.) — mismo
 	 * criterio de "estructura fija, solo contenido editable" que el resto

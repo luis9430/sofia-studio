@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 
 /**
  * Drawer de estilo — panel lateral con pestañas (Estilo | Visibilidad |
@@ -11,10 +11,22 @@ import { useState } from "preact/hooks";
  * código propio todavía, así que aparecen como "próx." en vez de ocultarse
  * — evita tener que re-maquetar el contenedor cuando tengan contenido real.
  *
- * Igual que BarraFormato/MenuContextualBloque: vive FUERA del documento del
- * iframe, nunca toca su DOM directo — manda "sofia:aplicar-estilo" y deja
- * que sea el propio iframe quien aplique el cambio al elemento real (ver
- * alAplicarEstilo en editor-iframe.js).
+ * Único control por campo: negrita/cursiva viven ACÁ (no en una barra de
+ * formato aparte) — mismo criterio de "un solo lugar para todo lo de este
+ * campo" que motivó el drawer en primer lugar.
+ *
+ * Vive FUERA del documento del iframe, nunca toca su DOM directo — manda
+ * "sofia:aplicar-estilo"/"sofia:aplicar-formato" y deja que sea el propio
+ * iframe quien aplique el cambio al elemento real (ver alAplicarEstilo /
+ * alRecibirMensajeDelPadre en editor-iframe.js).
+ *
+ * Arrastrable por la cabecera — pedido explícito del usuario: en el último
+ * bloque de una página, el drawer anclado a la esquina superior derecha
+ * tapaba contenido sin espacio para esquivarlo. offsetArrastre es un
+ * desplazamiento relativo a la posición CSS de anclaje (top/right fijos en
+ * style.css) — se resetea a {0,0} en cada campo nuevo (ver la key en
+ * App.jsx) para que el drawer siempre "aparezca" en su esquina de siempre,
+ * en vez de arrastrar la posición vieja de un campo distinto.
  */
 const PALETA_COLORES = [
   { valor: "", etiqueta: "Por defecto" },
@@ -30,8 +42,10 @@ const ALINEACIONES = [
   { valor: "right", etiqueta: "Derecha", icono: "≡" },
 ];
 
-export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onCerrar }) {
+export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato, onCerrar }) {
   const [tab, setTab] = useState("estilo");
+  const [offsetArrastre, setOffsetArrastre] = useState({ x: 0, y: 0 });
+  const arrastreRef = useRef(null); // { inicioX, inicioY, offsetInicial } mientras el mouse está presionado.
 
   if (!campo) return null;
 
@@ -39,13 +53,41 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onCerrar }) {
     onCambiarEstilo({ ...estilo, ...cambios });
   }
 
+  function alPresionarCabecera(evento) {
+    // Ignora clicks sobre botones de la propia cabecera (tabs, cerrar) —
+    // solo el área libre de la cabecera arrastra el drawer.
+    if (evento.target.closest("button")) return;
+    arrastreRef.current = { inicioX: evento.clientX, inicioY: evento.clientY, offsetInicial: offsetArrastre };
+    window.addEventListener("mousemove", alMoverMouse);
+    window.addEventListener("mouseup", alSoltarMouse);
+  }
+
+  function alMoverMouse(evento) {
+    if (!arrastreRef.current) return;
+    const { inicioX, inicioY, offsetInicial } = arrastreRef.current;
+    setOffsetArrastre({
+      x: offsetInicial.x + (evento.clientX - inicioX),
+      y: offsetInicial.y + (evento.clientY - inicioY),
+    });
+  }
+
+  function alSoltarMouse() {
+    arrastreRef.current = null;
+    window.removeEventListener("mousemove", alMoverMouse);
+    window.removeEventListener("mouseup", alSoltarMouse);
+  }
+
   return (
-    <div className="sofia-drawer-estilo" onMouseDown={(evento) => evento.preventDefault()}>
-      <div className="sofia-drawer-estilo__cabecera">
+    <div
+      className="sofia-drawer-estilo"
+      style={{ transform: `translate(${offsetArrastre.x}px, ${offsetArrastre.y}px)` }}
+    >
+      <div className="sofia-drawer-estilo__cabecera" onMouseDown={alPresionarCabecera}>
         <div className="sofia-drawer-estilo__tabs">
           <button
             type="button"
             className={`sofia-drawer-estilo__tab ${tab === "estilo" ? "sofia-drawer-estilo__tab--activo" : ""}`}
+            onMouseDown={(evento) => evento.stopPropagation()}
             onClick={() => setTab("estilo")}
           >
             Estilo
@@ -53,6 +95,7 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onCerrar }) {
           <button
             type="button"
             className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
+            onMouseDown={(evento) => evento.stopPropagation()}
             title="Próximamente: condición de visibilidad por regla"
           >
             Visibilidad <span>próx.</span>
@@ -60,18 +103,37 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onCerrar }) {
           <button
             type="button"
             className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
+            onMouseDown={(evento) => evento.stopPropagation()}
             title="Próximamente: fuente dinámica (Post, Propiedad, Testimonio)"
           >
             Datos <span>próx.</span>
           </button>
         </div>
-        <button type="button" className="sofia-drawer-estilo__cerrar" onClick={onCerrar} title="Cerrar">
+        <button
+          type="button"
+          className="sofia-drawer-estilo__cerrar"
+          onMouseDown={(evento) => evento.stopPropagation()}
+          onClick={onCerrar}
+          title="Cerrar"
+        >
           ×
         </button>
       </div>
 
       {tab === "estilo" && (
-        <div className="sofia-drawer-estilo__cuerpo">
+        <div className="sofia-drawer-estilo__cuerpo" onMouseDown={(evento) => evento.preventDefault()}>
+          <div className="sofia-drawer-estilo__grupo">
+            <span className="sofia-drawer-estilo__etiqueta">Texto</span>
+            <div className="sofia-drawer-estilo__formato">
+              <button type="button" onClick={() => onAplicarFormato("bold")} title="Negrita">
+                <strong>B</strong>
+              </button>
+              <button type="button" onClick={() => onAplicarFormato("italic")} title="Cursiva">
+                <em>I</em>
+              </button>
+            </div>
+          </div>
+
           <div className="sofia-drawer-estilo__grupo">
             <span className="sofia-drawer-estilo__etiqueta">Alineación</span>
             <div className="sofia-drawer-estilo__alineaciones">
