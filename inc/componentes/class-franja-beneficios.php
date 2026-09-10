@@ -61,8 +61,8 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 			$titulo = $this->texto_enriquecido( (string) ( $item['titulo'] ?? '' ) );
 			$texto  = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
 			$html  .= '<div class="sofia-franja-beneficios__item" data-sofia-item="' . (int) $indice . '">';
-			$html  .= '<h3 ' . $this->atributo_editable( "items.{$indice}.titulo" ) . '>' . $titulo . '</h3>';
-			$html  .= '<p ' . $this->atributo_editable( "items.{$indice}.texto" ) . '>' . $texto . '</p>';
+			$html  .= '<h3 ' . $this->atributo_editable( "items.{$indice}.titulo" ) . ' ' . $this->atributo_estilo( "items.{$indice}.titulo" ) . '>' . $titulo . '</h3>';
+			$html  .= '<p ' . $this->atributo_editable( "items.{$indice}.texto" ) . ' ' . $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</p>';
 			$html  .= '</div>';
 		}
 		$html .= '</div>';

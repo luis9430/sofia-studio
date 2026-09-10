@@ -28,8 +28,8 @@ class Sofia_Componente_CTA extends Sofia_Componente {
 		$boton_enlace = esc_url( $this->props['boton_enlace'] );
 
 		$html  = '<section class="sofia-cta" ' . $this->atributos_seccion() . '>';
-		$html .= '<h2 ' . $this->atributo_editable( 'titulo' ) . '>' . $titulo . '</h2>';
-		$html .= '<p ' . $this->atributo_editable( 'texto' ) . '>' . $texto . '</p>';
+		$html .= '<h2 ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h2>';
+		$html .= '<p ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</p>';
 		// El enlace del botón (href) NO es contenteditable — es un
 		// atributo, no texto visible. Mismo criterio que
 		// Sofia_Componente_Hero con el src de una imagen: el editor
@@ -37,7 +37,7 @@ class Sofia_Componente_CTA extends Sofia_Componente {
 		// la URL de destino queda fuera de alcance de Nivel 1/2 (no hay
 		// UI hoy para editar un href) — anotado como pendiente futuro si
 		// hiciera falta.
-		$html .= '<a class="sofia-cta__boton" href="' . $boton_enlace . '" ' . $this->atributo_editable( 'boton_texto' ) . '>' . $boton_texto . '</a>';
+		$html .= '<a class="sofia-cta__boton" href="' . $boton_enlace . '" ' . $this->atributo_editable( 'boton_texto' ) . ' ' . $this->atributo_estilo( 'boton_texto' ) . '>' . $boton_texto . '</a>';
 		$html .= '</section>';
 		return $html;
 	}

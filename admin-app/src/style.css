@@ -286,19 +286,183 @@ body {
 }
 
 .sofia-barra-formato button {
-  width: 28px;
+  min-width: 28px;
   height: 28px;
+  padding: 0 8px;
   border: none;
   background: transparent;
   color: var(--gp-panel-text-dim);
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .sofia-barra-formato button:hover {
   background: var(--gp-panel-2);
   color: var(--gp-panel-text);
+}
+
+.sofia-barra-formato__separador {
+  width: 1px;
+  margin: 4px 2px;
+  background: var(--gp-panel-border);
+}
+
+/* Drawer de estilo (Nivel 3) — panel lateral fijo a la derecha del
+   viewport del iframe, mismo criterio de "controles fuera del documento
+   del iframe" que BarraFormato/MenuContextualBloque. Ancla a la derecha
+   (no a la posición de la selección, como la barra de formato) porque el
+   drawer es más alto/persistente — seguir la selección lo haría saltar de
+   lugar cada vez que el usuario elige otro campo mientras lo tiene
+   abierto. */
+.sofia-drawer-estilo {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 260px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  background: var(--gp-panel);
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.sofia-drawer-estilo__cabecera {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--gp-panel-border);
+}
+
+.sofia-drawer-estilo__tabs {
+  display: flex;
+  flex: 1;
+}
+
+.sofia-drawer-estilo__tab {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.sofia-drawer-estilo__tab--activo {
+  color: var(--gp-panel-text);
+  border-bottom-color: var(--gp-accent);
+}
+
+.sofia-drawer-estilo__tab--proximo {
+  cursor: default;
+  color: var(--gp-panel-text-dim);
+  opacity: 0.55;
+}
+
+.sofia-drawer-estilo__tab--proximo span {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sofia-drawer-estilo__cerrar {
+  width: 32px;
+  height: 32px;
+  margin-right: 4px;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sofia-drawer-estilo__cerrar:hover {
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+}
+
+.sofia-drawer-estilo__cuerpo {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.sofia-drawer-estilo__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sofia-drawer-estilo__etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--gp-panel-text-dim);
+}
+
+.sofia-drawer-estilo__alineaciones {
+  display: flex;
+  gap: 6px;
+}
+
+.sofia-drawer-estilo__alineacion {
+  flex: 1;
+  height: 32px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.sofia-drawer-estilo__alineacion:hover {
+  color: var(--gp-panel-text);
+}
+
+.sofia-drawer-estilo__alineacion--activo {
+  background: var(--gp-accent-soft);
+  border-color: var(--gp-accent);
+  color: var(--gp-accent-text);
+}
+
+.sofia-drawer-estilo__swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sofia-drawer-estilo__swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--gp-panel-border);
+  cursor: pointer;
+  background: var(--gp-panel-2);
+}
+
+.sofia-drawer-estilo__swatch--vacio {
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 1px), var(--gp-danger) calc(50% - 1px), var(--gp-danger) calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+.sofia-drawer-estilo__swatch--activo {
+  border-color: var(--gp-accent);
+  box-shadow: 0 0 0 2px var(--gp-accent-soft);
 }
 
 /* Overlay de resaltado de bloque: pointer-events:none es crítico — sin

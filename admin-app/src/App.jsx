@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { BarraFormato } from "./BarraFormato.jsx";
+import { DrawerEstilo } from "./DrawerEstilo.jsx";
 import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
 import { MenuContextualBloque } from "./MenuContextualBloque.jsx";
@@ -31,6 +32,16 @@ export function App({ config }) {
   const timersPorCampo = useRef({});
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
   const [posicionSeleccion, setPosicionSeleccion] = useState(null);
+  // Campo+estilo del drawer de estilo (Nivel 3) — se llenan al recibir
+  // "sofia:seleccion-texto" (ver estiloActualDe() en editor-iframe.js) y se
+  // RETIENEN mientras el drawer sigue abierto, aunque la selección de texto
+  // en el iframe se vacíe (ej. el usuario mueve el mouse hacia los
+  // controles del drawer, fuera del iframe) — sin esto, el drawer se
+  // cerraría solo apenas el foco saliera del iframe, antes de que el click
+  // en un swatch de color llegara a procesarse.
+  const [drawerEstilo, setDrawerEstilo] = useState(null); // { campo, estilo } | null
+  const drawerAbierto = useRef(false);
+  const ultimaSeleccion = useRef(null); // { campo, estilo } del último "sofia:seleccion-texto" — insumo para abrir el drawer desde el botón "Estilo".
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [catalogoBloques, setCatalogoBloques] = useState([]);
   const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
@@ -74,6 +85,13 @@ export function App({ config }) {
       }
       if (datos.tipo === "sofia:seleccion-texto") {
         setPosicionSeleccion(datos.rect);
+        ultimaSeleccion.current = { campo: datos.campo, estilo: datos.estilo };
+        // Mientras el drawer está abierto, sigue el campo seleccionado
+        // (el usuario puede seleccionar otro texto sin cerrar el drawer) —
+        // fuera de eso, solo actualiza posición, sin tocar el drawer.
+        if (drawerAbierto.current) {
+          setDrawerEstilo({ campo: datos.campo, estilo: datos.estilo });
+        }
         return;
       }
       if (datos.tipo === "sofia:seleccion-vacia") {
@@ -161,6 +179,36 @@ export function App({ config }) {
   // toca el DOM del iframe directo, solo le pide que aplique el comando.
   function aplicarFormato(comando) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:aplicar-formato", comando }, "*");
+  }
+
+  // Abre el drawer de estilo (Nivel 3) sobre el campo con selección activa
+  // — reusa ultimaSeleccion.current en vez de un nuevo postMessage
+  // "¿cuál es el campo seleccionado?": el iframe ya lo manda con cada
+  // "sofia:seleccion-texto" (ver estiloActualDe() en editor-iframe.js).
+  function abrirDrawerEstilo() {
+    if (!ultimaSeleccion.current) return;
+    drawerAbierto.current = true;
+    setDrawerEstilo(ultimaSeleccion.current);
+  }
+
+  function cerrarDrawerEstilo() {
+    drawerAbierto.current = false;
+    setDrawerEstilo(null);
+  }
+
+  // El iframe aplica el estilo al elemento real Y notifica el cambio para
+  // persistir (ver alAplicarEstilo en editor-iframe.js) — este panel nunca
+  // toca el DOM del iframe directo, mismo patrón que aplicarFormato().
+  // Actualiza el estado local del drawer de inmediato (sin esperar el
+  // roundtrip del iframe) para que los swatches reflejen la selección al
+  // instante.
+  function cambiarEstiloDrawer(estiloNuevo) {
+    if (!drawerEstilo) return;
+    setDrawerEstilo({ ...drawerEstilo, estilo: estiloNuevo });
+    iframeRef.current?.contentWindow.postMessage(
+      { tipo: "sofia:aplicar-estilo", campo: drawerEstilo.campo, estilo: estiloNuevo },
+      "*"
+    );
   }
 
   // Eliminar bloque: comando explícito desde el menú contextual, mismo
@@ -299,7 +347,15 @@ export function App({ config }) {
           <div className="sofia-sitio-viewport">
             <iframe ref={iframeRef} src={urlIframe} title="Editor de página" className="sofia-editor-admin__iframe" />
             <ResaltadoBloque bloque={bloqueResaltado} />
-            <BarraFormato posicion={posicionSeleccion} onAplicarFormato={aplicarFormato} />
+            <BarraFormato posicion={posicionSeleccion} onAplicarFormato={aplicarFormato} onAbrirEstilo={abrirDrawerEstilo} />
+            {drawerEstilo && (
+              <DrawerEstilo
+                campo={drawerEstilo.campo}
+                estilo={drawerEstilo.estilo}
+                onCambiarEstilo={cambiarEstiloDrawer}
+                onCerrar={cerrarDrawerEstilo}
+              />
+            )}
             <MenuContextualBloque
               posicion={menuContextual}
               onEliminarBloque={eliminarBloque}

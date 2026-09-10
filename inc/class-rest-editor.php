@@ -165,11 +165,28 @@ class Sofia_REST_Editor {
 	 *   class-franja-beneficios.php), el iframe nunca supo que esto era
 	 *   distinto de un campo normal — la interpretación vive acá, en un
 	 *   solo lugar.
+	 * - Cualquier notación de arriba con "._estilo" agregado al final
+	 *   (3 o 5 segmentos, ej. "a3f92c1b.titulo._estilo" o
+	 *   "a3f92c1b.items.0.titulo._estilo", Nivel 3 — estilo por campo, ver
+	 *   Sofia_Componente::atributo_estilo()): se resuelve igual que el
+	 *   campo base (2 o 4 segmentos, quitando el sufijo), pero el VALOR
+	 *   final se guarda bajo la clave "{subcampo}._estilo" en vez de
+	 *   pisar el valor real del campo — ambos conviven como claves
+	 *   hermanas en el mismo objeto (el propio $contenido de nivel
+	 *   superior, o el mismo item de la lista).
 	 */
 	private static function asignar_valor_de_campo( array &$contenido, string $campo, $valor ): void {
+		$es_estilo = str_ends_with( $campo, '._estilo' );
+		if ( $es_estilo ) {
+			$campo = substr( $campo, 0, -strlen( '._estilo' ) );
+		}
+
 		$segmentos = explode( '.', $campo );
 		if ( 4 !== count( $segmentos ) ) {
-			$contenido[ $campo ] = $valor;
+			// Caso "id.campo" (2 segmentos) — con o sin sufijo _estilo, es
+			// una asignación directa de UNA clave en $contenido.
+			$clave                = $es_estilo ? $campo . '._estilo' : $campo;
+			$contenido[ $clave ] = $valor;
 			return;
 		}
 
@@ -181,7 +198,8 @@ class Sofia_REST_Editor {
 		if ( ! isset( $items[ $indice ] ) || ! is_array( $items[ $indice ] ) ) {
 			$items[ $indice ] = array();
 		}
-		$items[ $indice ][ $subcampo ] = $valor;
+		$clave_subcampo                  = $es_estilo ? $subcampo . '._estilo' : $subcampo;
+		$items[ $indice ][ $clave_subcampo ] = $valor;
 
 		$contenido[ $clave_lista ] = $items;
 	}

@@ -23,7 +23,7 @@ const ALTO_BARRA = 36;
 const MARGEN = 8;
 const ALTO_BARRA_ESTADO = 50; // franja que ya ocupa .sofia-editor-admin__barra-flotante
 
-export function BarraFormato({ posicion, onAplicarFormato }) {
+export function BarraFormato({ posicion, onAplicarFormato, onAbrirEstilo }) {
   if (!posicion) return null;
 
   const espacioArriba = posicion.top - ALTO_BARRA_ESTADO;
@@ -43,6 +43,10 @@ export function BarraFormato({ posicion, onAplicarFormato }) {
       </button>
       <button type="button" onClick={() => onAplicarFormato("italic")} title="Cursiva">
         <em>I</em>
+      </button>
+      <span className="sofia-barra-formato__separador" />
+      <button type="button" onClick={onAbrirEstilo} title="Estilo (alineación, color)">
+        Estilo
       </button>
     </div>
   );

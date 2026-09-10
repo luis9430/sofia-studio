@@ -97,9 +97,50 @@
 			{
 				tipo: "sofia:seleccion-texto",
 				rect: { top: rect.top, left: rect.left, width: rect.width, bottom: rect.bottom },
+				campo: campoEditable.getAttribute("data-sofia-campo"),
+				estilo: estiloActualDe(campoEditable),
 			},
 			"*"
 		);
+	}
+
+	// Lee el estilo YA APLICADO al elemento (por Sofia_Componente::atributo_estilo()
+	// del lado PHP, o por un cambio ya hecho en esta misma sesión vía
+	// alAplicarEstilo() abajo) para que el drawer del panel padre abra con
+	// los controles YA reflejando el estado real, en vez de siempre en
+	// blanco — mismo criterio de "editar lo que ves" que el resto del
+	// editor. style.color/textAlign (no getComputedStyle): getComputedStyle
+	// devolvería el valor HEREDADO/default también cuando el elemento no
+	// tiene NADA propio guardado, imposible de distinguir de "el usuario
+	// eligió justo ese color" — el atributo style="" inline solo existe
+	// cuando atributo_estilo() de verdad emitió algo.
+	function estiloActualDe(el) {
+		return {
+			alineacion: el.style.textAlign || "",
+			color: el.style.color || "",
+		};
+	}
+
+	// Aplica el estilo elegido en el drawer (panel padre) directo al
+	// elemento en pantalla — feedback inmediato, sin esperar el roundtrip
+	// de guardado — y notifica al padre para persistir bajo "{campo}._estilo"
+	// (ver Sofia_REST_Editor::asignar_valor_de_campo(), que ya reconoce
+	// este sufijo en cualquier campo, simple o dentro de un item de lista).
+	//
+	// Busca el elemento por [data-sofia-campo="..."] en vez de depender de
+	// elementoConSeleccion: el usuario abre el drawer con una selección de
+	// texto activa, pero mover el foco hacia los controles del panel padre
+	// (fuera del iframe) puede disparar un blur/selectionchange que ya
+	// vació esa referencia — el campo llega explícito desde el padre en
+	// cada mensaje, así que no hace falta mantener ningún estado vivo acá.
+	function alAplicarEstilo(campo, estilo) {
+		var el = document.querySelector('[data-sofia-campo="' + campo + '"]');
+		if (!el) return;
+
+		el.style.textAlign = estilo.alineacion || "";
+		el.style.color = estilo.color || "";
+
+		notificarCambio(campo + "._estilo", estilo);
 	}
 
 	function alRecibirMensajeDelPadre(evento) {
@@ -108,6 +149,10 @@
 		if (datos.tipo === "sofia:aplicar-formato" && elementoConSeleccion) {
 			elementoConSeleccion.focus();
 			document.execCommand(datos.comando, false, null);
+			return;
+		}
+		if (datos.tipo === "sofia:aplicar-estilo") {
+			alAplicarEstilo(datos.campo, datos.estilo);
 			return;
 		}
 		if (datos.tipo === "sofia:eliminar-bloque") {

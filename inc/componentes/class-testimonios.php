@@ -60,8 +60,8 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 				// alAgregarItemALista() en editor-iframe.js.
 				$html .= '<img class="sofia-testimonios__foto sofia-testimonios__foto--vacia" ' . $this->atributo_editable( "items.{$indice}.foto" ) . ' src="" alt="">';
 			}
-			$html .= '<p class="sofia-testimonios__cita" ' . $this->atributo_editable( "items.{$indice}.cita" ) . '>' . $cita . '</p>';
-			$html .= '<h3 class="sofia-testimonios__nombre" ' . $this->atributo_editable( "items.{$indice}.nombre" ) . '>' . $nombre . '</h3>';
+			$html .= '<p class="sofia-testimonios__cita" ' . $this->atributo_editable( "items.{$indice}.cita" ) . ' ' . $this->atributo_estilo( "items.{$indice}.cita" ) . '>' . $cita . '</p>';
+			$html .= '<h3 class="sofia-testimonios__nombre" ' . $this->atributo_editable( "items.{$indice}.nombre" ) . ' ' . $this->atributo_estilo( "items.{$indice}.nombre" ) . '>' . $nombre . '</h3>';
 			$html .= '</div>';
 		}
 		$html .= '</div>';

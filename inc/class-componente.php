@@ -135,6 +135,80 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * ESTILOS_CAMPO_PERMITIDOS: whitelist de propiedades CSS que un campo
+	 * puede tener guardadas en su "{campo}._estilo" (ver atributo_estilo()
+	 * abajo) — mismo criterio que ETIQUETAS_FORMATO_PERMITIDAS: nunca CSS
+	 * arbitrario, solo lo que el drawer de estilo (Nivel 3, panel Preact)
+	 * realmente ofrece como control. Clave = nombre guardado en el JSON,
+	 * valor = propiedad CSS real a emitir (permite que ambos difieran si
+	 * hiciera falta — hoy coinciden).
+	 */
+	private const ESTILOS_CAMPO_PERMITIDOS = array(
+		'alineacion' => 'text-align',
+		'color'      => 'color',
+	);
+
+	/**
+	 * Atributo style="..." armado desde el estilo guardado de $campo.
+	 *
+	 * Dos formas de $campo, mismo criterio que atributo_editable():
+	 * - "campo" (bloque simple, ej. "titulo"): el estilo vive en
+	 *   $this->props["{campo}._estilo"] — clave plana hermana del valor,
+	 *   armada por Sofia_REST_Editor::asignar_valor_de_campo() en el caso
+	 *   de 2 (o con sufijo, 3) segmentos.
+	 * - "lista.indice.subcampo" (item de una lista repetible, ej.
+	 *   "items.0.titulo"): $this->props["lista"] es el ARRAY de items
+	 *   completo (Nivel 2), así que el estilo vive DENTRO de ese array, en
+	 *   $this->props["lista"][indice]["subcampo._estilo"] — mismo lugar
+	 *   donde asignar_valor_de_campo() lo escribe para el caso de 4 (o con
+	 *   sufijo, 5) segmentos. Iterar $this->props plano con la clave
+	 *   completa ("items.0.titulo._estilo") nunca encontraría nada: esa
+	 *   clave no existe, el array real está anidado.
+	 *
+	 * Devuelve string vacío si el campo no tiene estilo guardado — el
+	 * elemento queda exactamente igual que antes de que existiera esta
+	 * pieza, ningún Componente rompe por no tener "_estilo" en su
+	 * contenido.
+	 *
+	 * Solo emite las propiedades de ESTILOS_CAMPO_PERMITIDOS — un valor
+	 * con una clave desconocida (dato corrupto, o una versión más nueva
+	 * del editor que un tema viejo no reconoce) se ignora en silencio,
+	 * mismo criterio que un tipo de bloque desconocido en la Factory.
+	 */
+	protected function atributo_estilo( string $campo ): string {
+		$segmentos = explode( '.', $campo );
+		if ( 3 === count( $segmentos ) ) {
+			list( $lista, $indice, $subcampo ) = $segmentos;
+			$items  = is_array( $this->props[ $lista ] ?? null ) ? $this->props[ $lista ] : array();
+			$item   = $items[ (int) $indice ] ?? null;
+			$estilo = is_array( $item ) ? ( $item[ "{$subcampo}._estilo" ] ?? null ) : null;
+		} else {
+			$estilo = $this->props[ "{$campo}._estilo" ] ?? null;
+		}
+
+		if ( ! is_array( $estilo ) || empty( $estilo ) ) {
+			return '';
+		}
+
+		$declaraciones = array();
+		foreach ( self::ESTILOS_CAMPO_PERMITIDOS as $clave => $propiedad_css ) {
+			if ( empty( $estilo[ $clave ] ) || ! is_string( $estilo[ $clave ] ) ) {
+				continue;
+			}
+			// esc_attr() sobre el VALOR completo de cada propiedad —
+			// suficiente porque los valores vienen de un swatch/alineación
+			// controlados por el drawer (nunca texto libre del usuario),
+			// pero se sanea igual por si el JSON llegara manipulado.
+			$declaraciones[] = $propiedad_css . ':' . esc_attr( $estilo[ $clave ] );
+		}
+
+		if ( empty( $declaraciones ) ) {
+			return '';
+		}
+		return 'style="' . implode( ';', $declaraciones ) . '"';
+	}
+
+	/**
 	 * Botón "+ Agregar item" al final de una lista repetible (Nivel 2,
 	 * sub-items — ver class-franja-beneficios.php) — SOLO se imprime en
 	 * modo editor (Sofia_Modo_Editor::activo()), nunca en una visita
