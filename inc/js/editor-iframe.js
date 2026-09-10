@@ -116,10 +116,19 @@
 	// tiene NADA propio guardado, imposible de distinguir de "el usuario
 	// eligió justo ese color" — el atributo style="" inline solo existe
 	// cuando atributo_estilo() de verdad emitió algo.
+	// Claves en snake_case (no camelCase) a propósito — coinciden 1:1 con
+	// Sofia_Componente::ESTILOS_CAMPO_PERMITIDOS del lado PHP, que las usa
+	// tal cual como clave del JSON guardado. Mismo objeto viaja sin
+	// traducción en todo el recorrido: iframe → postMessage → drawer
+	// (Preact) → postMessage → iframe → guardado.
 	function estiloActualDe(el) {
 		return {
 			alineacion: el.style.textAlign || "",
 			color: el.style.color || "",
+			tamano_fuente: el.style.fontSize || "",
+			negrita: el.style.fontWeight || "",
+			color_fondo: el.style.backgroundColor || "",
+			sombra_texto: el.style.textShadow || "",
 		};
 	}
 
@@ -141,6 +150,10 @@
 
 		el.style.textAlign = estilo.alineacion || "";
 		el.style.color = estilo.color || "";
+		el.style.fontSize = estilo.tamano_fuente || "";
+		el.style.fontWeight = estilo.negrita || "";
+		el.style.backgroundColor = estilo.color_fondo || "";
+		el.style.textShadow = estilo.sombra_texto || "";
 
 		notificarCambio(campo + "._estilo", estilo);
 	}

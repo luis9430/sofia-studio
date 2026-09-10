@@ -481,6 +481,58 @@ body {
   box-shadow: 0 0 0 2px var(--gp-accent-soft);
 }
 
+.sofia-drawer-estilo__tamanos {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sofia-drawer-estilo__tamano {
+  padding: 6px 10px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sofia-drawer-estilo__tamano:hover {
+  color: var(--gp-panel-text);
+}
+
+.sofia-drawer-estilo__tamano--activo {
+  background: var(--gp-accent-soft);
+  border-color: var(--gp-accent);
+  color: var(--gp-accent-text);
+}
+
+/* Grupo en fila: etiqueta + un único control (toggle) alineados
+   horizontalmente — a diferencia del resto de grupos (etiqueta arriba,
+   controles abajo), un toggle de una sola opción no necesita esa altura. */
+.sofia-drawer-estilo__grupo--fila {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sofia-drawer-estilo__toggle {
+  padding: 6px 12px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  min-width: 90px;
+}
+
+.sofia-drawer-estilo__toggle--activo {
+  background: var(--gp-accent-soft);
+  border-color: var(--gp-accent);
+  color: var(--gp-accent-text);
+}
+
 /* Overlay de resaltado de bloque: pointer-events:none es crítico — sin
    esto, el propio overlay (que se dibuja ARRIBA del iframe en el z-index)
    capturaría los clicks/mouseover que en realidad tienen que llegar al

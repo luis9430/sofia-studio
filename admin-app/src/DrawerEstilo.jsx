@@ -47,6 +47,21 @@ const ALINEACIONES = [
   { valor: "right", etiqueta: "Derecha", icono: "≡" },
 ];
 
+// TAMANOS_FUENTE/SOMBRA_TEXTO: valores PRE-ARMADOS (no un input libre de
+// px/rgba) — mismo criterio de whitelist que el resto del drawer, evita que
+// el usuario termine con un tamaño de 200px o una sombra ilegible por
+// accidente. "Set completo tipo Elementor, veamos qué tal se ve" (pedido
+// explícito del usuario) — de acá se decide después qué se queda.
+const TAMANOS_FUENTE = [
+  { valor: "", etiqueta: "Por defecto" },
+  { valor: "0.875rem", etiqueta: "Chico" },
+  { valor: "1.125rem", etiqueta: "Normal" },
+  { valor: "1.5rem", etiqueta: "Grande" },
+  { valor: "2.25rem", etiqueta: "Extra grande" },
+];
+
+const SOMBRA_TEXTO = "0 2px 4px rgba(0, 0, 0, 0.35)";
+
 export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato, onCerrar }) {
   const [tab, setTab] = useState("estilo");
   const [offsetArrastre, setOffsetArrastre] = useState({ x: 0, y: 0 });
@@ -172,6 +187,33 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato,
             </div>
 
             <div className="sofia-drawer-estilo__grupo">
+              <span className="sofia-drawer-estilo__etiqueta">Tamaño de fuente</span>
+              <div className="sofia-drawer-estilo__tamanos">
+                {TAMANOS_FUENTE.map((op) => (
+                  <button
+                    key={op.valor || "default"}
+                    type="button"
+                    className={`sofia-drawer-estilo__tamano ${estilo.tamano_fuente === op.valor ? "sofia-drawer-estilo__tamano--activo" : ""}`}
+                    onClick={() => actualizar({ tamano_fuente: op.valor })}
+                  >
+                    {op.etiqueta}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
+              <span className="sofia-drawer-estilo__etiqueta">Negrita</span>
+              <button
+                type="button"
+                className={`sofia-drawer-estilo__toggle ${estilo.negrita === "700" ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                onClick={() => actualizar({ negrita: estilo.negrita === "700" ? "" : "700" })}
+              >
+                {estilo.negrita === "700" ? "Activada" : "Desactivada"}
+              </button>
+            </div>
+
+            <div className="sofia-drawer-estilo__grupo">
               <span className="sofia-drawer-estilo__etiqueta">Color del texto</span>
               <div className="sofia-drawer-estilo__swatches">
                 {PALETA_COLORES.map((op) => (
@@ -185,6 +227,33 @@ export function DrawerEstilo({ campo, estilo, onCambiarEstilo, onAplicarFormato,
                   />
                 ))}
               </div>
+            </div>
+
+            <div className="sofia-drawer-estilo__grupo">
+              <span className="sofia-drawer-estilo__etiqueta">Color de fondo</span>
+              <div className="sofia-drawer-estilo__swatches">
+                {PALETA_COLORES.map((op) => (
+                  <button
+                    key={op.valor || "default"}
+                    type="button"
+                    className={`sofia-drawer-estilo__swatch ${estilo.color_fondo === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
+                    style={op.valor ? { backgroundColor: op.valor } : undefined}
+                    title={op.etiqueta}
+                    onClick={() => actualizar({ color_fondo: op.valor })}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
+              <span className="sofia-drawer-estilo__etiqueta">Sombra de texto</span>
+              <button
+                type="button"
+                className={`sofia-drawer-estilo__toggle ${estilo.sombra_texto ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                onClick={() => actualizar({ sombra_texto: estilo.sombra_texto ? "" : SOMBRA_TEXTO })}
+              >
+                {estilo.sombra_texto ? "Activada" : "Desactivada"}
+              </button>
             </div>
           </div>
         )}

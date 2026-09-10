@@ -144,8 +144,12 @@ abstract class Sofia_Componente {
 	 * hiciera falta — hoy coinciden).
 	 */
 	private const ESTILOS_CAMPO_PERMITIDOS = array(
-		'alineacion' => 'text-align',
-		'color'      => 'color',
+		'alineacion'    => 'text-align',
+		'color'         => 'color',
+		'tamano_fuente' => 'font-size',
+		'negrita'       => 'font-weight',
+		'color_fondo'   => 'background-color',
+		'sombra_texto'  => 'text-shadow',
 	);
 
 	/**
