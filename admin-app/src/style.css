@@ -535,7 +535,14 @@ body {
 
 /* Inputs/selects genéricos del drawer (tamaño numérico, tipo de fuente,
    espaciado) — mismo look que el resto de controles (fondo --gp-panel-2,
-   borde --gp-panel-border) para que no desentonen con los botones. */
+   borde --gp-panel-border) para que no desentonen con los botones.
+   color-scheme:dark es necesario para el <select> — bug real encontrado en
+   la práctica: sin esto, el navegador pinta el texto de la OPCIÓN
+   seleccionada en negro al pasar el mouse o hacer click (usa su propio
+   esquema de colores claro por default para el control nativo), ilegible
+   sobre el fondo oscuro del panel — color:var(--gp-panel-text) por sí solo
+   no alcanza porque ese estado lo pinta el navegador, no el CSS del
+   elemento en sí. */
 .sofia-drawer-estilo__cuerpo input[type="number"],
 .sofia-drawer-estilo__cuerpo select {
   border: 1px solid var(--gp-panel-border);
@@ -544,6 +551,7 @@ body {
   border-radius: 7px;
   padding: 6px 8px;
   font-size: 12px;
+  color-scheme: dark;
 }
 
 .sofia-drawer-estilo__tamano-numerico {
