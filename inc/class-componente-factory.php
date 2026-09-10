@@ -25,6 +25,14 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Hero( $tipo, $id, $props );
 			case 'franja_beneficios':
 				return new Sofia_Componente_Franja_Beneficios( $tipo, $id, $props );
+			case 'testimonios':
+				return new Sofia_Componente_Testimonios( $tipo, $id, $props );
+			case 'faq':
+				return new Sofia_Componente_FAQ( $tipo, $id, $props );
+			case 'cta':
+				return new Sofia_Componente_CTA( $tipo, $id, $props );
+			case 'texto_libre':
+				return new Sofia_Componente_Texto_Libre( $tipo, $id, $props );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -41,7 +49,7 @@ class Sofia_Componente_Factory {
 	 * crear(), y su require_once en functions.php); catalogo() la
 	 * recorre para no duplicar la lista de tipos en dos lugares.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por

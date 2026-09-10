@@ -5,3 +5,60 @@ Author: GoPress
 Version: 0.1.0
 Text Domain: sofia-studio
 */
+
+/* CSS deliberadamente mínimo — layout funcional de cada Componente, sin
+   invertir en diseño visual pulido (fuera de alcance de Nivel 2, centrado
+   en la mecánica del editor: reordenar/agregar/quitar bloques e items).
+   Cada sitio real hereda estilos del tema padre/plugin de diseño que use
+   (ver la memoria de producto: verificado contra costalegre, que corre
+   Elementor + hello-elementor encima de esto). */
+
+.sofia-testimonios__grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 24px;
+}
+
+.sofia-testimonios__item {
+	text-align: center;
+}
+
+.sofia-testimonios__foto {
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	object-fit: cover;
+	margin: 0 auto 12px;
+	display: block;
+}
+
+.sofia-testimonios__foto--vacia {
+	background: #e2ddd3;
+}
+
+.sofia-cta {
+	text-align: center;
+}
+
+.sofia-cta__boton {
+	display: inline-block;
+	padding: 12px 28px;
+	border-radius: 6px;
+	background: #1c1a17;
+	color: #fff;
+	text-decoration: none;
+	margin-top: 12px;
+}
+
+.sofia-faq__item {
+	padding: 16px 0;
+	border-bottom: 1px solid #e2ddd3;
+}
+
+.sofia-faq__pregunta {
+	margin: 0 0 8px;
+}
+
+.sofia-faq__respuesta {
+	margin: 0;
+}

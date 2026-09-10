@@ -15,6 +15,10 @@ require_once __DIR__ . '/inc/class-modo-editor.php';
 require_once __DIR__ . '/inc/class-panel-editor.php';
 require_once __DIR__ . '/inc/componentes/class-hero.php';
 require_once __DIR__ . '/inc/componentes/class-franja-beneficios.php';
+require_once __DIR__ . '/inc/componentes/class-testimonios.php';
+require_once __DIR__ . '/inc/componentes/class-faq.php';
+require_once __DIR__ . '/inc/componentes/class-cta.php';
+require_once __DIR__ . '/inc/componentes/class-texto-libre.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en
