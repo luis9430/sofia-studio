@@ -24,6 +24,23 @@
 
 	var elementoConSeleccion = null;
 
+	// dragStartPredicate compartido por las 2 instancias de Muuri (nivel
+	// superior y listas internas) — bug real encontrado en la práctica:
+	// Muuri no distingue el botón del mouse en su dragHandle, así que un
+	// CLICK DERECHO sobre o cerca de un handle (para abrir el menú
+	// contextual, ver alHacerClickDerecho) podía interpretarse como el
+	// inicio de un drag. Ese "drag" fantasma disparaba dragEnd con el DOM
+	// a medio camino, y notificarListaActualizada() guardaba una lista de
+	// items CORROMPIDA (items perdidos) — confirmado en la práctica: el
+	// bug solo ocurría al hacer click derecho encima o cerca del contenido
+	// de un item. e.button === 2 es el estándar MouseEvent para el botón
+	// derecho; para cualquier otro botón, cae en el predicado default de
+	// Muuri (mismo comportamiento de siempre).
+	function noArrastrarConBotonDerecho(item, evento) {
+		if (evento.button === 2) return false;
+		return Muuri.ItemDrag.defaultStartPredicate(item, evento);
+	}
+
 	function notificarCambio(campo, valor) {
 		window.parent.postMessage({ tipo: "sofia:campo-editado", campo: campo, valor: valor }, "*");
 	}
@@ -598,6 +615,7 @@
 			items: "section",
 			dragEnabled: true,
 			dragHandle: ".sofia-handle-arrastre",
+			dragStartPredicate: noArrastrarConBotonDerecho,
 			// dragSortHeuristics: mecanismos anti-jitter que SortableJS no
 			// tiene — sortInterval (pausa antes de reevaluar el orden),
 			// minDragDistance (umbral mínimo antes de considerar cualquier
@@ -814,6 +832,7 @@
 				items: "[data-sofia-item]",
 				dragEnabled: true,
 				dragHandle: ".sofia-handle-arrastre-item",
+				dragStartPredicate: noArrastrarConBotonDerecho,
 				dragSortHeuristics: { sortInterval: 100, minDragDistance: 10 },
 				dragSortPredicate: { threshold: 50, action: "move" },
 			});

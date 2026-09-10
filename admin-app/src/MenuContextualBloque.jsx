@@ -13,14 +13,7 @@
  * más adelante, mismo patrón: un botón nuevo acá + un caso nuevo en
  * alRecibirMensajeDelPadre del iframe.
  */
-export function MenuContextualBloque({
-  posicion,
-  onEliminarBloque,
-  onEliminarItem,
-  onEstiloBloque,
-  onVisibilidadBloque,
-  onCerrar,
-}) {
+export function MenuContextualBloque({ posicion, onEliminarBloque, onEliminarItem, onEstiloBloque, onCerrar }) {
   if (!posicion) return null;
 
   return (
@@ -30,11 +23,12 @@ export function MenuContextualBloque({
         style={{ top: `${posicion.y}px`, left: `${posicion.x}px` }}
         onClick={(evento) => evento.stopPropagation()}
       >
+        {/* Un solo punto de entrada al drawer de bloque — Visibilidad se
+            alcanza cambiando de pestaña ADENTRO del drawer (ver
+            DrawerEstilo.jsx), no necesita su propia opción acá. Menos
+            redundante que 2 botones que abren el mismo componente. */}
         <button type="button" className="sofia-menu-contextual__opcion" onClick={onEstiloBloque}>
           Estilo del bloque
-        </button>
-        <button type="button" className="sofia-menu-contextual__opcion" onClick={onVisibilidadBloque}>
-          Visibilidad del bloque
         </button>
         {posicion.item && (
           <button

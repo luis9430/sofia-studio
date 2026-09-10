@@ -219,17 +219,32 @@ export function App({ config }) {
     setCampoClickeado(null);
   }
 
-  // Abre el drawer de estilo en modo "bloque" (Nivel 2) — desde "Estilo
-  // del bloque" en el menú contextual (ver MenuContextualBloque.jsx). A
-  // diferencia del Nivel 1, no depende de ningún click previo sobre un
-  // campo: el id/estilo ya vienen en menuContextual (ver
-  // "sofia:menu-contextual-bloque" arriba, que el iframe manda con TODO lo
-  // necesario de una vez, sin roundtrip aparte).
-  function abrirDrawerEstiloBloque() {
-    if (!menuContextual?.id) return;
-    drawerAbierto.current = true;
-    setDrawerEstilo({ campo: menuContextual.id, estilo: menuContextual.estiloBloque || {}, nivel: "bloque" });
+  // Abre el drawer de bloque (Nivel 2) — desde "Estilo del bloque" en el
+  // menú contextual (ver MenuContextualBloque.jsx), único punto de entrada
+  // tanto para Estilo como para Visibilidad (el usuario cambia de pestaña
+  // DENTRO del drawer — un segundo botón "Visibilidad del bloque" en el
+  // menú era redundante, pedido explícito del usuario). El estilo ya viene
+  // en menuContextual (el iframe lo manda con "sofia:menu-contextual-bloque",
+  // ver estiloBloqueActualDe en editor-iframe.js); la condición de
+  // Visibilidad NO se refleja en ningún atributo del DOM inspeccionable
+  // (solo la marca visual de "oculto", no las reglas en sí), así que hay
+  // que pedirle el contenido completo de la página al proxy REST, mismo
+  // fetch que ya usa agregarBloque() para leer la estructura actual.
+  async function abrirDrawerEstiloBloque() {
+    const id = menuContextual?.id;
+    const estiloBloque = menuContextual?.estiloBloque || {};
     setMenuContextual(null);
+    if (!id) return;
+    try {
+      const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => r.json());
+      const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
+      drawerAbierto.current = true;
+      setDrawerEstilo({ campo: id, estilo: estiloBloque, condicion: reglas, nivel: "bloque" });
+    } catch {
+      setEstado("error");
+    }
   }
 
   // El iframe aplica el estilo al elemento/sección real Y notifica el
@@ -249,30 +264,6 @@ export function App({ config }) {
       { tipo: tipoMensaje, [clave]: drawerEstilo.campo, estilo: estiloNuevo },
       "*"
     );
-  }
-
-  // Abre el drawer en modo "bloque" con la pestaña Visibilidad activa,
-  // leyendo la condición YA guardada de "{id}._condicion_bloque" —
-  // a diferencia del estilo (que el iframe ya sabe leer del DOM real, ver
-  // estiloBloqueActualDe en editor-iframe.js), la condición no se refleja
-  // en ningún atributo del DOM que se pueda inspeccionar (solo la MARCA
-  // visual de "oculto", no las reglas en sí) — hay que pedirle el
-  // contenido completo de la página al proxy REST, mismo fetch que ya usa
-  // agregarBloque() para leer la estructura actual.
-  async function abrirDrawerVisibilidad() {
-    const id = menuContextual?.id;
-    setMenuContextual(null);
-    if (!id) return;
-    try {
-      const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
-        headers: { "X-WP-Nonce": config.nonce },
-      }).then((r) => r.json());
-      const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
-      drawerAbierto.current = true;
-      setDrawerEstilo({ campo: id, estilo: {}, condicion: reglas, nivel: "bloque", tabInicial: "visibilidad" });
-    } catch {
-      setEstado("error");
-    }
   }
 
   // Guarda la condición de Visibilidad — a diferencia del estilo (que pasa
@@ -455,7 +446,6 @@ export function App({ config }) {
                 estilo={drawerEstilo.estilo}
                 nivel={drawerEstilo.nivel || "campo"}
                 condicion={drawerEstilo.condicion}
-                tabInicial={drawerEstilo.tabInicial || "estilo"}
                 onCambiarEstilo={cambiarEstiloDrawer}
                 onCambiarCondicion={cambiarCondicionDrawer}
                 onAplicarFormato={aplicarFormato}
@@ -467,7 +457,6 @@ export function App({ config }) {
               onEliminarBloque={eliminarBloque}
               onEliminarItem={eliminarItemDeLista}
               onEstiloBloque={abrirDrawerEstiloBloque}
-              onVisibilidadBloque={abrirDrawerVisibilidad}
               onCerrar={() => setMenuContextual(null)}
             />
             {menuAgregarEnPosicion && (
