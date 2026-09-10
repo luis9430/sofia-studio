@@ -251,6 +251,57 @@ export function App({ config }) {
     );
   }
 
+  // Abre el drawer en modo "bloque" con la pestaña Visibilidad activa,
+  // leyendo la condición YA guardada de "{id}._condicion_bloque" —
+  // a diferencia del estilo (que el iframe ya sabe leer del DOM real, ver
+  // estiloBloqueActualDe en editor-iframe.js), la condición no se refleja
+  // en ningún atributo del DOM que se pueda inspeccionar (solo la MARCA
+  // visual de "oculto", no las reglas en sí) — hay que pedirle el
+  // contenido completo de la página al proxy REST, mismo fetch que ya usa
+  // agregarBloque() para leer la estructura actual.
+  async function abrirDrawerVisibilidad() {
+    const id = menuContextual?.id;
+    setMenuContextual(null);
+    if (!id) return;
+    try {
+      const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => r.json());
+      const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
+      drawerAbierto.current = true;
+      setDrawerEstilo({ campo: id, estilo: {}, condicion: reglas, nivel: "bloque", tabInicial: "visibilidad" });
+    } catch {
+      setEstado("error");
+    }
+  }
+
+  // Guarda la condición de Visibilidad — a diferencia del estilo (que pasa
+  // por el iframe para reflejarse al instante en el DOM, ver
+  // cambiarEstiloDrawer), la condición decide si el bloque se RENDERIZA o
+  // no del lado de PHP (ver page.php/Sofia_Componente::bloque_visible()) —
+  // no hay nada que el iframe pueda simular con CSS sin recargar. Guarda
+  // directo contra el proxy REST (mismo endpoint "campo" que cualquier
+  // otro campo) y recarga el iframe para que PHP re-renderice con la
+  // condición nueva aplicada — mismo patrón que agregarBloque().
+  async function cambiarCondicionDrawer(reglasNuevas) {
+    if (!drawerEstilo) return;
+    setDrawerEstilo({ ...drawerEstilo, condicion: reglasNuevas });
+    setEstado("guardando");
+    try {
+      const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/campo`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
+        body: JSON.stringify({ campo: `${drawerEstilo.campo}._condicion_bloque`, valor: reglasNuevas }),
+      });
+      setEstado(respuesta.ok ? "guardado" : "error");
+      if (respuesta.ok && iframeRef.current) {
+        iframeRef.current.contentWindow.location.reload();
+      }
+    } catch {
+      setEstado("error");
+    }
+  }
+
   // Eliminar bloque: comando explícito desde el menú contextual, mismo
   // patrón que aplicarFormato — el iframe es quien de verdad quita la
   // sección del DOM (ver alEliminarBloque en editor-iframe.js) y reporta
@@ -403,7 +454,10 @@ export function App({ config }) {
                 campo={drawerEstilo.campo}
                 estilo={drawerEstilo.estilo}
                 nivel={drawerEstilo.nivel || "campo"}
+                condicion={drawerEstilo.condicion}
+                tabInicial={drawerEstilo.tabInicial || "estilo"}
                 onCambiarEstilo={cambiarEstiloDrawer}
+                onCambiarCondicion={cambiarCondicionDrawer}
                 onAplicarFormato={aplicarFormato}
                 onCerrar={cerrarDrawerEstilo}
               />
@@ -413,6 +467,7 @@ export function App({ config }) {
               onEliminarBloque={eliminarBloque}
               onEliminarItem={eliminarItemDeLista}
               onEstiloBloque={abrirDrawerEstiloBloque}
+              onVisibilidadBloque={abrirDrawerVisibilidad}
               onCerrar={() => setMenuContextual(null)}
             />
             {menuAgregarEnPosicion && (

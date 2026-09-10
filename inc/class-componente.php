@@ -122,13 +122,28 @@ abstract class Sofia_Componente {
 	 * criterio que atributo_editable(): centralizar en la clase base lo que
 	 * es igual para cualquier Componente, así un Componente nuevo lo
 	 * hereda gratis sin tener que acordarse de nada.
+	 *
+	 * data-sofia-oculto-condicion (solo en modo editor, solo si
+	 * bloque_visible() es false) marca la <section> con la pista visual de
+	 * "esto está oculto para un visitante real, mismo criterio en el CSS
+	 * del modo editor (class-modo-editor.php) que .sofia-handle-arrastre —
+	 * un ATRIBUTO en la propia sección, nunca un <div> envolvente: Muuri
+	 * reconoce sus ítems por selector "section" hijo DIRECTO de
+	 * .sofia-pagina (ver activarReordenar() en editor-iframe.js), un
+	 * wrapper extra rompería ese matching. page.php ya decidió SI
+	 * renderizar el bloque (visita pública: no se renderiza en absoluto si
+	 * no es visible) — acá solo se agrega la marca cuando corresponde.
 	 */
 	protected function atributos_seccion(): string {
+		$oculto = ( ! $this->bloque_visible() && class_exists( 'Sofia_Modo_Editor' ) && Sofia_Modo_Editor::activo() )
+			? 'data-sofia-oculto-condicion="Oculto: condición no cumplida"'
+			: '';
 		return sprintf(
-			'data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s" %s',
+			'data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s" %s %s',
 			esc_attr( $this->id ),
 			esc_attr( $this->tipo ),
-			$this->atributo_estilo_bloque()
+			$this->atributo_estilo_bloque(),
+			$oculto
 		);
 	}
 
@@ -331,6 +346,84 @@ abstract class Sofia_Componente {
 			return '';
 		}
 		return 'style="' . implode( ';', $declaraciones ) . '"';
+	}
+
+	/**
+	 * VARIABLES_CONDICION_PERMITIDAS: whitelist de nombres de "campo" que
+	 * una regla de condición de visibilidad (pestaña Visibilidad del
+	 * drawer, Nivel 2 — bloque completo) puede referenciar — mismo criterio
+	 * de whitelist que el resto del editor: el drawer solo ofrece esta
+	 * lista corta como control, nunca texto libre de variables de
+	 * WordPress arbitrarias. Clave = nombre guardado en la regla, valor =
+	 * closure que resuelve el valor REAL en este request (siempre string,
+	 * mismo tipo que ReglaCondicion.Valor del lado GoPress — comparación
+	 * siempre como string, ver evaluar_regla_condicion()).
+	 *
+	 * "usuario_logueado" es la única variable de arranque (decisión
+	 * explícita del usuario) — más variables (rol, dispositivo, categoría
+	 * del post) se agregan acá mismo el día que hagan falta, sin tocar el
+	 * evaluador.
+	 */
+	private static function variables_condicion(): array {
+		return array(
+			'usuario_logueado' => static fn(): string => is_user_logged_in() ? 'true' : 'false',
+		);
+	}
+
+	/**
+	 * evaluar_regla_condicion espeja evaluarRegla() de
+	 * internal/temporal/workflow_automatizacion_builder.go — MISMO shape de
+	 * regla ({campo, operador, valor, enlace}, ver
+	 * store.ReglaCondicion), pero acotado a los operadores que de verdad
+	 * hacen falta acá: "eq"/"ne" alcanzan para una variable booleana como
+	 * "usuario_logueado". Si en algún momento se agrega una variable
+	 * numérica/de texto, sumar "gt"/"lt"/"has"/"exists" acá replicando la
+	 * misma lógica que el lado Go, no antes.
+	 *
+	 * Un campo NO reconocido (no está en variables_condicion()) evalúa
+	 * como false — mismo criterio de "fail closed" que el resto del
+	 * editor con datos desconocidos/corruptos: mejor ocultar de más que
+	 * mostrar por error un bloque que debía quedar condicionado.
+	 */
+	private static function evaluar_regla_condicion( array $regla ): bool {
+		$campo    = $regla['campo'] ?? '';
+		$operador = $regla['operador'] ?? 'eq';
+		$valor    = (string) ( $regla['valor'] ?? '' );
+
+		$variables = self::variables_condicion();
+		if ( ! isset( $variables[ $campo ] ) ) {
+			return false;
+		}
+
+		$valor_real = $variables[ $campo ]();
+
+		if ( 'ne' === $operador ) {
+			return $valor_real !== $valor;
+		}
+		return $valor_real === $valor; // "eq" es el default, mismo criterio que el lado Go.
+	}
+
+	/**
+	 * bloque_visible() evalúa la condición de Visibilidad guardada en
+	 * "{id}._condicion_bloque" — mismo mecanismo de encadenado "y"/"o" que
+	 * evaluarCondicion() del lado Go: la primera regla decide sola, cada
+	 * regla siguiente se combina con la anterior según su propio "enlace".
+	 * Sin condición guardada (array vacío o ausente) siempre es visible —
+	 * ningún bloque existente rompe por no tener "_condicion_bloque".
+	 */
+	public function bloque_visible(): bool {
+		$reglas = $this->props['_condicion_bloque'] ?? null;
+		if ( ! is_array( $reglas ) || empty( $reglas ) ) {
+			return true;
+		}
+
+		$resultado = self::evaluar_regla_condicion( $reglas[0] );
+		for ( $i = 1, $total = count( $reglas ); $i < $total; $i++ ) {
+			$actual = self::evaluar_regla_condicion( $reglas[ $i ] );
+			$enlace = $reglas[ $i ]['enlace'] ?? 'y';
+			$resultado = ( 'o' === $enlace ) ? ( $resultado || $actual ) : ( $resultado && $actual );
+		}
+		return $resultado;
 	}
 
 	/**

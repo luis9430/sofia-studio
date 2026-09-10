@@ -251,6 +251,22 @@ class Sofia_Modo_Editor {
 			.sofia-handle-arrastre-item:hover { background: #262320; border-color: #4a453e; }
 			.sofia-handle-arrastre-item:active { cursor: grabbing; }
 
+			/* Marca visual de "bloque oculto por condición de visibilidad"
+			   (pestaña Visibilidad del drawer) — atributo en la propia
+			   <section> (ver Sofia_Componente::atributos_seccion()), NUNCA un
+			   <div> envolvente que rompería el matching de Muuri. ::after con
+			   el texto del propio atributo (content: attr(...)) evita
+			   duplicar la etiqueta en un data-* Y en un elemento HTML aparte. */
+			[data-sofia-oculto-condicion] {
+				outline: 2px dashed #d97a4d; outline-offset: -2px; opacity: 0.6;
+			}
+			[data-sofia-oculto-condicion]::after {
+				content: attr(data-sofia-oculto-condicion);
+				position: absolute; top: 8px; right: 8px; z-index: 3;
+				background: #d97a4d; color: #1c1a17;
+				font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 5px;
+			}
+
 			/* Botón "+ Agregar" al final de una lista repetible — ver
 			   Sofia_Componente::boton_agregar_item(). Gris neutro (NO
 			   naranja) — bug real encontrado en la práctica: con el mismo

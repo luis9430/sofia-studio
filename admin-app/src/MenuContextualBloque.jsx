@@ -13,7 +13,14 @@
  * más adelante, mismo patrón: un botón nuevo acá + un caso nuevo en
  * alRecibirMensajeDelPadre del iframe.
  */
-export function MenuContextualBloque({ posicion, onEliminarBloque, onEliminarItem, onEstiloBloque, onCerrar }) {
+export function MenuContextualBloque({
+  posicion,
+  onEliminarBloque,
+  onEliminarItem,
+  onEstiloBloque,
+  onVisibilidadBloque,
+  onCerrar,
+}) {
   if (!posicion) return null;
 
   return (
@@ -25,6 +32,9 @@ export function MenuContextualBloque({ posicion, onEliminarBloque, onEliminarIte
       >
         <button type="button" className="sofia-menu-contextual__opcion" onClick={onEstiloBloque}>
           Estilo del bloque
+        </button>
+        <button type="button" className="sofia-menu-contextual__opcion" onClick={onVisibilidadBloque}>
+          Visibilidad del bloque
         </button>
         {posicion.item && (
           <button

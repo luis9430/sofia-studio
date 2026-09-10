@@ -20,8 +20,26 @@ if ( null !== $datos ) {
 	sofia_encolar_dependencias( $pagina );
 
 	echo '<main class="sofia-pagina" data-sofia-slug="' . esc_attr( $datos['slug'] ) . '">';
+	$en_editor = class_exists( 'Sofia_Modo_Editor' ) && Sofia_Modo_Editor::activo();
 	foreach ( $pagina->componentes() as $componente ) {
-		echo $componente->render(); // phpcs:ignore WordPress.Security.EscapeOutput -- cada Componente ya escapa sus propios valores en render().
+		$visible = $componente->bloque_visible();
+
+		// En visita pública, un bloque no visible simplemente NO SE
+		// RENDERIZA — nunca llega HTML al navegador para algo que no se
+		// debía mostrar (mejor para performance/SEO que ocultar con CSS,
+		// ver la decisión explícita del usuario). En el editor SIEMPRE se
+		// renderiza igual (el admin logueado nunca vería un bloque "solo
+		// para no logueados" si se ocultara de verdad ahí — necesita poder
+		// seguir editándolo), marcado con data-sofia-oculto-condicion en
+		// la PROPIA <section> — nunca un <div> envolvente: Muuri reconoce
+		// sus ítems por selector "section" hijo DIRECTO de .sofia-pagina
+		// (ver activarReordenar() en editor-iframe.js), un wrapper extra
+		// rompería ese matching y el bloque dejaría de ser arrastrable.
+		if ( ! $visible && ! $en_editor ) {
+			continue;
+		}
+
+		echo $componente->render(); // phpcs:ignore WordPress.Security.EscapeOutput -- cada Componente ya escapa sus propios valores en render(); la marca visual de "oculto por condición" la agrega la propia Sofia_Componente::atributos_seccion() leyendo bloque_visible() internamente.
 	}
 	echo '</main>';
 } else {

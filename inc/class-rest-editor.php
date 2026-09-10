@@ -198,6 +198,13 @@ class Sofia_REST_Editor {
 	 *   sección, padding vertical) — cae en el caso "2 segmentos" de
 	 *   arriba sin ningún cambio; el estilo de bloque nunca tiene sufijo
 	 *   "._estilo" (eso es exclusivo del estilo POR CAMPO, Nivel 3).
+	 * - "id._condicion_bloque" (2 segmentos, mismo criterio exacto que
+	 *   "_estilo_bloque" — ver Sofia_Componente::bloque_visible()): la
+	 *   condición de VISIBILIDAD del bloque completo (pestaña Visibilidad
+	 *   del drawer), un array de reglas `{campo, operador, valor, enlace}`
+	 *   — mismo shape que store.ReglaCondicion del lado GoPress (reusado
+	 *   tal cual del motor de condiciones de automatizaciones, nunca
+	 *   reinventado). Cae en el caso "2 segmentos" sin cambios.
 	 */
 	private static function asignar_valor_de_campo( array &$contenido, string $campo, $valor ): void {
 		$es_estilo = str_ends_with( $campo, '._estilo' );

@@ -154,8 +154,132 @@ function EspaciadoLados({ etiqueta, valor, onCambiar }) {
 // lado PHP — un grid solo tiene sentido en un rango chico (2 a 4).
 const COLUMNAS = ["2", "3", "4"];
 
-export function DrawerEstilo({ campo, estilo, nivel = "campo", onCambiarEstilo, onAplicarFormato, onCerrar }) {
-  const [tab, setTab] = useState("estilo");
+// VARIABLES_CONDICION: mismas claves que
+// Sofia_Componente::variables_condicion() del lado PHP — lista corta
+// curada (whitelist), nunca un campo de texto libre para "campo" como el
+// builder de automatizaciones de GoPress permite (ahí cualquier dot-path
+// del payload es válido; acá el universo de variables de WordPress es
+// chico y conocido de antemano, así que un <select> es más simple y más
+// seguro que pedirle al usuario que escriba "usuario_logueado" a mano).
+const VARIABLES_CONDICION = [{ valor: "usuario_logueado", etiqueta: "Usuario logueado" }];
+
+const OPERADORES_CONDICION = [
+  { valor: "eq", etiqueta: "es igual a" },
+  { valor: "ne", etiqueta: "es distinto de" },
+];
+
+// VALORES_CONDICION: acotado a "true"/"false" porque hoy la única
+// variable (usuario_logueado) es booleana — mismo criterio de whitelist
+// que el resto: si se agrega una variable de texto/número a futuro, este
+// selector pasaría a ser un input libre solo para esa variable.
+const VALORES_CONDICION = [
+  { valor: "true", etiqueta: "Sí" },
+  { valor: "false", etiqueta: "No" },
+];
+
+function reglaVacia(enlace = "y") {
+  return { campo: "usuario_logueado", operador: "eq", valor: "true", enlace };
+}
+
+/**
+ * EditorCondicion — pestaña Visibilidad del drawer (Nivel 2, solo bloque
+ * completo). Edita `reglas`, un array con el MISMO shape que
+ * store.ReglaCondicion del lado GoPress ({campo, operador, valor, enlace})
+ * — reusado tal cual, el motor de evaluación ya existe para automatizaciones
+ * (ver evaluarCondicion/evaluarRegla en
+ * internal/temporal/workflow_automatizacion_builder.go) y su espejo mínimo
+ * en PHP (Sofia_Componente::evaluar_regla_condicion()). "enlace" de la
+ * PRIMERA regla nunca se usa (mismo criterio que el builder de
+ * automatizaciones) — decide sola, cada regla siguiente se combina con la
+ * anterior según su propio enlace.
+ */
+function EditorCondicion({ reglas, onCambiar }) {
+  function actualizarRegla(indice, cambios) {
+    onCambiar(reglas.map((r, i) => (i === indice ? { ...r, ...cambios } : r)));
+  }
+
+  function quitarRegla(indice) {
+    onCambiar(reglas.filter((_, i) => i !== indice));
+  }
+
+  function agregarRegla() {
+    onCambiar([...reglas, reglaVacia()]);
+  }
+
+  return (
+    <div className="sofia-drawer-estilo__grupo">
+      <span className="sofia-drawer-estilo__etiqueta">Mostrar este bloque solo si…</span>
+      <p className="sofia-drawer-estilo__ayuda-condicion">
+        Sin reglas, el bloque es siempre visible. Con reglas, se oculta para cualquier visitante que no las cumpla —
+        en el editor seguís viéndolo, marcado como oculto.
+      </p>
+
+      {reglas.map((regla, indice) => (
+        <div key={indice} className="sofia-drawer-estilo__regla">
+          {indice > 0 && (
+            <select
+              className="sofia-drawer-estilo__regla-enlace"
+              value={regla.enlace || "y"}
+              onChange={(evento) => actualizarRegla(indice, { enlace: evento.currentTarget.value })}
+            >
+              <option value="y">Y</option>
+              <option value="o">O</option>
+            </select>
+          )}
+          <select value={regla.campo} onChange={(evento) => actualizarRegla(indice, { campo: evento.currentTarget.value })}>
+            {VARIABLES_CONDICION.map((op) => (
+              <option key={op.valor} value={op.valor}>
+                {op.etiqueta}
+              </option>
+            ))}
+          </select>
+          <select
+            value={regla.operador}
+            onChange={(evento) => actualizarRegla(indice, { operador: evento.currentTarget.value })}
+          >
+            {OPERADORES_CONDICION.map((op) => (
+              <option key={op.valor} value={op.valor}>
+                {op.etiqueta}
+              </option>
+            ))}
+          </select>
+          <select value={regla.valor} onChange={(evento) => actualizarRegla(indice, { valor: evento.currentTarget.value })}>
+            {VALORES_CONDICION.map((op) => (
+              <option key={op.valor} value={op.valor}>
+                {op.etiqueta}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="sofia-drawer-estilo__regla-quitar"
+            onClick={() => quitarRegla(indice)}
+            title="Quitar regla"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      <button type="button" className="sofia-drawer-estilo__regla-agregar" onClick={agregarRegla}>
+        + Regla
+      </button>
+    </div>
+  );
+}
+
+export function DrawerEstilo({
+  campo,
+  estilo,
+  nivel = "campo",
+  condicion,
+  onCambiarEstilo,
+  onCambiarCondicion,
+  onAplicarFormato,
+  onCerrar,
+  tabInicial = "estilo",
+}) {
+  const [tab, setTab] = useState(tabInicial);
   const [offsetArrastre, setOffsetArrastre] = useState({ x: 0, y: 0 });
   const [arrastrando, setArrastrando] = useState(false);
   const arrastreRef = useRef(null); // { inicioX, inicioY, offsetInicial } mientras el mouse está presionado.
@@ -219,14 +343,25 @@ export function DrawerEstilo({ campo, estilo, nivel = "campo", onCambiarEstilo, 
             >
               Estilo
             </button>
-            <button
-              type="button"
-              className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
-              onMouseDown={(evento) => evento.stopPropagation()}
-              title="Próximamente: condición de visibilidad por regla"
-            >
-              Visibilidad <span>próx.</span>
-            </button>
+            {condicion ? (
+              <button
+                type="button"
+                className={`sofia-drawer-estilo__tab ${tab === "visibilidad" ? "sofia-drawer-estilo__tab--activo" : ""}`}
+                onMouseDown={(evento) => evento.stopPropagation()}
+                onClick={() => setTab("visibilidad")}
+              >
+                Visibilidad
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
+                onMouseDown={(evento) => evento.stopPropagation()}
+                title="Visibilidad se edita desde 'Visibilidad del bloque' en el menú contextual (click derecho)"
+              >
+                Visibilidad
+              </button>
+            )}
             <button
               type="button"
               className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
@@ -463,6 +598,12 @@ export function DrawerEstilo({ campo, estilo, nivel = "campo", onCambiarEstilo, 
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {tab === "visibilidad" && condicion && (
+          <div className="sofia-drawer-estilo__cuerpo">
+            <EditorCondicion reglas={condicion} onCambiar={onCambiarCondicion} />
           </div>
         )}
       </div>
