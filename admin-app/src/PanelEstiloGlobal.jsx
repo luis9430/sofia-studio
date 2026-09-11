@@ -22,12 +22,18 @@ import { useEffect, useState } from "preact/hooks";
  * Cada color puede ser un hex normal O una referencia a un token de Core
  * Framework (coreframework.com) — guardado como "cf:{nombre}" (ver
  * Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() del
- * lado PHP, que lo traduce a var(--cf-{nombre}, ...) en el CSS emitido).
- * Core Framework NO expone la lista de tokens que un sitio definió (ni vía
- * API ni vía opción legible de WordPress, investigado contra su código
- * fuente real) — así que el campo es texto libre, el usuario escribe el
- * nombre tal como lo llamó en el editor visual de Core Framework, nunca un
- * dropdown poblado automáticamente.
+ * lado PHP, que lo traduce a var(--{nombre}, ...) en el CSS emitido — SIN
+ * prefijo "cf-" propio, corrige una suposición equivocada de la primera
+ * versión: el CSS real exportado por Core Framework usa nombres tal
+ * cual, "--primary"/"--secondary", nunca "--cf-primary").
+ *
+ * Core Framework no expone una API de tokens, pero SÍ es un archivo CSS
+ * legible desde PHP — sofia/v1/core-framework/variables (ver
+ * Sofia_Estilo_Global::variables_core_framework()) lee ese archivo real y
+ * devuelve los nombres encontrados, usados acá como sugerencias de un
+ * <datalist> — el campo sigue siendo texto libre (el usuario puede
+ * escribir un nombre que no esté en la lista, ej. si Core Framework
+ * generó el CSS después de cargar este panel), pero ya no es "a ciegas".
  */
 const PREFIJO_TOKEN_CORE_FRAMEWORK = "cf:";
 
@@ -48,6 +54,11 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
   const [estilo, setEstilo] = useState({ colores: {}, tipografia: {} });
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  // Nombres reales leídos del CSS de Core Framework (ver
+  // Sofia_Estilo_Global::variables_core_framework()) — vacío si el plugin
+  // no está activo, el campo de texto sigue funcionando igual sin
+  // sugerencias en ese caso.
+  const [variablesCoreFramework, setVariablesCoreFramework] = useState([]);
 
   useEffect(() => {
     fetch(`${config.restUrl}estilo-global`, { headers: { "X-WP-Nonce": config.nonce } })
@@ -55,6 +66,11 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
       .then((datos) => setEstilo({ colores: datos.colores || {}, tipografia: datos.tipografia || {} }))
       .catch(() => {})
       .finally(() => setCargando(false));
+
+    fetch(`${config.restUrl}core-framework/variables`, { headers: { "X-WP-Nonce": config.nonce } })
+      .then((resp) => (resp.ok ? resp.json() : []))
+      .then(setVariablesCoreFramework)
+      .catch(() => setVariablesCoreFramework([]));
   }, []);
 
   async function guardar(estiloNuevo) {
@@ -89,6 +105,12 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
           </button>
         </div>
 
+        <datalist id="sofia-variables-core-framework">
+          {variablesCoreFramework.map((nombre) => (
+            <option key={nombre} value={nombre} />
+          ))}
+        </datalist>
+
         {cargando ? (
           <p className="sofia-panel-global__cargando">Cargando…</p>
         ) : (
@@ -114,6 +136,7 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
                             type="text"
                             className="sofia-panel-global__color-token"
                             placeholder="nombre-del-token"
+                            list="sofia-variables-core-framework"
                             value={nombreToken}
                             onInput={(evento) =>
                               actualizarColor(rol.clave, PREFIJO_TOKEN_CORE_FRAMEWORK + evento.currentTarget.value)

@@ -81,6 +81,16 @@ class Sofia_REST_Editor {
 				),
 			)
 		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/core-framework/variables',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'variables_core_framework' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
 	}
 
 	/**
@@ -493,6 +503,20 @@ class Sofia_REST_Editor {
 
 		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'estilo_global' => $estilo_global ) );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/core-framework/variables — lista los NOMBRES
+	 * de custom properties definidas en el CSS real de Core Framework (ver
+	 * Sofia_Estilo_Global::variables_core_framework()), para que el panel
+	 * "Estilo global" pueda ofrecer un dropdown real en vez de un campo de
+	 * texto libre a ciegas. Array vacío (nunca error) si el plugin no está
+	 * activo o el archivo no se pudo leer — el panel simplemente no
+	 * muestra sugerencias en ese caso, el campo de texto sigue funcionando
+	 * igual.
+	 */
+	public static function variables_core_framework( WP_REST_Request $request ) {
+		return rest_ensure_response( Sofia_Estilo_Global::variables_core_framework() );
 	}
 }
 

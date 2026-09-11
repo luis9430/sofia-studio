@@ -57,17 +57,6 @@ class Sofia_Estilo_Global {
 	private const PREFIJO_TOKEN_CORE_FRAMEWORK = 'cf:';
 
 	/**
-	 * Prefijo real que Core Framework usa en sus custom properties
-	 * generadas (ver la investigación en la memoria de producto: código
-	 * fuente de corebunch/core-framework, packages/core/src/cssGenerator/
-	 * prefixer/variablePrefixer.ts — "cf-" es el default publicado, aunque
-	 * técnicamente configurable por instalación; no hay forma de saber
-	 * desde afuera qué prefijo eligió cada sitio sin leer su CSS generado,
-	 * así que se asume el default).
-	 */
-	private const PREFIJO_VARIABLE_CORE_FRAMEWORK = '--cf-';
-
-	/**
 	 * true si el plugin Core Framework está activo en este sitio —
 	 * chequea la presencia de su clase de storage real
 	 * (\CoreFramework\StylesheetStorage), el único punto de acoplamiento
@@ -76,6 +65,51 @@ class Sofia_Estilo_Global {
 	 */
 	private static function core_framework_activo(): bool {
 		return class_exists( '\CoreFramework\StylesheetStorage' );
+	}
+
+	/**
+	 * Lee el CSS REAL ya generado por Core Framework y extrae los nombres
+	 * de sus custom properties (ej. "primary", "secondary", "primary-5") —
+	 * corrige una suposición equivocada de una primera versión de esta
+	 * integración: Core Framework NO prefija sus variables con "cf-" (se
+	 * había asumido eso a partir de su código fuente, packages/core/src/
+	 * cssGenerator/prefixer/variablePrefixer.ts, que SOPORTA un prefijo
+	 * configurable, pero el export real de un proyecto nuevo no lo usa —
+	 * confirmado mirando el CSS real exportado por el usuario: "--primary",
+	 * "--primary-5", "--secondary", sin ningún "cf-").
+	 *
+	 * Como el archivo SÍ es legible desde PHP (vive en
+	 * wp-content/uploads/core-framework/css/, mismo StylesheetStorage que
+	 * ya usa enlazar_css_core_framework()), no hace falta que el usuario
+	 * escriba un nombre a ciegas — se puede ofrecer un dropdown real. Una
+	 * regex simple sobre declaraciones de nivel raíz (--nombre: valor;)
+	 * alcanza para esto: no hace falta un parser CSS completo, solo los
+	 * NOMBRES, nunca sus valores (que siguen resolviéndose por cascada del
+	 * navegador, no por PHP).
+	 *
+	 * @return string[] Nombres SIN el "--" inicial, ordenados y sin
+	 *         duplicados — vacío si el plugin no está activo o el archivo
+	 *         no se pudo leer.
+	 */
+	public static function variables_core_framework(): array {
+		if ( ! self::core_framework_activo() ) {
+			return array();
+		}
+
+		$ruta = \CoreFramework\StylesheetStorage::get_path();
+		if ( ! is_readable( $ruta ) ) {
+			return array();
+		}
+
+		$css = file_get_contents( $ruta );
+		if ( false === $css ) {
+			return array();
+		}
+
+		preg_match_all( '/--([a-zA-Z0-9_-]+)\s*:/', $css, $coincidencias );
+		$nombres = array_unique( $coincidencias[1] ?? array() );
+		sort( $nombres );
+		return array_values( $nombres );
 	}
 
 	/**
@@ -106,14 +140,20 @@ class Sofia_Estilo_Global {
 	/**
 	 * Resuelve el valor final de una propiedad de color/fuente: si
 	 * $valor_guardado empieza con "cf:" (el usuario eligió "usar token de
-	 * Core Framework" en el panel), emite var(--cf-{token}, $fallback) —
-	 * el propio navegador resuelve la cascada: si el CSS de Core Framework
+	 * Core Framework" en el panel), emite var(--{token}, $fallback) — el
+	 * propio navegador resuelve la cascada: si el CSS de Core Framework
 	 * definió ese token, gana; si no (plugin desactivado, token borrado,
 	 * nombre mal escrito), cae a $fallback sin romper nada. Si
 	 * $valor_guardado es un hex normal, se devuelve tal cual.
 	 *
+	 * SIN prefijo "cf-" propio — corrige una suposición equivocada de la
+	 * primera versión: Core Framework no prefija sus variables reales
+	 * (confirmado mirando el CSS exportado real: "--primary",
+	 * "--secondary", nunca "--cf-primary"), ver el comentario largo en
+	 * variables_core_framework().
+	 *
 	 * $fallback nunca es obligatorio — un color de respaldo vacío en
-	 * var(--cf-x, ) es CSS válido (la declaración completa se ignora si
+	 * var(--x, ) es CSS válido (la declaración completa se ignora si
 	 * ninguno de los dos resuelve), mismo comportamiento que no tener nada
 	 * configurado.
 	 */
@@ -122,7 +162,7 @@ class Sofia_Estilo_Global {
 			return $valor_guardado;
 		}
 		$token = substr( $valor_guardado, strlen( self::PREFIJO_TOKEN_CORE_FRAMEWORK ) );
-		return 'var(' . self::PREFIJO_VARIABLE_CORE_FRAMEWORK . esc_attr( $token ) . ( '' !== $fallback ? ', ' . $fallback : '' ) . ')';
+		return 'var(--' . esc_attr( $token ) . ( '' !== $fallback ? ', ' . $fallback : '' ) . ')';
 	}
 
 	/**
