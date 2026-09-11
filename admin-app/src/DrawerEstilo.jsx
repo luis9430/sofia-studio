@@ -17,15 +17,30 @@ import { CampoConToken } from "./CampoConToken.jsx";
  * campo" que motivó el drawer en primer lugar.
  *
  * Un mismo componente sirve para 2 niveles de estilo, según la prop
- * `nivel`: "campo" (default, Nivel 1 — alineación/tipografía/color/
- * espaciado de UN elemento, abierto con el botón ✏️ de BotonEditarCampo)
- * y "bloque" (Nivel 2 — columnas de grid/color de fondo/espaciado vertical
+ * `nivel`: "campo" (default, Nivel 1 — SOLO texto/contenido puntual de UN
+ * elemento: alineación/tipografía/color/sombra de texto, abierto con el
+ * botón ✏️ de BotonEditarCampo) y "bloque" (Nivel 2 — todo lo de
+ * CAJA/contenedor: columnas de grid, fondo, borde, radius, sombra,
+ * espaciado vertical, ancho/ancho máximo/aspect-ratio/object-fit/z-index,
  * de la <section> completa, abierto desde "Estilo del bloque" en el menú
- * contextual, ver App.jsx). Mismas pestañas/cabecera/arrastre para los 2,
+ * contextual, ver App.jsx). Regla de qué va en cada nivel confirmada con el
+ * usuario tras auditar el catálogo completo de Core Framework:
+ * "color_fondo"/"margen"/"relleno" vivían mal ubicados en Nivel 1 (son
+ * propiedades de la CAJA del campo, no de su texto) y se
+ * movieron a Nivel 2. Mismas pestañas/cabecera/arrastre para los 2,
  * solo cambia qué controles se listan en el cuerpo — evita duplicar toda
  * la mecánica de drawer (arrastre, overlay, pestañas) en un componente
  * aparte para un caso que en el fondo es "el mismo panel con otro grupo de
  * controles".
+ *
+ * Nivel 2 mezcla 2 mecanismos DISTINTOS de Core Framework, nunca
+ * confundirlos: CampoConToken (fondo/borde/radius/sombra) edita un VALOR
+ * de estilo que puede ser fijo o un token "cf:{nombre}" resuelto a
+ * var(--nombre); Ancho máximo/Ancho/Aspect ratio/Object-fit/Z-index son
+ * <select> de una lista fija porque cada opción ES una utility class ya
+ * completa (ej. "aspect-16-9") que Sofia_Componente::clases_utilitarias_
+ * bloque() agrega al classList de la <section> — no hay ningún valor que
+ * tokenizar ahí, por eso nunca llevan el botón CF.
  *
  * Vive FUERA del documento del iframe, nunca toca su DOM directo — manda
  * "sofia:aplicar-estilo"/"sofia:aplicar-formato" y deja que sea el propio
@@ -90,62 +105,74 @@ function formatearMedida({ top, right, bottom, left, unidad }) {
   return `${n(top)} ${n(right)} ${n(bottom)} ${n(left)}`;
 }
 
-// EspaciadoLados: 4 inputs numéricos (arriba/derecha/abajo/izquierda) +
-// selector de unidad, compartido entre margen y relleno.
-function EspaciadoLados({ etiqueta, valor, onCambiar }) {
-  const medida = parsearMedida(valor);
-
-  function actualizarLado(lado, nuevoValor) {
-    onCambiar(formatearMedida({ ...medida, [lado]: nuevoValor }));
-  }
-
-  function actualizarUnidad(nuevaUnidad) {
-    onCambiar(formatearMedida({ ...medida, unidad: nuevaUnidad }));
-  }
-
-  return (
-    <div className="sofia-drawer-estilo__grupo">
-      <span className="sofia-drawer-estilo__etiqueta">{etiqueta}</span>
-      <div className="sofia-drawer-estilo__espaciado">
-        <div className="sofia-drawer-estilo__espaciado-grid">
-          <input
-            type="number"
-            placeholder="Arriba"
-            value={medida.top}
-            onInput={(evento) => actualizarLado("top", evento.currentTarget.value)}
-          />
-          <input
-            type="number"
-            placeholder="Derecha"
-            value={medida.right}
-            onInput={(evento) => actualizarLado("right", evento.currentTarget.value)}
-          />
-          <input
-            type="number"
-            placeholder="Abajo"
-            value={medida.bottom}
-            onInput={(evento) => actualizarLado("bottom", evento.currentTarget.value)}
-          />
-          <input
-            type="number"
-            placeholder="Izquierda"
-            value={medida.left}
-            onInput={(evento) => actualizarLado("left", evento.currentTarget.value)}
-          />
-        </div>
-        <select value={medida.unidad} onChange={(evento) => actualizarUnidad(evento.currentTarget.value)}>
-          <option value="px">px</option>
-          <option value="rem">rem</option>
-          <option value="%">%</option>
-        </select>
-      </div>
-    </div>
-  );
-}
-
 // COLUMNAS: mismas 3 opciones que Sofia_Componente::COLUMNAS_PERMITIDAS del
 // lado PHP — un grid solo tiene sentido en un rango chico (2 a 4).
 const COLUMNAS = ["2", "3", "4"];
+
+// UTILITY CLASSES DE CORE FRAMEWORK (Nivel 2) — a diferencia de
+// CampoConToken (un VALOR de estilo, con opción de token "cf:..."), estas
+// opciones son <select> de una lista fija: cada una ES una utility class ya
+// completa de Core Framework (ver Sofia_Componente::CLASES_UTILITARIAS_BLOQUE,
+// mismas claves/valores espejados acá) — no hay "valor libre" posible, ni
+// tiene sentido un botón CF (no hay nada que tokenizar, ya es una clase).
+const ANCHOS_MAXIMOS = [
+  { valor: "", etiqueta: "Sin límite" },
+  { valor: "site", etiqueta: "Ancho del sitio" },
+  { valor: "100", etiqueta: "100rem" },
+  { valor: "90", etiqueta: "90rem" },
+  { valor: "80", etiqueta: "80rem" },
+  { valor: "70", etiqueta: "70rem" },
+  { valor: "60", etiqueta: "60rem" },
+  { valor: "50", etiqueta: "50rem" },
+  { valor: "40", etiqueta: "40rem" },
+  { valor: "30", etiqueta: "30rem" },
+  { valor: "20", etiqueta: "20rem" },
+  { valor: "10", etiqueta: "10rem" },
+];
+
+const ANCHOS = [
+  { valor: "", etiqueta: "Por defecto" },
+  { valor: "full", etiqueta: "100%" },
+  { valor: "90", etiqueta: "90%" },
+  { valor: "80", etiqueta: "80%" },
+  { valor: "70", etiqueta: "70%" },
+  { valor: "60", etiqueta: "60%" },
+  { valor: "50", etiqueta: "50%" },
+  { valor: "40", etiqueta: "40%" },
+  { valor: "30", etiqueta: "30%" },
+  { valor: "20", etiqueta: "20%" },
+  { valor: "10", etiqueta: "10%" },
+  { valor: "auto", etiqueta: "Automático" },
+];
+
+const ASPECT_RATIOS = [
+  { valor: "", etiqueta: "Ninguna" },
+  { valor: "1", etiqueta: "1:1 (cuadrado)" },
+  { valor: "16-9", etiqueta: "16:9" },
+  { valor: "9-16", etiqueta: "9:16" },
+  { valor: "4-3", etiqueta: "4:3" },
+  { valor: "3-4", etiqueta: "3:4" },
+  { valor: "3-2", etiqueta: "3:2" },
+  { valor: "2-3", etiqueta: "2:3" },
+];
+
+const OBJECT_FITS = [
+  { valor: "", etiqueta: "Por defecto" },
+  { valor: "cover", etiqueta: "Cubrir (recorta)" },
+  { valor: "contain", etiqueta: "Contener (sin recortar)" },
+  { valor: "fill", etiqueta: "Estirar" },
+];
+
+const Z_INDICES = [
+  { valor: "", etiqueta: "Por defecto" },
+  { valor: "-1", etiqueta: "-1 (detrás)" },
+  { valor: "0", etiqueta: "0" },
+  { valor: "1", etiqueta: "1" },
+  { valor: "10", etiqueta: "10" },
+  { valor: "100", etiqueta: "100" },
+  { valor: "1000", etiqueta: "1000" },
+  { valor: "10000", etiqueta: "10000 (siempre encima)" },
+];
 
 // VARIABLES_CONDICION: mismas claves que
 // Sofia_Componente::variables_condicion() del lado PHP — lista corta
@@ -476,15 +503,6 @@ export function DrawerEstilo({
                   <CampoConToken tipo="color" valor={estilo.color} onCambiar={(valor) => actualizar({ color: valor })} />
                 </div>
 
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Color de fondo</span>
-                  <CampoConToken
-                    tipo="color"
-                    valor={estilo.color_fondo}
-                    onCambiar={(valor) => actualizar({ color_fondo: valor })}
-                  />
-                </div>
-
                 <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
                   <span className="sofia-drawer-estilo__etiqueta">Sombra de texto</span>
                   <button
@@ -495,18 +513,6 @@ export function DrawerEstilo({
                     {estilo.sombra_texto ? "Activada" : "Desactivada"}
                   </button>
                 </div>
-
-                <EspaciadoLados
-                  etiqueta="Margen (arriba / derecha / abajo / izquierda)"
-                  valor={estilo.margen}
-                  onCambiar={(valor) => actualizar({ margen: valor })}
-                />
-
-                <EspaciadoLados
-                  etiqueta="Relleno (arriba / derecha / abajo / izquierda)"
-                  valor={estilo.relleno}
-                  onCambiar={(valor) => actualizar({ relleno: valor })}
-                />
               </>
             )}
 
@@ -538,6 +544,35 @@ export function DrawerEstilo({
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Color de borde</span>
+                  <CampoConToken
+                    tipo="color"
+                    valor={estilo.color_borde}
+                    onCambiar={(valor) => actualizar({ color_borde: valor })}
+                  />
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Radio de borde</span>
+                  <CampoConToken
+                    tipo="text"
+                    placeholderNormal="ej. 8px"
+                    valor={estilo.radius}
+                    onCambiar={(valor) => actualizar({ radius: valor })}
+                  />
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Sombra</span>
+                  <CampoConToken
+                    tipo="text"
+                    placeholderNormal="ej. 0 2px 6px rgba(0,0,0,.15)"
+                    valor={estilo.sombra}
+                    onCambiar={(valor) => actualizar({ sombra: valor })}
+                  />
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Espaciado vertical (arriba y abajo)</span>
                   <div className="sofia-drawer-estilo__tamano-numerico">
                     <input
@@ -563,6 +598,74 @@ export function DrawerEstilo({
                       <option value="%">%</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Ancho máximo</span>
+                  <select
+                    value={estilo.max_width || ""}
+                    onChange={(evento) => actualizar({ max_width: evento.currentTarget.value })}
+                  >
+                    {ANCHOS_MAXIMOS.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Ancho</span>
+                  <select value={estilo.ancho || ""} onChange={(evento) => actualizar({ ancho: evento.currentTarget.value })}>
+                    {ANCHOS.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Relación de aspecto</span>
+                  <select
+                    value={estilo.aspect_ratio || ""}
+                    onChange={(evento) => actualizar({ aspect_ratio: evento.currentTarget.value })}
+                  >
+                    {ASPECT_RATIOS.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Ajuste de imagen/video (object-fit)</span>
+                  <p className="sofia-drawer-estilo__ayuda-condicion">
+                    Solo tiene efecto si este bloque es o contiene una &lt;img&gt;/&lt;video&gt; directa — no aplica a
+                    un color/imagen de fondo (background-image usa otra propiedad, no object-fit).
+                  </p>
+                  <select
+                    value={estilo.object_fit || ""}
+                    onChange={(evento) => actualizar({ object_fit: evento.currentTarget.value })}
+                  >
+                    {OBJECT_FITS.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Z-index (superposición)</span>
+                  <select value={estilo.z_index || ""} onChange={(evento) => actualizar({ z_index: evento.currentTarget.value })}>
+                    {Z_INDICES.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </>
             )}

@@ -94,3 +94,37 @@ Text Domain: sofia-studio
 .sofia-faq__respuesta {
 	margin: 0;
 }
+
+/* Compatibilidad de utility classes de Core Framework aplicadas en Nivel 2
+   (ver Sofia_Componente::clases_utilitarias_bloque()) — "fit-cover"/
+   "fit-contain"/"fit-fill" son propiedades de Core Framework pensadas para
+   ir DIRECTO en un <img>/<video> (object-fit no tiene efecto en un
+   contenedor normal como la <section> del bloque); acá se agregan al
+   <section> por ser el único elemento con class="..." accesible desde el
+   drawer de bloque. Esta regla las reenvía a la <img> hija directa para que
+   el control tenga efecto real sin exigir un control aparte por campo de
+   imagen (fuera de alcance de esta fase, ver DrawerEstilo.jsx).
+
+   Requiere combinarse con "Relación de aspecto" (misma pestaña del drawer,
+   agrega aspect-N-N a la MISMA <section>) para que height:100% tenga una
+   altura real de la que partir — sin aspect-ratio, la <section> mide lo que
+   mide su contenido (incluida la imagen), así que height:100% no recorta
+   nada. Con aspect-ratio, la sección ya tiene una altura fija propia y
+   object-fit sí puede recortar la imagen dentro de esa caja. */
+.sofia-hero.fit-cover > img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.sofia-hero.fit-contain > img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.sofia-hero.fit-fill > img {
+	width: 100%;
+	height: 100%;
+	object-fit: fill;
+}

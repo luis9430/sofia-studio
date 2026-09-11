@@ -27,7 +27,7 @@ class Sofia_Componente_CTA extends Sofia_Componente {
 		$boton_texto  = $this->texto_enriquecido( $this->props['boton_texto'] );
 		$boton_enlace = esc_url( $this->props['boton_enlace'] );
 
-		$html  = '<section class="sofia-cta" ' . $this->atributos_seccion() . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-cta' ) . '>';
 		$html .= '<h2 ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h2>';
 		$html .= '<p ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</p>';
 		// El enlace del botón (href) NO es contenteditable — es un

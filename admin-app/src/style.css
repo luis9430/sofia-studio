@@ -833,27 +833,6 @@ body {
   width: 100%;
 }
 
-.sofia-drawer-estilo__espaciado {
-  display: flex;
-  gap: 6px;
-  align-items: start;
-}
-
-.sofia-drawer-estilo__espaciado-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.sofia-drawer-estilo__espaciado-grid input {
-  width: 100%;
-}
-
-.sofia-drawer-estilo__espaciado select {
-  width: 56px;
-}
-
 /* Overlay de resaltado de bloque: pointer-events:none es crítico — sin
    esto, el propio overlay (que se dibuja ARRIBA del iframe en el z-index)
    capturaría los clicks/mouseover que en realidad tienen que llegar al

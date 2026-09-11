@@ -20,7 +20,7 @@ class Sofia_Componente_Texto_Libre extends Sofia_Componente {
 	public function render(): string {
 		$contenido = $this->texto_enriquecido( $this->props['contenido'] );
 
-		$html  = '<section class="sofia-texto-libre" ' . $this->atributos_seccion() . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-texto-libre' ) . '>';
 		$html .= '<p ' . $this->atributo_editable( 'contenido' ) . ' ' . $this->atributo_estilo( 'contenido' ) . '>' . $contenido . '</p>';
 		$html .= '</section>';
 		return $html;

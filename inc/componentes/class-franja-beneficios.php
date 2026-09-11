@@ -55,7 +55,7 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 		// editor (Sofia_Modo_Editor::activo()), el botón en flujo normal
 		// SÍ empuja la altura real de la <section>, que el
 		// ResizeObserver de nivel superior detecta automáticamente.
-		$html  = '<section class="sofia-franja-beneficios" ' . $this->atributos_seccion() . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-franja-beneficios' ) . '>';
 		$html .= '<div class="sofia-franja-beneficios__grid" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$titulo = $this->texto_enriquecido( (string) ( $item['titulo'] ?? '' ) );

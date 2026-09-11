@@ -22,7 +22,7 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 		$titulo = $this->texto_enriquecido( $this->props['titulo'] );
 		$imagen = esc_url( $this->props['imagen'] );
 
-		$html  = '<section class="sofia-hero" ' . $this->atributos_seccion() . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-hero' ) . '>';
 		$html .= '<h1 ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h1>';
 		if ( $imagen ) {
 			$html .= '<img ' . $this->atributo_editable( 'imagen' ) . ' src="' . $imagen . '" alt="' . wp_strip_all_tags( $titulo ) . '">';

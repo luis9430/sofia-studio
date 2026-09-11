@@ -143,23 +143,32 @@ abstract class Sofia_Componente {
 	abstract public function nombre(): string;
 
 	/**
-	 * Atributos data-sofia-bloque-id/data-sofia-bloque-tipo (+ el
-	 * style="..." de atributo_estilo_bloque(), si el bloque tiene uno
-	 * guardado) en la <section> raíz de este Componente — editor-iframe.js
-	 * los lee directo (en vez de "adivinar" el tipo a partir del primer
-	 * data-sofia-campo, que ya no lo contiene desde que atributo_editable()
-	 * usa el ID) para reconstruir {id, tipo} de cada bloque al reordenar/
-	 * eliminar un bloque de nivel superior — ver
-	 * activarReordenar()/alEliminarBloque(). Cada Componente debe usar esto
-	 * al abrir su <section>, ej.:
-	 *   '<section class="sofia-hero" ' . $this->atributos_seccion() . '>'
+	 * Atributos class="{clase_base} {utility classes}" +
+	 * data-sofia-bloque-id/data-sofia-bloque-tipo (+ el style="..." de
+	 * atributo_estilo_bloque(), si el bloque tiene uno guardado) en la
+	 * <section> raíz de este Componente — editor-iframe.js los lee directo
+	 * (en vez de "adivinar" el tipo a partir del primer data-sofia-campo,
+	 * que ya no lo contiene desde que atributo_editable() usa el ID) para
+	 * reconstruir {id, tipo} de cada bloque al reordenar/eliminar un bloque
+	 * de nivel superior — ver activarReordenar()/alEliminarBloque(). Cada
+	 * Componente debe usar esto para SU <section> completa (clase base
+	 * propia incluida), ej.:
+	 *   '<section ' . $this->atributos_seccion( 'sofia-hero' ) . '>'
+	 *
+	 * $clase_base ("sofia-hero", "sofia-cta", etc.) se recibe como
+	 * parámetro en vez de que cada Componente escriba su propio
+	 * class="..." aparte — necesario desde que este método también emite
+	 * utility classes de Core Framework (ver clases_utilitarias_bloque()):
+	 * un <section> no puede tener dos atributos class="..." (el navegador
+	 * solo aplica el último y descarta el primero en silencio), así que
+	 * clase base + utility classes tienen que armarse juntas acá.
 	 *
 	 * El estilo de BLOQUE (Nivel 2 — columnas de grid, color de fondo de la
-	 * sección, padding vertical) se agrega ACÁ (una sola vez, para los 6
-	 * Componentes) en vez de que cada uno llame un método aparte — mismo
-	 * criterio que atributo_editable(): centralizar en la clase base lo que
-	 * es igual para cualquier Componente, así un Componente nuevo lo
-	 * hereda gratis sin tener que acordarse de nada.
+	 * sección, padding vertical, utility classes) se agrega ACÁ (una sola
+	 * vez, para los 6 Componentes) en vez de que cada uno llame un método
+	 * aparte — mismo criterio que atributo_editable(): centralizar en la
+	 * clase base lo que es igual para cualquier Componente, así un
+	 * Componente nuevo lo hereda gratis sin tener que acordarse de nada.
 	 *
 	 * data-sofia-oculto-condicion (solo en modo editor, solo si
 	 * bloque_visible() es false) marca la <section> con la pista visual de
@@ -172,17 +181,48 @@ abstract class Sofia_Componente {
 	 * renderizar el bloque (visita pública: no se renderiza en absoluto si
 	 * no es visible) — acá solo se agrega la marca cuando corresponde.
 	 */
-	protected function atributos_seccion(): string {
+	protected function atributos_seccion( string $clase_base ): string {
 		$oculto = ( ! $this->bloque_visible() && class_exists( 'Sofia_Modo_Editor' ) && Sofia_Modo_Editor::activo() )
 			? 'data-sofia-oculto-condicion="Oculto: condición no cumplida"'
 			: '';
+		$clases = trim( $clase_base . ' ' . $this->clases_utilitarias_bloque() );
 		return sprintf(
-			'data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s" %s %s',
+			'class="%s" data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s" %s %s',
+			esc_attr( $clases ),
 			esc_attr( $this->id ),
 			esc_attr( $this->tipo ),
 			$this->atributo_estilo_bloque(),
 			$oculto
 		);
+	}
+
+	/**
+	 * Utility classes de Core Framework para la <section> del bloque (Nivel
+	 * 2) — a diferencia de atributo_estilo_bloque() (que arma un
+	 * style="..." con VALORES), estas son clases CSS YA COMPLETAS que Core
+	 * Framework define (ver CLASES_UTILITARIAS_BLOQUE): agregar la clase es
+	 * todo lo que hace falta, no hay nada que resolver ni ningún token
+	 * "cf:..." involucrado. Cada categoría (max_width/ancho/aspect_ratio/
+	 * object_fit/z_index) es un <select> de opciones fijas en el drawer
+	 * (nunca texto libre), así que alcanza con mapear el valor guardado
+	 * contra la whitelist — un valor desconocido (dato corrupto) se ignora
+	 * en silencio, mismo criterio que el resto de la clase.
+	 */
+	protected function clases_utilitarias_bloque(): string {
+		$estilo = $this->props['_estilo_bloque'] ?? null;
+		if ( ! is_array( $estilo ) || empty( $estilo ) ) {
+			return '';
+		}
+
+		$clases = array();
+		foreach ( self::CLASES_UTILITARIAS_BLOQUE as $clave => $opciones ) {
+			$valor = $estilo[ $clave ] ?? null;
+			if ( is_string( $valor ) && isset( $opciones[ $valor ] ) ) {
+				$clases[] = $opciones[ $valor ];
+			}
+		}
+
+		return implode( ' ', $clases );
 	}
 
 	/**
@@ -201,10 +241,19 @@ abstract class Sofia_Componente {
 	 * ESTILOS_CAMPO_PERMITIDOS: whitelist de propiedades CSS que un campo
 	 * puede tener guardadas en su "{campo}._estilo" (ver atributo_estilo()
 	 * abajo) — mismo criterio que ETIQUETAS_FORMATO_PERMITIDAS: nunca CSS
-	 * arbitrario, solo lo que el drawer de estilo (Nivel 3, panel Preact)
+	 * arbitrario, solo lo que el drawer de estilo (Nivel 1, panel Preact)
 	 * realmente ofrece como control. Clave = nombre guardado en el JSON,
 	 * valor = propiedad CSS real a emitir (permite que ambos difieran si
 	 * hiciera falta — hoy coinciden).
+	 *
+	 * Regla de qué va en Nivel 1 (acá) vs Nivel 2 (atributo_estilo_bloque()):
+	 * Nivel 1 es solo lo que afecta TEXTO/CONTENIDO puntual de ese elemento
+	 * (tipografía + color); todo lo que es de la CAJA/contenedor (fondo,
+	 * borde, sombra de caja, radius, espaciado) vive en Nivel 2 — mismo
+	 * criterio con el que "color_fondo"/"margen"/"relleno" se movieron
+	 * desde acá a atributo_estilo_bloque() (estaban mal ubicados: el fondo y
+	 * el espaciado de un campo son en realidad propiedades de su caja, no de
+	 * su texto).
 	 */
 	private const ESTILOS_CAMPO_PERMITIDOS = array(
 		'alineacion'      => 'text-align',
@@ -212,10 +261,7 @@ abstract class Sofia_Componente {
 		'tamano_fuente'   => 'font-size',
 		'tipo_fuente'     => 'font-family',
 		'negrita'         => 'font-weight',
-		'color_fondo'     => 'background-color',
 		'sombra_texto'    => 'text-shadow',
-		'margen'          => 'margin',
-		'relleno'         => 'padding',
 	);
 
 	/**
@@ -238,14 +284,15 @@ abstract class Sofia_Componente {
 	/**
 	 * PATRON_MEDIDA_CSS valida un valor de tamaño de fuente/espaciado antes
 	 * de emitirlo — necesario porque, a diferencia de alineación/color
-	 * (opciones fijas elegidas por el drawer), "tamano_fuente"/"margen"/
-	 * "relleno" llegan como INPUT LIBRE del usuario (ver DrawerEstilo.jsx).
-	 * Sin este chequeo, un valor corrupto o con intención maliciosa
-	 * ("expression(...)", "javascript:", etc.) pasaría directo a esc_attr()
-	 * — que sanea comillas/HTML pero NO valida que el contenido sea CSS
-	 * válido. El patrón acepta 1 a 4 números (separados por espacio, para
-	 * el shorthand de margin/padding) con unidad px/rem/%, cada uno
-	 * opcionalmente negativo (margin negativo es válido CSS).
+	 * (opciones fijas elegidas por el drawer), "tamano_fuente" (Nivel 1) y
+	 * "espaciado_vertical" (Nivel 2) llegan como INPUT LIBRE del usuario
+	 * (ver DrawerEstilo.jsx). Sin este chequeo, un valor corrupto o con
+	 * intención maliciosa ("expression(...)", "javascript:", etc.) pasaría
+	 * directo a esc_attr() — que sanea comillas/HTML pero NO valida que el
+	 * contenido sea CSS válido. El patrón acepta 1 a 4 números (separados
+	 * por espacio, para el shorthand de margin/padding) con unidad
+	 * px/rem/%, cada uno opcionalmente negativo (margin negativo es válido
+	 * CSS).
 	 */
 	private const PATRON_MEDIDA_CSS = '/^-?\d+(\.\d+)?(px|rem|%)( -?\d+(\.\d+)?(px|rem|%)){0,3}$/';
 
@@ -256,6 +303,74 @@ abstract class Sofia_Componente {
 	 * valor fuera de esta lista se ignora en silencio.
 	 */
 	private const COLUMNAS_PERMITIDAS = array( '2', '3', '4' );
+
+	/**
+	 * CLASES_UTILITARIAS_BLOQUE: whitelist de utility classes REALES de
+	 * Core Framework que Nivel 2 (bloque) puede agregar a la <section> —
+	 * a diferencia de ESTILOS_CAMPO_PERMITIDOS/atributo_estilo_bloque()
+	 * (que arman un style="..." con un VALOR), estas no son un valor de
+	 * propiedad CSS: cada opción ES una clase CSS completa ya definida por
+	 * Core Framework (ver el CSS default exportado, auditado a mano —
+	 * memoria de producto "Sofia Studio: sistema de estilo"), agregarla o
+	 * quitarla del elemento es todo lo que hace falta.
+	 *
+	 * Estructura: {clave guardada en "_estilo_bloque" => {valor guardado =>
+	 * clase CSS real}} — mismo criterio de whitelist de VALOR (no solo de
+	 * nombre) que FUENTES_PERMITIDAS, necesario porque estos también son
+	 * input elegido de una lista corta (un <select> en el drawer), nunca
+	 * texto libre.
+	 */
+	private const CLASES_UTILITARIAS_BLOQUE = array(
+		'max_width'   => array(
+			'10'  => 'max-width-10',
+			'20'  => 'max-width-20',
+			'30'  => 'max-width-30',
+			'40'  => 'max-width-40',
+			'50'  => 'max-width-50',
+			'60'  => 'max-width-60',
+			'70'  => 'max-width-70',
+			'80'  => 'max-width-80',
+			'90'  => 'max-width-90',
+			'100' => 'max-width-100',
+			'site' => 'max-site-width',
+		),
+		'ancho'       => array(
+			'10' => 'width-10',
+			'20' => 'width-20',
+			'30' => 'width-30',
+			'40' => 'width-40',
+			'50' => 'width-50',
+			'60' => 'width-60',
+			'70' => 'width-70',
+			'80' => 'width-80',
+			'90' => 'width-90',
+			'full' => 'full-width',
+			'auto' => 'auto-width',
+		),
+		'aspect_ratio' => array(
+			'1'    => 'aspect-1',
+			'4-3'  => 'aspect-4-3',
+			'3-4'  => 'aspect-3-4',
+			'3-2'  => 'aspect-3-2',
+			'2-3'  => 'aspect-2-3',
+			'16-9' => 'aspect-16-9',
+			'9-16' => 'aspect-9-16',
+		),
+		'object_fit'  => array(
+			'contain' => 'fit-contain',
+			'cover'   => 'fit-cover',
+			'fill'    => 'fit-fill',
+		),
+		'z_index'     => array(
+			'-1'    => 'z--1',
+			'0'     => 'z-0',
+			'1'     => 'z-1',
+			'10'    => 'z-10',
+			'100'   => 'z-100',
+			'1000'  => 'z-1000',
+			'10000' => 'z-10000',
+		),
+	);
 
 	/**
 	 * Atributo style="..." para la <section> del bloque — estilo de NIVEL 2
@@ -274,6 +389,12 @@ abstract class Sofia_Componente {
 	 * variable, definirla ahí no tiene efecto ni rompe nada) y
 	 * "espaciado_vertical" expande a DOS propiedades (padding-top Y
 	 * padding-bottom) desde un único valor.
+	 *
+	 * "color_fondo"/"color_borde"/"radius"/"sombra" son las propiedades de
+	 * CAJA/contenedor que Core Framework expone como custom property real
+	 * (colores, radius-*, shadow-*) — por eso viven acá y no en Nivel 1, y
+	 * por eso (a diferencia de columnas/espaciado_vertical) sí pueden ser un
+	 * token "cf:{nombre}", mismo mecanismo que atributo_estilo().
 	 */
 	protected function atributo_estilo_bloque(): string {
 		$estilo = $this->props['_estilo_bloque'] ?? null;
@@ -287,20 +408,40 @@ abstract class Sofia_Componente {
 			$declaraciones[] = '--sofia-columnas:' . (int) $estilo['columnas'];
 		}
 
-		// $token_color_fondo_crudo: mismo motivo que $tokens_crudos en
-		// atributo_estilo() — el navegador nunca devuelve "cf:..." al leer
-		// de vuelta seccion.style.backgroundColor, hace falta un
-		// data-attribute aparte para que editor-iframe.js pueda reconstruir
-		// el modo token al reabrir el drawer.
-		$token_color_fondo_crudo = '';
-		if ( ! empty( $estilo['color_fondo'] ) && is_string( $estilo['color_fondo'] ) ) {
-			// Mismo mecanismo de token de Core Framework que atributo_estilo()
-			// (Nivel 1) — reusado tal cual, ver Sofia_Estilo_Global.
-			if ( str_starts_with( $estilo['color_fondo'], Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
-				$declaraciones[]         = 'background-color:' . Sofia_Estilo_Global::resolver_valor( $estilo['color_fondo'] );
-				$token_color_fondo_crudo = $estilo['color_fondo'];
+		// $tokens_crudos: mismo motivo que en atributo_estilo() (Nivel 1) —
+		// el navegador nunca devuelve "cf:..." al leer de vuelta el estilo ya
+		// aplicado, hace falta un data-attribute aparte por cada propiedad
+		// para que editor-iframe.js pueda reconstruir el modo token al
+		// reabrir el drawer.
+		$tokens_crudos                    = array();
+		$propiedades_con_token_de_bloque = array(
+			'color_fondo'  => 'background-color',
+			'color_borde'  => 'border-color',
+			'radius'       => 'border-radius',
+			'sombra'       => 'box-shadow',
+		);
+		foreach ( $propiedades_con_token_de_bloque as $clave => $propiedad_css ) {
+			$valor = $estilo[ $clave ] ?? null;
+			if ( empty( $valor ) || ! is_string( $valor ) ) {
+				continue;
+			}
+
+			if ( str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+				$declaraciones[]        = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
+				$tokens_crudos[ $clave ] = $valor;
 			} else {
-				$declaraciones[] = 'background-color:' . esc_attr( $estilo['color_fondo'] );
+				$declaraciones[] = $propiedad_css . ':' . esc_attr( $valor );
+			}
+
+			// "color_borde" no tiene efecto sin border-style/width — a
+			// diferencia de fondo/radius/sombra, un color de borde solo
+			// tiene sentido si también hay un borde real; 1px solid fijo
+			// (sin control de grosor propio, no lo pidieron) es suficiente
+			// para que el color se vea. Fuera del if/else de arriba: aplica
+			// tanto si "color_borde" vino como token como si vino fijo.
+			if ( 'color_borde' === $clave ) {
+				$declaraciones[] = 'border-style:solid';
+				$declaraciones[] = 'border-width:1px';
 			}
 		}
 
@@ -314,11 +455,12 @@ abstract class Sofia_Componente {
 			return '';
 		}
 
-		$atributo_token = '' !== $token_color_fondo_crudo
-			? sprintf( ' data-sofia-estilo-color_fondo="%s"', esc_attr( $token_color_fondo_crudo ) )
-			: '';
+		$atributos_token = '';
+		foreach ( $tokens_crudos as $clave => $valor_crudo ) {
+			$atributos_token .= sprintf( ' data-sofia-estilo-%s="%s"', esc_attr( $clave ), esc_attr( $valor_crudo ) );
+		}
 
-		return 'style="' . implode( ';', $declaraciones ) . '"' . $atributo_token;
+		return 'style="' . implode( ';', $declaraciones ) . '"' . $atributos_token;
 	}
 
 	/**
@@ -364,15 +506,16 @@ abstract class Sofia_Componente {
 		}
 
 		$declaraciones = array();
-		// $tokens_crudos guarda, por clave ("color"/"color_fondo"), el
-		// valor CRUDO tal cual se guardó ("cf:border-primary") cuando ES un
-		// token — necesario porque el navegador, al leer de vuelta
-		// el.style.color, devuelve el color YA COMPUTADO (ej. un rgb()
-		// resuelto de la cascada), nunca el string "cf:..." original. Sin
-		// esto, editor-iframe.js (estiloActualDe) no podría distinguir
-		// "el usuario eligió un token" de "el usuario eligió ese color
-		// exacto", y el drawer perdía el modo token al reabrirse — bug
-		// real reportado por el usuario ("se borra al salir del modal").
+		// $tokens_crudos guarda, por clave ("color", hoy la única propiedad
+		// de Nivel 1 que puede ser token), el valor CRUDO tal cual se
+		// guardó ("cf:border-primary") cuando ES un token — necesario
+		// porque el navegador, al leer de vuelta el.style.color, devuelve
+		// el color YA COMPUTADO (ej. un rgb() resuelto de la cascada),
+		// nunca el string "cf:..." original. Sin esto, editor-iframe.js
+		// (estiloActualDe) no podría distinguir "el usuario eligió un
+		// token" de "el usuario eligió ese color exacto", y el drawer
+		// perdía el modo token al reabrirse — bug real reportado por el
+		// usuario ("se borra al salir del modal").
 		$tokens_crudos = array();
 		foreach ( self::ESTILOS_CAMPO_PERMITIDOS as $clave => $propiedad_css ) {
 			$valor = $estilo[ $clave ] ?? null;
@@ -393,20 +536,20 @@ abstract class Sofia_Componente {
 				continue;
 			}
 
-			// tamano_fuente/margen/relleno son INPUT LIBRE del usuario (ver
-			// DrawerEstilo.jsx) — a diferencia del resto (opciones fijas
-			// elegidas por el drawer), necesitan validarse como una medida
-			// CSS real antes de emitirse, no solo escaparse.
-			if ( in_array( $clave, array( 'tamano_fuente', 'margen', 'relleno' ), true ) && ! preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
+			// tamano_fuente es INPUT LIBRE del usuario (ver DrawerEstilo.jsx)
+			// — a diferencia del resto (opciones fijas elegidas por el
+			// drawer), necesita validarse como una medida CSS real antes de
+			// emitirse, no solo escaparse.
+			if ( 'tamano_fuente' === $clave && ! preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
 				continue;
 			}
 
-			// "color"/"color_fondo" pueden ser un token de Core Framework
+			// "color" puede ser un token de Core Framework
 			// ("cf:{nombre}", mismo mecanismo que Sofia_Estilo_Global —
 			// PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() reusados tal
 			// cual, nunca duplicados) en vez de un hex fijo elegido con el
 			// <input type="color"> del drawer.
-			if ( in_array( $clave, array( 'color', 'color_fondo' ), true ) && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+			if ( 'color' === $clave && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
 				$declaraciones[]        = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
 				$tokens_crudos[ $clave ] = $valor;
 				continue;
@@ -425,11 +568,9 @@ abstract class Sofia_Componente {
 
 		$atributos_token = '';
 		foreach ( $tokens_crudos as $clave => $valor_crudo ) {
-			// data-sofia-estilo-color / data-sofia-estilo-color_fondo —
-			// nombre derivado de la clave, un atributo por propiedad que
-			// SÍ puede ser token (hoy solo color/color_fondo). El guion
-			// bajo de "color_fondo" es válido en un nombre de atributo
-			// data-*, no hace falta convertirlo a guion medio.
+			// data-sofia-estilo-color — nombre derivado de la clave, un
+			// atributo por propiedad que SÍ puede ser token (hoy solo
+			// "color" en Nivel 1).
 			$atributos_token .= sprintf( ' data-sofia-estilo-%s="%s"', esc_attr( $clave ), esc_attr( $valor_crudo ) );
 		}
 

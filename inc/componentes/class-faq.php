@@ -28,7 +28,7 @@ class Sofia_Componente_FAQ extends Sofia_Componente {
 
 		$campo_lista = $this->id . '.items';
 
-		$html  = '<section class="sofia-faq" ' . $this->atributos_seccion() . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-faq' ) . '>';
 		$html .= '<div class="sofia-faq__lista" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$pregunta  = $this->texto_enriquecido( (string) ( $item['pregunta'] ?? '' ) );

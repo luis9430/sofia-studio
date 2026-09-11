@@ -192,10 +192,7 @@
 			tamano_fuente: el.style.fontSize || "",
 			tipo_fuente: claveDeFuente(el.style.fontFamily),
 			negrita: el.style.fontWeight || "",
-			color_fondo: valorDeEstiloOToken(el, "data-sofia-estilo-color_fondo", "backgroundColor"),
 			sombra_texto: el.style.textShadow || "",
-			margen: el.style.margin || "",
-			relleno: el.style.padding || "",
 		};
 	}
 
@@ -220,10 +217,7 @@
 		el.style.fontSize = estilo.tamano_fuente || "";
 		el.style.fontFamily = FUENTES_PERMITIDAS[estilo.tipo_fuente] || "";
 		el.style.fontWeight = estilo.negrita || "";
-		el.style.backgroundColor = resolverValorConToken(estilo.color_fondo);
 		el.style.textShadow = estilo.sombra_texto || "";
-		el.style.margin = estilo.margen || "";
-		el.style.padding = estilo.relleno || "";
 
 		// data-attribute con el valor CRUDO — ver el comentario largo en
 		// valorDeEstiloOToken(): sin esto, estiloActualDe() no podría
@@ -234,11 +228,6 @@
 		} else {
 			el.removeAttribute("data-sofia-estilo-color");
 		}
-		if (estilo.color_fondo && estilo.color_fondo.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
-			el.setAttribute("data-sofia-estilo-color_fondo", estilo.color_fondo);
-		} else {
-			el.removeAttribute("data-sofia-estilo-color_fondo");
-		}
 
 		notificarCambio(campo + "._estilo", estilo);
 	}
@@ -248,12 +237,56 @@
 	// --sofia-columnas se lee vía getPropertyValue (no el objeto style
 	// plano, que no expone custom properties de la misma forma que
 	// propiedades CSS estándar).
+	// PROPIEDADES_TOKEN_BLOQUE: mismo mapa {clave => [propiedad style, data-attribute]}
+	// que Sofia_Componente::atributo_estilo_bloque() del lado PHP (array
+	// $propiedades_con_token_de_bloque) — necesario para no repetir 4 veces
+	// el mismo bloque if/else de "leer con fallback a data-attribute" /
+	// "aplicar y marcar data-attribute si es token".
+	var PROPIEDADES_TOKEN_BLOQUE = {
+		color_fondo: ["backgroundColor", "data-sofia-estilo-color_fondo"],
+		color_borde: ["borderColor", "data-sofia-estilo-color_borde"],
+		radius: ["borderRadius", "data-sofia-estilo-radius"],
+		sombra: ["boxShadow", "data-sofia-estilo-sombra"],
+	};
+
+	// CLASES_UTILITARIAS_BLOQUE: espejo EXACTO de
+	// Sofia_Componente::CLASES_UTILITARIAS_BLOQUE del lado PHP — a
+	// diferencia de PROPIEDADES_TOKEN_BLOQUE (un VALOR de estilo), acá cada
+	// opción es una utility class YA COMPLETA de Core Framework; aplicarla
+	// es agregarla al classList de la <section>, no escribir en su style.
+	var CLASES_UTILITARIAS_BLOQUE = {
+		max_width: { 10: "max-width-10", 20: "max-width-20", 30: "max-width-30", 40: "max-width-40", 50: "max-width-50", 60: "max-width-60", 70: "max-width-70", 80: "max-width-80", 90: "max-width-90", 100: "max-width-100", site: "max-site-width" },
+		ancho: { 10: "width-10", 20: "width-20", 30: "width-30", 40: "width-40", 50: "width-50", 60: "width-60", 70: "width-70", 80: "width-80", 90: "width-90", full: "full-width", auto: "auto-width" },
+		aspect_ratio: { 1: "aspect-1", "4-3": "aspect-4-3", "3-4": "aspect-3-4", "3-2": "aspect-3-2", "2-3": "aspect-2-3", "16-9": "aspect-16-9", "9-16": "aspect-9-16" },
+		object_fit: { contain: "fit-contain", cover: "fit-cover", fill: "fit-fill" },
+		z_index: { "-1": "z--1", 0: "z-0", 1: "z-1", 10: "z-10", 100: "z-100", 1000: "z-1000", 10000: "z-10000" },
+	};
+
+	// claveUtilitariaActual: recorre las clases posibles de UNA categoría
+	// (ej. todas las de aspect_ratio) y devuelve el valor guardado ("16-9")
+	// cuya clase CSS ("aspect-16-9") está presente en la sección — a lo
+	// sumo una debería estarlo, porque alAplicarEstiloBloque() siempre
+	// quita las demás de la misma categoría antes de agregar la nueva.
+	function claveUtilitariaActual(seccion, opciones) {
+		for (var valor in opciones) {
+			if (seccion.classList.contains(opciones[valor])) return valor;
+		}
+		return "";
+	}
+
 	function estiloBloqueActualDe(seccion) {
-		return {
+		var estilo = {
 			columnas: seccion.style.getPropertyValue("--sofia-columnas").trim() || "",
-			color_fondo: valorDeEstiloOToken(seccion, "data-sofia-estilo-color_fondo", "backgroundColor"),
 			espaciado_vertical: seccion.style.paddingTop || "",
 		};
+		for (var clave in PROPIEDADES_TOKEN_BLOQUE) {
+			var par = PROPIEDADES_TOKEN_BLOQUE[clave];
+			estilo[clave] = valorDeEstiloOToken(seccion, par[1], par[0]);
+		}
+		for (var claveUtil in CLASES_UTILITARIAS_BLOQUE) {
+			estilo[claveUtil] = claveUtilitariaActual(seccion, CLASES_UTILITARIAS_BLOQUE[claveUtil]);
+		}
+		return estilo;
 	}
 
 	// Aplica el estilo de bloque elegido en el drawer directo a la
@@ -268,14 +301,35 @@
 		} else {
 			seccion.style.removeProperty("--sofia-columnas");
 		}
-		seccion.style.backgroundColor = resolverValorConToken(estilo.color_fondo);
 		seccion.style.paddingTop = estilo.espaciado_vertical || "";
 		seccion.style.paddingBottom = estilo.espaciado_vertical || "";
 
-		if (estilo.color_fondo && estilo.color_fondo.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
-			seccion.setAttribute("data-sofia-estilo-color_fondo", estilo.color_fondo);
-		} else {
-			seccion.removeAttribute("data-sofia-estilo-color_fondo");
+		for (var clave in PROPIEDADES_TOKEN_BLOQUE) {
+			var par = PROPIEDADES_TOKEN_BLOQUE[clave];
+			seccion.style[par[0]] = resolverValorConToken(estilo[clave]);
+			if (clave === "color_borde") {
+				seccion.style.borderStyle = estilo[clave] ? "solid" : "";
+				seccion.style.borderWidth = estilo[clave] ? "1px" : "";
+			}
+			if (estilo[clave] && estilo[clave].indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
+				seccion.setAttribute(par[1], estilo[clave]);
+			} else {
+				seccion.removeAttribute(par[1]);
+			}
+		}
+
+		// Utility classes de Core Framework — quita TODAS las clases
+		// posibles de cada categoría antes de agregar la elegida (nunca dos
+		// clases de la misma categoría a la vez, ej. "aspect-1" y
+		// "aspect-16-9" juntas no tendría sentido).
+		for (var claveUtil in CLASES_UTILITARIAS_BLOQUE) {
+			var opciones = CLASES_UTILITARIAS_BLOQUE[claveUtil];
+			for (var valorOpcion in opciones) {
+				seccion.classList.remove(opciones[valorOpcion]);
+			}
+			if (estilo[claveUtil] && opciones[estilo[claveUtil]]) {
+				seccion.classList.add(opciones[estilo[claveUtil]]);
+			}
 		}
 
 		notificarCambio(id + "._estilo_bloque", estilo);

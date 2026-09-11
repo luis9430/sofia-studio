@@ -40,7 +40,7 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		// ni contenido.
 		$campo_lista = $this->id . '.items';
 
-		$html  = '<section class="sofia-testimonios" ' . $this->atributos_seccion() . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-testimonios' ) . '>';
 		$html .= '<div class="sofia-testimonios__grid" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$foto   = esc_url( (string) ( $item['foto'] ?? '' ) );
