@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { CampoConToken } from "./CampoConToken.jsx";
 
 /**
  * Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
@@ -35,13 +36,19 @@ import { useEffect, useState } from "preact/hooks";
  * Core Framework no expone una API de tokens, pero SÍ es un archivo CSS
  * legible desde PHP — sofia/v1/core-framework/variables (ver
  * Sofia_Estilo_Global::variables_core_framework()) lee ese archivo real y
- * devuelve los nombres encontrados, usados acá como sugerencias de un
+ * devuelve los nombres encontrados, usados como sugerencias de un
  * <datalist> — el campo sigue siendo texto libre (el usuario puede
  * escribir un nombre que no esté en la lista, ej. si Core Framework
  * generó el CSS después de cargar este panel), pero ya no es "a ciegas".
+ *
+ * CampoConToken vive en su propio archivo (CampoConToken.jsx) — el mismo
+ * control se reusa en DrawerEstilo.jsx (Nivel 1/2, estilo por campo/
+ * bloque), nunca duplicado entre los 2 niveles. El <datalist> compartido
+ * (ListaVariablesCoreFramework) vive montado en App.jsx, NO acá — el
+ * botón CF también aparece en el drawer, que puede estar abierto sin que
+ * este panel lo esté, así que el elemento con ese id necesita existir
+ * siempre en el documento, sin importar cuál de los 2 está montado.
  */
-const PREFIJO_TOKEN_CORE_FRAMEWORK = "cf:";
-
 const ROLES_COLOR = [
   { clave: "texto", etiqueta: "Texto principal" },
   { clave: "texto_suave", etiqueta: "Texto suave" },
@@ -60,64 +67,10 @@ const ROLES_MEDIDA = [
   { clave: "espaciado_base", etiqueta: "Espaciado base", placeholder: "1rem" },
 ];
 
-/**
- * CampoConToken — el mismo control dual color/token, generalizado para
- * cualquier propiedad (color O medida): un <input> normal (tipo variable
- * según `tipo`) o un campo de texto libre con sugerencias de
- * <datalist> cuando el valor referencia un token de Core Framework
- * ("cf:{nombre}"). Evita duplicar esta lógica entre la sección de
- * colores y la de medidas nuevas.
- */
-function CampoConToken({ tipo, valor, placeholderNormal, onCambiar }) {
-  const valorActual = valor || "";
-  const esToken = valorActual.startsWith(PREFIJO_TOKEN_CORE_FRAMEWORK);
-  const nombreToken = esToken ? valorActual.slice(PREFIJO_TOKEN_CORE_FRAMEWORK.length) : "";
-
-  return (
-    <div className="sofia-panel-global__color-fila">
-      {esToken ? (
-        <input
-          type="text"
-          className="sofia-panel-global__color-token"
-          placeholder="nombre-del-token"
-          list="sofia-variables-core-framework"
-          value={nombreToken}
-          onInput={(evento) => onCambiar(PREFIJO_TOKEN_CORE_FRAMEWORK + evento.currentTarget.value)}
-        />
-      ) : (
-        <input
-          type={tipo}
-          className={tipo === "text" ? "sofia-panel-global__color-token" : undefined}
-          placeholder={placeholderNormal}
-          value={tipo === "color" ? valorActual || "#1c1a17" : valorActual}
-          onInput={(evento) => onCambiar(evento.currentTarget.value)}
-        />
-      )}
-      <button
-        type="button"
-        className={`sofia-panel-global__color-cf ${esToken ? "sofia-panel-global__color-cf--activo" : ""}`}
-        title={
-          esToken
-            ? "Usando un token de Core Framework — click para volver a un valor fijo"
-            : "Usar un token de Core Framework en vez de un valor fijo"
-        }
-        onClick={() => onCambiar(esToken ? "" : PREFIJO_TOKEN_CORE_FRAMEWORK)}
-      >
-        CF
-      </button>
-    </div>
-  );
-}
-
 export function PanelEstiloGlobal({ config, onCerrar }) {
   const [estilo, setEstilo] = useState({ colores: {}, tipografia: {}, medidas: {} });
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  // Nombres reales leídos del CSS de Core Framework (ver
-  // Sofia_Estilo_Global::variables_core_framework()) — vacío si el plugin
-  // no está activo, el campo de texto sigue funcionando igual sin
-  // sugerencias en ese caso.
-  const [variablesCoreFramework, setVariablesCoreFramework] = useState([]);
 
   useEffect(() => {
     fetch(`${config.restUrl}estilo-global`, { headers: { "X-WP-Nonce": config.nonce } })
@@ -127,11 +80,6 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
       )
       .catch(() => {})
       .finally(() => setCargando(false));
-
-    fetch(`${config.restUrl}core-framework/variables`, { headers: { "X-WP-Nonce": config.nonce } })
-      .then((resp) => (resp.ok ? resp.json() : []))
-      .then(setVariablesCoreFramework)
-      .catch(() => setVariablesCoreFramework([]));
   }, []);
 
   async function guardar(estiloNuevo) {
@@ -169,12 +117,6 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
             ×
           </button>
         </div>
-
-        <datalist id="sofia-variables-core-framework">
-          {variablesCoreFramework.map((nombre) => (
-            <option key={nombre} value={nombre} />
-          ))}
-        </datalist>
 
         {cargando ? (
           <p className="sofia-panel-global__cargando">Cargando…</p>

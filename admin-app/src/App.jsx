@@ -5,6 +5,7 @@ import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
 import { MenuContextualBloque } from "./MenuContextualBloque.jsx";
 import { PanelEstiloGlobal } from "./PanelEstiloGlobal.jsx";
+import { ListaVariablesCoreFramework } from "./CampoConToken.jsx";
 
 // debounce simple: junta ediciones rápidas del mismo campo (ej. varias
 // pulsaciones de blur/focus seguidas) antes de llamar al proxy REST — el
@@ -92,6 +93,13 @@ export function App({ config }) {
   // este guarda EN QUÉ POSICIÓN insertar y las coordenadas donde dibujar
   // el menú, igual que menuContextual.
   const [menuAgregarEnPosicion, setMenuAgregarEnPosicion] = useState(null); // { posicion, x, y } | null
+  // Nombres reales leídos del CSS de Core Framework (ver
+  // Sofia_Estilo_Global::variables_core_framework()) — vive ACÁ, no dentro
+  // de PanelEstiloGlobal, porque el botón "CF" (CampoConToken) también
+  // aparece en DrawerEstilo.jsx (Nivel 1/2), que puede abrirse sin que el
+  // panel global esté montado — el <datalist> que alimenta necesita
+  // existir en el documento sin importar cuál de los 2 esté abierto.
+  const [variablesCoreFramework, setVariablesCoreFramework] = useState([]);
 
   // Catálogo real de Componentes del tema (mismo endpoint que ya usa
   // editor-iframe.js para los nombres del overlay de resaltado) — se pide
@@ -102,6 +110,11 @@ export function App({ config }) {
       .then((resp) => (resp.ok ? resp.json() : []))
       .then(setCatalogoBloques)
       .catch(() => setCatalogoBloques([]));
+
+    fetch(`${config.restUrl}core-framework/variables`, { headers: { "X-WP-Nonce": config.nonce } })
+      .then((resp) => (resp.ok ? resp.json() : []))
+      .then(setVariablesCoreFramework)
+      .catch(() => setVariablesCoreFramework([]));
   }, []);
 
   useEffect(() => {
@@ -445,6 +458,7 @@ export function App({ config }) {
 
   return (
     <div className="sofia-editor-admin">
+      <ListaVariablesCoreFramework nombres={variablesCoreFramework} />
       <div className="sofia-editor-admin__barra-flotante">
         <a href={config.urlSalir} className="sofia-editor-admin__salir">
           ← Volver

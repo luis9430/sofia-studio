@@ -1,4 +1,5 @@
 import { useRef, useState } from "preact/hooks";
+import { CampoConToken } from "./CampoConToken.jsx";
 
 /**
  * Drawer de estilo — panel lateral con pestañas (Estilo | Visibilidad |
@@ -44,14 +45,6 @@ import { useRef, useState } from "preact/hooks";
  * vuelve a {0,0} cuando App.jsx desmonta el componente entero (drawerEstilo
  * pasa a null) y lo vuelve a montar desde cero.
  */
-const PALETA_COLORES = [
-  { valor: "", etiqueta: "Por defecto" },
-  { valor: "#1c1a17", etiqueta: "Texto oscuro" },
-  { valor: "#6b6459", etiqueta: "Texto suave" },
-  { valor: "#d97a4d", etiqueta: "Acento" },
-  { valor: "#ffffff", etiqueta: "Blanco" },
-];
-
 const ALINEACIONES = [
   { valor: "left", etiqueta: "Izquierda", icono: "≡" },
   { valor: "center", etiqueta: "Centro", icono: "≣" },
@@ -480,34 +473,16 @@ export function DrawerEstilo({
 
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Color del texto</span>
-                  <div className="sofia-drawer-estilo__swatches">
-                    {PALETA_COLORES.map((op) => (
-                      <button
-                        key={op.valor || "default"}
-                        type="button"
-                        className={`sofia-drawer-estilo__swatch ${estilo.color === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
-                        style={op.valor ? { backgroundColor: op.valor } : undefined}
-                        title={op.etiqueta}
-                        onClick={() => actualizar({ color: op.valor })}
-                      />
-                    ))}
-                  </div>
+                  <CampoConToken tipo="color" valor={estilo.color} onCambiar={(valor) => actualizar({ color: valor })} />
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Color de fondo</span>
-                  <div className="sofia-drawer-estilo__swatches">
-                    {PALETA_COLORES.map((op) => (
-                      <button
-                        key={op.valor || "default"}
-                        type="button"
-                        className={`sofia-drawer-estilo__swatch ${estilo.color_fondo === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
-                        style={op.valor ? { backgroundColor: op.valor } : undefined}
-                        title={op.etiqueta}
-                        onClick={() => actualizar({ color_fondo: op.valor })}
-                      />
-                    ))}
-                  </div>
+                  <CampoConToken
+                    tipo="color"
+                    valor={estilo.color_fondo}
+                    onCambiar={(valor) => actualizar({ color_fondo: valor })}
+                  />
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
@@ -555,18 +530,11 @@ export function DrawerEstilo({
 
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Color de fondo de la sección</span>
-                  <div className="sofia-drawer-estilo__swatches">
-                    {PALETA_COLORES.map((op) => (
-                      <button
-                        key={op.valor || "default"}
-                        type="button"
-                        className={`sofia-drawer-estilo__swatch ${estilo.color_fondo === op.valor ? "sofia-drawer-estilo__swatch--activo" : ""} ${op.valor === "" ? "sofia-drawer-estilo__swatch--vacio" : ""}`}
-                        style={op.valor ? { backgroundColor: op.valor } : undefined}
-                        title={op.etiqueta}
-                        onClick={() => actualizar({ color_fondo: op.valor })}
-                      />
-                    ))}
-                  </div>
+                  <CampoConToken
+                    tipo="color"
+                    valor={estilo.color_fondo}
+                    onCambiar={(valor) => actualizar({ color_fondo: valor })}
+                  />
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo">

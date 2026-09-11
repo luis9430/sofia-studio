@@ -320,13 +320,16 @@ body {
   color: var(--gp-panel-text);
 }
 
-.sofia-panel-global__color-fila {
+/* CampoConToken (CampoConToken.jsx) — control compartido entre el panel
+   Estilo Global (Nivel 3) y el drawer de campo/bloque (Nivel 1/2, ver
+   DrawerEstilo.jsx) — un solo set de reglas para los 2 lugares. */
+.sofia-campo-token__fila {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.sofia-panel-global__color input[type="color"] {
+.sofia-campo-token__fila input[type="color"] {
   width: 32px;
   height: 32px;
   border: 1px solid var(--gp-panel-border);
@@ -336,7 +339,7 @@ body {
   cursor: pointer;
 }
 
-.sofia-panel-global__color-token {
+.sofia-campo-token__input-token {
   flex: 1;
   min-width: 0;
   height: 32px;
@@ -348,7 +351,7 @@ body {
   font-size: 12px;
 }
 
-.sofia-panel-global__color-cf {
+.sofia-campo-token__cf {
   flex: 0 0 auto;
   width: 28px;
   height: 28px;
@@ -362,11 +365,11 @@ body {
   cursor: pointer;
 }
 
-.sofia-panel-global__color-cf:hover {
+.sofia-campo-token__cf:hover {
   color: var(--gp-panel-text);
 }
 
-.sofia-panel-global__color-cf--activo {
+.sofia-campo-token__cf--activo {
   background: var(--gp-accent-soft);
   border-color: var(--gp-accent);
   color: var(--gp-accent-text);
@@ -650,31 +653,6 @@ body {
   background: var(--gp-accent-soft);
   border-color: var(--gp-accent);
   color: var(--gp-accent-text);
-}
-
-.sofia-drawer-estilo__swatches {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.sofia-drawer-estilo__swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--gp-panel-border);
-  cursor: pointer;
-  background: var(--gp-panel-2);
-}
-
-.sofia-drawer-estilo__swatch--vacio {
-  background:
-    linear-gradient(to bottom right, transparent calc(50% - 1px), var(--gp-danger) calc(50% - 1px), var(--gp-danger) calc(50% + 1px), transparent calc(50% + 1px));
-}
-
-.sofia-drawer-estilo__swatch--activo {
-  border-color: var(--gp-accent);
-  box-shadow: 0 0 0 2px var(--gp-accent-soft);
 }
 
 .sofia-drawer-estilo__tamanos {

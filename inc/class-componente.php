@@ -288,7 +288,12 @@ abstract class Sofia_Componente {
 		}
 
 		if ( ! empty( $estilo['color_fondo'] ) && is_string( $estilo['color_fondo'] ) ) {
-			$declaraciones[] = 'background-color:' . esc_attr( $estilo['color_fondo'] );
+			// Mismo mecanismo de token de Core Framework que atributo_estilo()
+			// (Nivel 1) — reusado tal cual, ver Sofia_Estilo_Global.
+			$valor            = str_starts_with( $estilo['color_fondo'], Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK )
+				? Sofia_Estilo_Global::resolver_valor( $estilo['color_fondo'] )
+				: esc_attr( $estilo['color_fondo'] );
+			$declaraciones[] = 'background-color:' . $valor;
 		}
 
 		if ( ! empty( $estilo['espaciado_vertical'] ) && is_string( $estilo['espaciado_vertical'] ) && preg_match( self::PATRON_MEDIDA_CSS, $estilo['espaciado_vertical'] ) ) {
@@ -370,6 +375,16 @@ abstract class Sofia_Componente {
 			// elegidas por el drawer), necesitan validarse como una medida
 			// CSS real antes de emitirse, no solo escaparse.
 			if ( in_array( $clave, array( 'tamano_fuente', 'margen', 'relleno' ), true ) && ! preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
+				continue;
+			}
+
+			// "color"/"color_fondo" pueden ser un token de Core Framework
+			// ("cf:{nombre}", mismo mecanismo que Sofia_Estilo_Global —
+			// PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() reusados tal
+			// cual, nunca duplicados) en vez de un hex fijo elegido con el
+			// <input type="color"> del drawer.
+			if ( in_array( $clave, array( 'color', 'color_fondo' ), true ) && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+				$declaraciones[] = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
 				continue;
 			}
 

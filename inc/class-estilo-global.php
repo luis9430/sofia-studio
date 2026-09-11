@@ -70,12 +70,16 @@ class Sofia_Estilo_Global {
 	private const PATRON_MEDIDA_CSS = '/^-?\d+(\.\d+)?(px|rem|%)$/';
 
 	/**
-	 * Prefijo que distingue "este color es una REFERENCIA a un token de
-	 * Core Framework" de un hex elegido a mano — ej. guardado como
+	 * Prefijo que distingue "este valor es una REFERENCIA a un token de
+	 * Core Framework" de un valor fijo elegido a mano — ej. guardado como
 	 * "cf:acento-primario" en vez de "#d97a4d". Sin un campo aparte en el
-	 * JSON: el prefijo alcanza para decidir cómo emitir el valor.
+	 * JSON: el prefijo alcanza para decidir cómo emitir el valor. PÚBLICA
+	 * (no solo esta clase la usa): Sofia_Componente::atributo_estilo()/
+	 * atributo_estilo_bloque() (Nivel 1/2, estilo por campo/bloque) también
+	 * la necesitan para el mismo botón "CF" del drawer — mismo mecanismo,
+	 * reusado tal cual en vez de duplicarlo con un prefijo propio.
 	 */
-	private const PREFIJO_TOKEN_CORE_FRAMEWORK = 'cf:';
+	const PREFIJO_TOKEN_CORE_FRAMEWORK = 'cf:';
 
 	/**
 	 * true si el plugin Core Framework está activo en este sitio —
@@ -177,8 +181,11 @@ class Sofia_Estilo_Global {
 	 * var(--x, ) es CSS válido (la declaración completa se ignora si
 	 * ninguno de los dos resuelve), mismo comportamiento que no tener nada
 	 * configurado.
+	 *
+	 * PÚBLICO: mismo motivo que PREFIJO_TOKEN_CORE_FRAMEWORK — reusado tal
+	 * cual desde Sofia_Componente para el estilo por campo/bloque.
 	 */
-	private static function resolver_valor( string $valor_guardado, string $fallback = '' ): string {
+	public static function resolver_valor( string $valor_guardado, string $fallback = '' ): string {
 		if ( ! str_starts_with( $valor_guardado, self::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
 			return $valor_guardado;
 		}
