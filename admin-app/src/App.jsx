@@ -33,6 +33,19 @@ const RETRASO_GUARDADO_MS = 400;
 export function App({ config }) {
   const iframeRef = useRef(null);
   const timersPorCampo = useRef({});
+  // Debounce del guardado de condición de Visibilidad — bug real
+  // encontrado en la práctica: cada cambio en el formulario (agregar
+  // regla, elegir variable/operador/valor) disparaba un guardado
+  // INMEDIATO, y cada guardado exitoso hacía su propio
+  // iframe.reload() — 2+ cambios seguidos en poco tiempo (ej. "+ Regla"
+  // más elegir su valor) encadenaban 2 reloads, el segundo interrumpiendo
+  // al primero A MITAD DE CARGA. Muuri se inicializa en DOMContentLoaded;
+  // un reload interrumpido dejaba el DOM a medio construir, y cualquier
+  // evento de Muuri disparado sobre ese estado parcial reportaba una
+  // lista de items corrupta (items "perdidos"). Mismo mecanismo de
+  // debounce que timersPorCampo, pero con su propio timer: solo el
+  // ÚLTIMO cambio de la ráfaga dispara guardado + reload.
+  const timerCondicion = useRef(null);
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
   // Botón "editar estilo" (✏️) que aparece al hacer UN SOLO click sobre un
   // campo editable (ver "sofia:campo-clickeado" en editor-iframe.js,
@@ -274,23 +287,28 @@ export function App({ config }) {
   // directo contra el proxy REST (mismo endpoint "campo" que cualquier
   // otro campo) y recarga el iframe para que PHP re-renderice con la
   // condición nueva aplicada — mismo patrón que agregarBloque().
-  async function cambiarCondicionDrawer(reglasNuevas) {
+  function cambiarCondicionDrawer(reglasNuevas) {
     if (!drawerEstilo) return;
     setDrawerEstilo({ ...drawerEstilo, condicion: reglasNuevas });
     setEstado("guardando");
-    try {
-      const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/campo`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
-        body: JSON.stringify({ campo: `${drawerEstilo.campo}._condicion_bloque`, valor: reglasNuevas }),
-      });
-      setEstado(respuesta.ok ? "guardado" : "error");
-      if (respuesta.ok && iframeRef.current) {
-        iframeRef.current.contentWindow.location.reload();
+
+    const idBloque = drawerEstilo.campo;
+    clearTimeout(timerCondicion.current);
+    timerCondicion.current = setTimeout(async () => {
+      try {
+        const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/campo`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
+          body: JSON.stringify({ campo: `${idBloque}._condicion_bloque`, valor: reglasNuevas }),
+        });
+        setEstado(respuesta.ok ? "guardado" : "error");
+        if (respuesta.ok && iframeRef.current) {
+          iframeRef.current.contentWindow.location.reload();
+        }
+      } catch {
+        setEstado("error");
       }
-    } catch {
-      setEstado("error");
-    }
+    }, RETRASO_GUARDADO_MS);
   }
 
   // Eliminar bloque: comando explícito desde el menú contextual, mismo
