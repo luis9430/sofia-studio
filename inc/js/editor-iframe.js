@@ -528,6 +528,13 @@
 		agregarHandleASeccion(seccionNueva);
 		activarCamposEditables(seccionNueva);
 
+		// Sin esto, la sección nueva nunca queda observada — ver el
+		// comentario largo junto a la declaración de
+		// observerAlturaSecciones (arriba, cerca de gridNivelSuperior).
+		if (observerAlturaSecciones) {
+			observerAlturaSecciones.observe(seccionNueva);
+		}
+
 		if (gridNivelSuperior) {
 			// add() con el índice real: Muuri necesita saber DÓNDE en su
 			// propio orden interno va el ítem nuevo, no solo agregarlo al
@@ -657,6 +664,15 @@
 	// sobre un flujo variable.
 	var gridNivelSuperior = null;
 
+	// observerAlturaSecciones: mismo ResizeObserver que activarReordenar()
+	// registra sobre las <section> presentes al cargar — variable de
+	// módulo (no local a esa función) para poder sumarle también una
+	// sección agregada DESPUÉS (ver alInsertarBloqueHTML), que de otro
+	// modo nunca quedaba observada (bug real: el contenedor .sofia-pagina
+	// se quedaba con su altura vieja, sin reflejar el bloque nuevo, y el
+	// footer terminaba superpuesto sobre contenido real).
+	var observerAlturaSecciones = null;
+
 	// Asigna z-index DECRECIENTE a cada <section> de nivel superior según
 	// su posición real en el DOM — la primera sección siempre queda por
 	// encima de todas las que le siguen. Necesario porque cada <section>
@@ -744,8 +760,22 @@
 		// ResizeObserver sobre cada <section> cubre TODOS los casos de una
 		// sola vez, sin depender de recordar llamar refreshItems() en cada
 		// punto nuevo del código que pueda cambiar una altura.
+		//
+		// observerAlturaSecciones queda en una variable de módulo (no
+		// local a esta función) para poder observar TAMBIÉN una <section>
+		// agregada dinámicamente después (ver alInsertarBloqueHTML) — bug
+		// real encontrado en la práctica: activarReordenar() corre UNA
+		// SOLA VEZ al cargar la página, así que un bloque insertado más
+		// tarde nunca quedaba observado. El contenedor .sofia-pagina
+		// (position:relative, sin height propio — todas sus <section> hijas
+		// son position:absolute, que no aportan altura al padre en flujo
+		// normal) dependía ENTERAMENTE de que Muuri fijara su altura real
+		// vía este observer; sin él para el bloque nuevo, el contenedor se
+		// quedaba con la altura vieja y el footer (fuera de .sofia-pagina,
+		// en flujo normal del documento) quedaba pegado ahí, superpuesto
+		// sobre el contenido real que Muuri sí había posicionado más abajo.
 		if (typeof ResizeObserver !== "undefined") {
-			var observerAlturaSecciones = new ResizeObserver(function () {
+			observerAlturaSecciones = new ResizeObserver(function () {
 				if (gridNivelSuperior) {
 					gridNivelSuperior.refreshItems().layout();
 				}
