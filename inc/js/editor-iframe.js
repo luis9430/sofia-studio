@@ -264,6 +264,10 @@
 		}
 		if (datos.tipo === "sofia:insertar-bloque-html") {
 			alInsertarBloqueHTML(datos.html, datos.posicion);
+			return;
+		}
+		if (datos.tipo === "sofia:reemplazar-bloque-html") {
+			alReemplazarBloqueHTML(datos.id, datos.html);
 		}
 	}
 
@@ -547,6 +551,37 @@
 		if (gridNivelSuperior) {
 			gridNivelSuperior.refreshItems().layout();
 		}
+	}
+
+	// Reemplaza una <section> EXISTENTE por su HTML actualizado (ver
+	// Sofia_REST_Editor::obtener_html_de_bloque(), pedido desde
+	// cambiarCondicionDrawer() en App.jsx al guardar Visibilidad) —
+	// distinto de alInsertarBloqueHTML: acá el bloque YA estaba en la
+	// página, solo cambió su marca de "oculto por condición"
+	// (data-sofia-oculto-condicion, ver Sofia_Componente::atributos_seccion()).
+	// Mismo motivo de UX que agregar/eliminar: evita recargar la página
+	// ENTERA del iframe por actualizar UNA sección.
+	//
+	// Quita la sección vieja de Muuri PRIMERO (con removeElements:true,
+	// que también la borra del DOM) y recién ahí inserta la nueva en el
+	// MISMO índice — reusa alInsertarBloqueHTML en vez de duplicar la
+	// lógica de "parsear + insertar + activar campos + agregar a Muuri".
+	function alReemplazarBloqueHTML(id, html) {
+		var seccionVieja = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
+		if (!seccionVieja || !gridNivelSuperior) return;
+
+		var contenedor = document.querySelector(".sofia-pagina");
+		var indice = contenedor
+			? Array.prototype.indexOf.call(contenedor.querySelectorAll(":scope > section"), seccionVieja)
+			: -1;
+		if (indice < 0) return;
+
+		var itemViejo = gridNivelSuperior.getItems(seccionVieja);
+		if (itemViejo.length) {
+			gridNivelSuperior.remove(itemViejo, { removeElements: true });
+		}
+
+		alInsertarBloqueHTML(html, indice);
 	}
 
 	// Reindexa data-sofia-item Y data-sofia-campo de cada item restante

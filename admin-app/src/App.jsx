@@ -283,10 +283,14 @@ export function App({ config }) {
   // por el iframe para reflejarse al instante en el DOM, ver
   // cambiarEstiloDrawer), la condición decide si el bloque se RENDERIZA o
   // no del lado de PHP (ver page.php/Sofia_Componente::bloque_visible()) —
-  // no hay nada que el iframe pueda simular con CSS sin recargar. Guarda
-  // directo contra el proxy REST (mismo endpoint "campo" que cualquier
-  // otro campo) y recarga el iframe para que PHP re-renderice con la
-  // condición nueva aplicada — mismo patrón que agregarBloque().
+  // no hay nada que el iframe pueda simular con CSS sin conocer el HTML
+  // real. Antes recargaba la página ENTERA del iframe — mismo bug de UX
+  // señalado por el usuario que agregarBloque(): pide el HTML actualizado
+  // de ESE bloque puntual (GET .../bloque/{id}, mismo endpoint que
+  // agregarBloque) y lo manda al iframe para REEMPLAZAR la <section>
+  // existente (ver alReemplazarBloqueHTML en editor-iframe.js) — nunca
+  // una inserción nueva, es el mismo bloque con su marca de "oculto"
+  // actualizada.
   function cambiarCondicionDrawer(reglasNuevas) {
     if (!drawerEstilo) return;
     setDrawerEstilo({ ...drawerEstilo, condicion: reglasNuevas });
@@ -302,9 +306,19 @@ export function App({ config }) {
           body: JSON.stringify({ campo: `${idBloque}._condicion_bloque`, valor: reglasNuevas }),
         });
         setEstado(respuesta.ok ? "guardado" : "error");
-        if (respuesta.ok && iframeRef.current) {
+        if (!respuesta.ok || !iframeRef.current) return;
+
+        const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${idBloque}`, {
+          headers: { "X-WP-Nonce": config.nonce },
+        }).then((r) => r.json());
+        if (!html.ok) {
           iframeRef.current.contentWindow.location.reload();
+          return;
         }
+        iframeRef.current.contentWindow.postMessage(
+          { tipo: "sofia:reemplazar-bloque-html", id: idBloque, html: html.html },
+          "*"
+        );
       } catch {
         setEstado("error");
       }
