@@ -308,10 +308,16 @@ body {
 
 .sofia-panel-global__color {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   font-size: 12.5px;
   color: var(--gp-panel-text);
+}
+
+.sofia-panel-global__color-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .sofia-panel-global__color input[type="color"] {
@@ -322,6 +328,42 @@ body {
   padding: 0;
   background: transparent;
   cursor: pointer;
+}
+
+.sofia-panel-global__color-token {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.sofia-panel-global__color-cf {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.sofia-panel-global__color-cf:hover {
+  color: var(--gp-panel-text);
+}
+
+.sofia-panel-global__color-cf--activo {
+  background: var(--gp-accent-soft);
+  border-color: var(--gp-accent);
+  color: var(--gp-accent-text);
 }
 
 .sofia-panel-global__tipografia {

@@ -18,7 +18,19 @@ import { useEffect, useState } from "preact/hooks";
  * (Sofia_Estilo_Global::COLORES_PERMITIDOS/FUENTES_PERMITIDAS) — nunca CSS
  * arbitrario, un color hex libre por rol y una fuente de una lista corta
  * curada, mismo criterio que el resto del editor.
+ *
+ * Cada color puede ser un hex normal O una referencia a un token de Core
+ * Framework (coreframework.com) — guardado como "cf:{nombre}" (ver
+ * Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() del
+ * lado PHP, que lo traduce a var(--cf-{nombre}, ...) en el CSS emitido).
+ * Core Framework NO expone la lista de tokens que un sitio definió (ni vía
+ * API ni vía opción legible de WordPress, investigado contra su código
+ * fuente real) — así que el campo es texto libre, el usuario escribe el
+ * nombre tal como lo llamó en el editor visual de Core Framework, nunca un
+ * dropdown poblado automáticamente.
  */
+const PREFIJO_TOKEN_CORE_FRAMEWORK = "cf:";
+
 const ROLES_COLOR = [
   { clave: "texto", etiqueta: "Texto principal" },
   { clave: "texto_suave", etiqueta: "Texto suave" },
@@ -84,20 +96,53 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
             <section className="sofia-panel-global__seccion">
               <h3>Paleta de colores</h3>
               <p className="sofia-panel-global__ayuda">
-                Aplica a todas las páginas del sitio — el color de acento, por ejemplo, alimentará a futuro los
-                swatches del estilo por campo.
+                Aplica a todas las páginas del sitio. Con el botón <strong>CF</strong> podés usar un token ya definido
+                en Core Framework (si el plugin está activo en este sitio) en vez de un color fijo — escribí el
+                nombre tal como lo llamaste ahí.
               </p>
               <div className="sofia-panel-global__colores">
-                {ROLES_COLOR.map((rol) => (
-                  <label key={rol.clave} className="sofia-panel-global__color">
-                    <input
-                      type="color"
-                      value={estilo.colores[rol.clave] || "#1c1a17"}
-                      onInput={(evento) => actualizarColor(rol.clave, evento.currentTarget.value)}
-                    />
-                    <span>{rol.etiqueta}</span>
-                  </label>
-                ))}
+                {ROLES_COLOR.map((rol) => {
+                  const valorActual = estilo.colores[rol.clave] || "";
+                  const esToken = valorActual.startsWith(PREFIJO_TOKEN_CORE_FRAMEWORK);
+                  const nombreToken = esToken ? valorActual.slice(PREFIJO_TOKEN_CORE_FRAMEWORK.length) : "";
+
+                  return (
+                    <div key={rol.clave} className="sofia-panel-global__color">
+                      <div className="sofia-panel-global__color-fila">
+                        {esToken ? (
+                          <input
+                            type="text"
+                            className="sofia-panel-global__color-token"
+                            placeholder="nombre-del-token"
+                            value={nombreToken}
+                            onInput={(evento) =>
+                              actualizarColor(rol.clave, PREFIJO_TOKEN_CORE_FRAMEWORK + evento.currentTarget.value)
+                            }
+                          />
+                        ) : (
+                          <input
+                            type="color"
+                            value={valorActual || "#1c1a17"}
+                            onInput={(evento) => actualizarColor(rol.clave, evento.currentTarget.value)}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          className={`sofia-panel-global__color-cf ${esToken ? "sofia-panel-global__color-cf--activo" : ""}`}
+                          title={
+                            esToken
+                              ? "Usando un token de Core Framework — click para volver a un color fijo"
+                              : "Usar un token de Core Framework en vez de un color fijo"
+                          }
+                          onClick={() => actualizarColor(rol.clave, esToken ? "#1c1a17" : PREFIJO_TOKEN_CORE_FRAMEWORK)}
+                        >
+                          CF
+                        </button>
+                      </div>
+                      <span>{rol.etiqueta}</span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
