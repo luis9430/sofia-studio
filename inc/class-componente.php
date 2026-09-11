@@ -287,13 +287,21 @@ abstract class Sofia_Componente {
 			$declaraciones[] = '--sofia-columnas:' . (int) $estilo['columnas'];
 		}
 
+		// $token_color_fondo_crudo: mismo motivo que $tokens_crudos en
+		// atributo_estilo() — el navegador nunca devuelve "cf:..." al leer
+		// de vuelta seccion.style.backgroundColor, hace falta un
+		// data-attribute aparte para que editor-iframe.js pueda reconstruir
+		// el modo token al reabrir el drawer.
+		$token_color_fondo_crudo = '';
 		if ( ! empty( $estilo['color_fondo'] ) && is_string( $estilo['color_fondo'] ) ) {
 			// Mismo mecanismo de token de Core Framework que atributo_estilo()
 			// (Nivel 1) — reusado tal cual, ver Sofia_Estilo_Global.
-			$valor            = str_starts_with( $estilo['color_fondo'], Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK )
-				? Sofia_Estilo_Global::resolver_valor( $estilo['color_fondo'] )
-				: esc_attr( $estilo['color_fondo'] );
-			$declaraciones[] = 'background-color:' . $valor;
+			if ( str_starts_with( $estilo['color_fondo'], Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+				$declaraciones[]         = 'background-color:' . Sofia_Estilo_Global::resolver_valor( $estilo['color_fondo'] );
+				$token_color_fondo_crudo = $estilo['color_fondo'];
+			} else {
+				$declaraciones[] = 'background-color:' . esc_attr( $estilo['color_fondo'] );
+			}
 		}
 
 		if ( ! empty( $estilo['espaciado_vertical'] ) && is_string( $estilo['espaciado_vertical'] ) && preg_match( self::PATRON_MEDIDA_CSS, $estilo['espaciado_vertical'] ) ) {
@@ -305,7 +313,12 @@ abstract class Sofia_Componente {
 		if ( empty( $declaraciones ) ) {
 			return '';
 		}
-		return 'style="' . implode( ';', $declaraciones ) . '"';
+
+		$atributo_token = '' !== $token_color_fondo_crudo
+			? sprintf( ' data-sofia-estilo-color_fondo="%s"', esc_attr( $token_color_fondo_crudo ) )
+			: '';
+
+		return 'style="' . implode( ';', $declaraciones ) . '"' . $atributo_token;
 	}
 
 	/**
@@ -351,6 +364,16 @@ abstract class Sofia_Componente {
 		}
 
 		$declaraciones = array();
+		// $tokens_crudos guarda, por clave ("color"/"color_fondo"), el
+		// valor CRUDO tal cual se guardó ("cf:border-primary") cuando ES un
+		// token — necesario porque el navegador, al leer de vuelta
+		// el.style.color, devuelve el color YA COMPUTADO (ej. un rgb()
+		// resuelto de la cascada), nunca el string "cf:..." original. Sin
+		// esto, editor-iframe.js (estiloActualDe) no podría distinguir
+		// "el usuario eligió un token" de "el usuario eligió ese color
+		// exacto", y el drawer perdía el modo token al reabrirse — bug
+		// real reportado por el usuario ("se borra al salir del modal").
+		$tokens_crudos = array();
 		foreach ( self::ESTILOS_CAMPO_PERMITIDOS as $clave => $propiedad_css ) {
 			$valor = $estilo[ $clave ] ?? null;
 			if ( empty( $valor ) || ! is_string( $valor ) ) {
@@ -384,7 +407,8 @@ abstract class Sofia_Componente {
 			// cual, nunca duplicados) en vez de un hex fijo elegido con el
 			// <input type="color"> del drawer.
 			if ( in_array( $clave, array( 'color', 'color_fondo' ), true ) && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
-				$declaraciones[] = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
+				$declaraciones[]        = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
+				$tokens_crudos[ $clave ] = $valor;
 				continue;
 			}
 
@@ -398,7 +422,18 @@ abstract class Sofia_Componente {
 		if ( empty( $declaraciones ) ) {
 			return '';
 		}
-		return 'style="' . implode( ';', $declaraciones ) . '"';
+
+		$atributos_token = '';
+		foreach ( $tokens_crudos as $clave => $valor_crudo ) {
+			// data-sofia-estilo-color / data-sofia-estilo-color_fondo —
+			// nombre derivado de la clave, un atributo por propiedad que
+			// SÍ puede ser token (hoy solo color/color_fondo). El guion
+			// bajo de "color_fondo" es válido en un nombre de atributo
+			// data-*, no hace falta convertirlo a guion medio.
+			$atributos_token .= sprintf( ' data-sofia-estilo-%s="%s"', esc_attr( $clave ), esc_attr( $valor_crudo ) );
+		}
+
+		return 'style="' . implode( ';', $declaraciones ) . '"' . $atributos_token;
 	}
 
 	/**

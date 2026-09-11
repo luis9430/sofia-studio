@@ -155,14 +155,44 @@
 		return "";
 	}
 
+	// PREFIJO_TOKEN_CORE_FRAMEWORK/resolverValorConToken: espejo EXACTO de
+	// Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor()
+	// del lado PHP — necesario acá porque este script aplica el color EN
+	// VIVO (feedback inmediato, antes de guardar/recargar), y el valor
+	// crudo guardado ("cf:border-primary") NO es un color CSS válido por
+	// sí solo: sin resolverlo a var(--border-primary), el navegador lo
+	// ignora en silencio (bug real reportado por el usuario: "el color no
+	// se aplica"). Nunca duplicar la lógica de emisión, solo espejarla acá
+	// porque JS no puede llamar directo al método PHP.
+	var PREFIJO_TOKEN_CORE_FRAMEWORK = "cf:";
+
+	function resolverValorConToken(valor) {
+		if (!valor || valor.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) !== 0) return valor || "";
+		return "var(--" + valor.slice(PREFIJO_TOKEN_CORE_FRAMEWORK.length) + ")";
+	}
+
+	// Lee el estilo ya aplicado, PRIORIZANDO el data-attribute crudo
+	// (data-sofia-estilo-color/-color_fondo, ver
+	// Sofia_Componente::atributo_estilo()) sobre el.style.color — bug real
+	// reportado por el usuario ("se borra al salir del modal"): el
+	// navegador, al leer de vuelta el.style.color después de haber
+	// aplicado var(--border-primary), devuelve el color YA COMPUTADO (un
+	// rgb() resuelto de la cascada), nunca el string "cf:..." original.
+	// Sin el data-attribute, el drawer perdía el modo token cada vez que
+	// se reabría sobre el mismo campo.
+	function valorDeEstiloOToken(el, atributoToken, propiedadStyle) {
+		var crudo = el.getAttribute(atributoToken);
+		return crudo || el.style[propiedadStyle] || "";
+	}
+
 	function estiloActualDe(el) {
 		return {
 			alineacion: el.style.textAlign || "",
-			color: el.style.color || "",
+			color: valorDeEstiloOToken(el, "data-sofia-estilo-color", "color"),
 			tamano_fuente: el.style.fontSize || "",
 			tipo_fuente: claveDeFuente(el.style.fontFamily),
 			negrita: el.style.fontWeight || "",
-			color_fondo: el.style.backgroundColor || "",
+			color_fondo: valorDeEstiloOToken(el, "data-sofia-estilo-color_fondo", "backgroundColor"),
 			sombra_texto: el.style.textShadow || "",
 			margen: el.style.margin || "",
 			relleno: el.style.padding || "",
@@ -186,14 +216,29 @@
 		if (!el) return;
 
 		el.style.textAlign = estilo.alineacion || "";
-		el.style.color = estilo.color || "";
+		el.style.color = resolverValorConToken(estilo.color);
 		el.style.fontSize = estilo.tamano_fuente || "";
 		el.style.fontFamily = FUENTES_PERMITIDAS[estilo.tipo_fuente] || "";
 		el.style.fontWeight = estilo.negrita || "";
-		el.style.backgroundColor = estilo.color_fondo || "";
+		el.style.backgroundColor = resolverValorConToken(estilo.color_fondo);
 		el.style.textShadow = estilo.sombra_texto || "";
 		el.style.margin = estilo.margen || "";
 		el.style.padding = estilo.relleno || "";
+
+		// data-attribute con el valor CRUDO — ver el comentario largo en
+		// valorDeEstiloOToken(): sin esto, estiloActualDe() no podría
+		// reconstruir el modo token la próxima vez que se abra el drawer
+		// sobre este campo, dentro de la misma carga de página.
+		if (estilo.color && estilo.color.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
+			el.setAttribute("data-sofia-estilo-color", estilo.color);
+		} else {
+			el.removeAttribute("data-sofia-estilo-color");
+		}
+		if (estilo.color_fondo && estilo.color_fondo.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
+			el.setAttribute("data-sofia-estilo-color_fondo", estilo.color_fondo);
+		} else {
+			el.removeAttribute("data-sofia-estilo-color_fondo");
+		}
 
 		notificarCambio(campo + "._estilo", estilo);
 	}
@@ -206,7 +251,7 @@
 	function estiloBloqueActualDe(seccion) {
 		return {
 			columnas: seccion.style.getPropertyValue("--sofia-columnas").trim() || "",
-			color_fondo: seccion.style.backgroundColor || "",
+			color_fondo: valorDeEstiloOToken(seccion, "data-sofia-estilo-color_fondo", "backgroundColor"),
 			espaciado_vertical: seccion.style.paddingTop || "",
 		};
 	}
@@ -223,9 +268,15 @@
 		} else {
 			seccion.style.removeProperty("--sofia-columnas");
 		}
-		seccion.style.backgroundColor = estilo.color_fondo || "";
+		seccion.style.backgroundColor = resolverValorConToken(estilo.color_fondo);
 		seccion.style.paddingTop = estilo.espaciado_vertical || "";
 		seccion.style.paddingBottom = estilo.espaciado_vertical || "";
+
+		if (estilo.color_fondo && estilo.color_fondo.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
+			seccion.setAttribute("data-sofia-estilo-color_fondo", estilo.color_fondo);
+		} else {
+			seccion.removeAttribute("data-sofia-estilo-color_fondo");
+		}
 
 		notificarCambio(id + "._estilo_bloque", estilo);
 
