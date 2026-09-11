@@ -318,7 +318,19 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
 		}
 
-		self::persistir_defaults_de_bloques_nuevos( $slug, $estructura );
+		// Un bloque NUEVO llega SIN "id" en $estructura (ver
+		// agregarBloque() en App.jsx: manda solo {tipo}) — es GoPress
+		// (store.rellenarIDsFaltantes/GenerarIDBloque, del lado Go) quien
+		// le asigna un ID de instancia recién al procesar este guardado.
+		// Bug real encontrado en la práctica: persistir_defaults_de_bloques_nuevos()
+		// usando $estructura tal cual llegó del request NUNCA encontraba
+		// ningún "id" en el bloque recién agregado, así que jamás
+		// persistía sus defaults — hay que releer la página para obtener
+		// la estructura REAL, ya con los IDs asignados.
+		$pagina_actualizada = Sofia_Cliente_GoPress::obtener_pagina( $slug );
+		if ( null !== $pagina_actualizada ) {
+			self::persistir_defaults_de_bloques_nuevos( $slug, $pagina_actualizada['estructura'] );
+		}
 
 		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'estructura' => $estructura ) );
