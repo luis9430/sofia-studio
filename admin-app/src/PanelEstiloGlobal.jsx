@@ -15,17 +15,22 @@ import { useEffect, useState } from "preact/hooks";
  * Sofia_Estilo_Global::imprimir(), enganchado a wp_head).
  *
  * Mismas claves que la whitelist del lado PHP
- * (Sofia_Estilo_Global::COLORES_PERMITIDOS/FUENTES_PERMITIDAS) — nunca CSS
- * arbitrario, un color hex libre por rol y una fuente de una lista corta
- * curada, mismo criterio que el resto del editor.
+ * (Sofia_Estilo_Global::COLORES_PERMITIDOS/FUENTES_PERMITIDAS/MEDIDAS_PERMITIDAS)
+ * — nunca CSS arbitrario, solo lo que este panel realmente ofrece como
+ * control: color hex/medida libre por rol, fuente de una lista corta
+ * curada.
  *
- * Cada color puede ser un hex normal O una referencia a un token de Core
- * Framework (coreframework.com) — guardado como "cf:{nombre}" (ver
+ * Cada color O medida puede ser un valor fijo O una referencia a un token
+ * de Core Framework (coreframework.com) — guardado como "cf:{nombre}" (ver
  * Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() del
  * lado PHP, que lo traduce a var(--{nombre}, ...) en el CSS emitido — SIN
  * prefijo "cf-" propio, corrige una suposición equivocada de la primera
  * versión: el CSS real exportado por Core Framework usa nombres tal
- * cual, "--primary"/"--secondary", nunca "--cf-primary").
+ * cual, "--primary"/"--secondary", nunca "--cf-primary"). El mismo
+ * mecanismo (botón CF, ver CampoConToken) es agnóstico a la categoría de
+ * Core Framework (Colors, Typography, Spacing, etc.) — cualquier custom
+ * property que el CSS real defina puede referenciarse desde cualquier
+ * control de este panel, no hay lógica separada por categoría.
  *
  * Core Framework no expone una API de tokens, pero SÍ es un archivo CSS
  * legible desde PHP — sofia/v1/core-framework/variables (ver
@@ -50,8 +55,62 @@ const FUENTES = [
   { valor: "texto", etiqueta: "Inter (texto)" },
 ];
 
+const ROLES_MEDIDA = [
+  { clave: "tamano_base", etiqueta: "Tamaño de fuente base", placeholder: "1rem" },
+  { clave: "espaciado_base", etiqueta: "Espaciado base", placeholder: "1rem" },
+];
+
+/**
+ * CampoConToken — el mismo control dual color/token, generalizado para
+ * cualquier propiedad (color O medida): un <input> normal (tipo variable
+ * según `tipo`) o un campo de texto libre con sugerencias de
+ * <datalist> cuando el valor referencia un token de Core Framework
+ * ("cf:{nombre}"). Evita duplicar esta lógica entre la sección de
+ * colores y la de medidas nuevas.
+ */
+function CampoConToken({ tipo, valor, placeholderNormal, onCambiar }) {
+  const valorActual = valor || "";
+  const esToken = valorActual.startsWith(PREFIJO_TOKEN_CORE_FRAMEWORK);
+  const nombreToken = esToken ? valorActual.slice(PREFIJO_TOKEN_CORE_FRAMEWORK.length) : "";
+
+  return (
+    <div className="sofia-panel-global__color-fila">
+      {esToken ? (
+        <input
+          type="text"
+          className="sofia-panel-global__color-token"
+          placeholder="nombre-del-token"
+          list="sofia-variables-core-framework"
+          value={nombreToken}
+          onInput={(evento) => onCambiar(PREFIJO_TOKEN_CORE_FRAMEWORK + evento.currentTarget.value)}
+        />
+      ) : (
+        <input
+          type={tipo}
+          className={tipo === "text" ? "sofia-panel-global__color-token" : undefined}
+          placeholder={placeholderNormal}
+          value={tipo === "color" ? valorActual || "#1c1a17" : valorActual}
+          onInput={(evento) => onCambiar(evento.currentTarget.value)}
+        />
+      )}
+      <button
+        type="button"
+        className={`sofia-panel-global__color-cf ${esToken ? "sofia-panel-global__color-cf--activo" : ""}`}
+        title={
+          esToken
+            ? "Usando un token de Core Framework — click para volver a un valor fijo"
+            : "Usar un token de Core Framework en vez de un valor fijo"
+        }
+        onClick={() => onCambiar(esToken ? "" : PREFIJO_TOKEN_CORE_FRAMEWORK)}
+      >
+        CF
+      </button>
+    </div>
+  );
+}
+
 export function PanelEstiloGlobal({ config, onCerrar }) {
-  const [estilo, setEstilo] = useState({ colores: {}, tipografia: {} });
+  const [estilo, setEstilo] = useState({ colores: {}, tipografia: {}, medidas: {} });
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   // Nombres reales leídos del CSS de Core Framework (ver
@@ -63,7 +122,9 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
   useEffect(() => {
     fetch(`${config.restUrl}estilo-global`, { headers: { "X-WP-Nonce": config.nonce } })
       .then((resp) => (resp.ok ? resp.json() : {}))
-      .then((datos) => setEstilo({ colores: datos.colores || {}, tipografia: datos.tipografia || {} }))
+      .then((datos) =>
+        setEstilo({ colores: datos.colores || {}, tipografia: datos.tipografia || {}, medidas: datos.medidas || {} })
+      )
       .catch(() => {})
       .finally(() => setCargando(false));
 
@@ -95,6 +156,10 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
     guardar({ ...estilo, tipografia: { ...estilo.tipografia, [rol]: valor } });
   }
 
+  function actualizarMedida(clave, valor) {
+    guardar({ ...estilo, medidas: { ...estilo.medidas, [clave]: valor } });
+  }
+
   return (
     <div className="sofia-panel-global__fondo" onClick={onCerrar}>
       <div className="sofia-panel-global" onClick={(evento) => evento.stopPropagation()}>
@@ -123,49 +188,38 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
                 nombre tal como lo llamaste ahí.
               </p>
               <div className="sofia-panel-global__colores">
-                {ROLES_COLOR.map((rol) => {
-                  const valorActual = estilo.colores[rol.clave] || "";
-                  const esToken = valorActual.startsWith(PREFIJO_TOKEN_CORE_FRAMEWORK);
-                  const nombreToken = esToken ? valorActual.slice(PREFIJO_TOKEN_CORE_FRAMEWORK.length) : "";
+                {ROLES_COLOR.map((rol) => (
+                  <div key={rol.clave} className="sofia-panel-global__color">
+                    <CampoConToken
+                      tipo="color"
+                      valor={estilo.colores[rol.clave]}
+                      onCambiar={(valor) => actualizarColor(rol.clave, valor)}
+                    />
+                    <span>{rol.etiqueta}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-                  return (
-                    <div key={rol.clave} className="sofia-panel-global__color">
-                      <div className="sofia-panel-global__color-fila">
-                        {esToken ? (
-                          <input
-                            type="text"
-                            className="sofia-panel-global__color-token"
-                            placeholder="nombre-del-token"
-                            list="sofia-variables-core-framework"
-                            value={nombreToken}
-                            onInput={(evento) =>
-                              actualizarColor(rol.clave, PREFIJO_TOKEN_CORE_FRAMEWORK + evento.currentTarget.value)
-                            }
-                          />
-                        ) : (
-                          <input
-                            type="color"
-                            value={valorActual || "#1c1a17"}
-                            onInput={(evento) => actualizarColor(rol.clave, evento.currentTarget.value)}
-                          />
-                        )}
-                        <button
-                          type="button"
-                          className={`sofia-panel-global__color-cf ${esToken ? "sofia-panel-global__color-cf--activo" : ""}`}
-                          title={
-                            esToken
-                              ? "Usando un token de Core Framework — click para volver a un color fijo"
-                              : "Usar un token de Core Framework en vez de un color fijo"
-                          }
-                          onClick={() => actualizarColor(rol.clave, esToken ? "#1c1a17" : PREFIJO_TOKEN_CORE_FRAMEWORK)}
-                        >
-                          CF
-                        </button>
-                      </div>
-                      <span>{rol.etiqueta}</span>
-                    </div>
-                  );
-                })}
+            <section className="sofia-panel-global__seccion">
+              <h3>Medidas base</h3>
+              <p className="sofia-panel-global__ayuda">
+                Tamaño de fuente y espaciado de referencia del sitio — valor libre (ej. "1rem", "16px") o un token de
+                Core Framework con el botón <strong>CF</strong> (ej. las categorías Typography/Spacing del editor
+                visual).
+              </p>
+              <div className="sofia-panel-global__medidas">
+                {ROLES_MEDIDA.map((rol) => (
+                  <div key={rol.clave} className="sofia-panel-global__color">
+                    <CampoConToken
+                      tipo="text"
+                      valor={estilo.medidas[rol.clave]}
+                      placeholderNormal={rol.placeholder}
+                      onCambiar={(valor) => actualizarMedida(rol.clave, valor)}
+                    />
+                    <span>{rol.etiqueta}</span>
+                  </div>
+                ))}
               </div>
             </section>
 

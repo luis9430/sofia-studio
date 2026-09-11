@@ -306,6 +306,12 @@ body {
   gap: 12px;
 }
 
+.sofia-panel-global__medidas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .sofia-panel-global__color {
   display: flex;
   flex-direction: column;

@@ -49,6 +49,27 @@ class Sofia_Estilo_Global {
 	);
 
 	/**
+	 * MEDIDAS_PERMITIDAS: whitelist de propiedades de tamaño/espaciado base
+	 * del sitio — mismo criterio que COLORES_PERMITIDOS, pero acá el valor
+	 * es siempre INPUT LIBRE (px/rem/%) o un token de Core Framework, nunca
+	 * una opción fija — se valida con el mismo patrón que
+	 * Sofia_Componente::PATRON_MEDIDA_CSS (Nivel 1/2) antes de emitirse.
+	 */
+	private const MEDIDAS_PERMITIDAS = array(
+		'tamano_base'    => '--sofia-tamano-base',
+		'espaciado_base' => '--sofia-espaciado-base',
+	);
+
+	/**
+	 * Mismo patrón exacto que Sofia_Componente::PATRON_MEDIDA_CSS — un
+	 * valor de medida (nunca un token de Core Framework, esos ya vienen
+	 * resueltos por resolver_valor() antes de llegar acá) tiene que ser un
+	 * número con unidad px/rem/% para poder emitirse, mismo criterio de
+	 * "nunca CSS arbitrario" que el resto del editor.
+	 */
+	private const PATRON_MEDIDA_CSS = '/^-?\d+(\.\d+)?(px|rem|%)$/';
+
+	/**
 	 * Prefijo que distingue "este color es una REFERENCIA a un token de
 	 * Core Framework" de un hex elegido a mano — ej. guardado como
 	 * "cf:acento-primario" en vez de "#d97a4d". Sin un campo aparte en el
@@ -195,6 +216,27 @@ class Sofia_Estilo_Global {
 			}
 			$fuente          = self::FUENTES_PERMITIDAS[ $tipografia[ $rol ] ];
 			$declaraciones[] = $fuente['variable'] . ':' . $fuente['valor'];
+		}
+
+		$medidas = is_array( $estilo['medidas'] ?? null ) ? $estilo['medidas'] : array();
+		foreach ( self::MEDIDAS_PERMITIDAS as $clave => $variable_css ) {
+			if ( empty( $medidas[ $clave ] ) || ! is_string( $medidas[ $clave ] ) ) {
+				continue;
+			}
+			$valor = self::resolver_valor( $medidas[ $clave ] );
+			if ( str_starts_with( $valor, 'var(' ) ) {
+				// Token de Core Framework — ya viene resuelto por
+				// resolver_valor(), nunca se valida como medida CSS (el
+				// contenido real vive del lado de Core Framework, no acá).
+				$declaraciones[] = $variable_css . ':' . $valor;
+				continue;
+			}
+			// Input libre (px/rem/%) — mismo criterio de whitelist que
+			// Sofia_Componente::PATRON_MEDIDA_CSS: un valor que no matchea
+			// se ignora en silencio, nunca CSS arbitrario.
+			if ( preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
+				$declaraciones[] = $variable_css . ':' . esc_attr( $valor );
+			}
 		}
 
 		if ( empty( $declaraciones ) ) {

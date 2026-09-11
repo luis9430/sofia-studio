@@ -30,6 +30,8 @@ Text Domain: sofia-studio
 	--sofia-color-fondo: #ffffff;
 	--sofia-fuente-display: inherit;
 	--sofia-fuente-texto: inherit;
+	--sofia-tamano-base: 1rem;
+	--sofia-espaciado-base: 1rem;
 }
 
 /* --sofia-columnas: custom property que el drawer de estilo de BLOQUE
