@@ -54,8 +54,6 @@
 		var campo = el.getAttribute("data-sofia-campo");
 		el.setAttribute("contenteditable", "true");
 		el.addEventListener("blur", function () {
-			// eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-			console.log("[sofia-diag] BLUR disparado", { campo: campo, innerHTMLActual: el.innerHTML, timestamp: Date.now() });
 			// Un pequeño setTimeout: si el blur ocurrió porque el usuario
 			// hizo click en la barra de formato flotante (que vive en el
 			// padre, fuera de este documento), queremos que
@@ -63,8 +61,6 @@
 			// innerHTML — si no, se guardaría el valor viejo sin el
 			// formato recién aplicado.
 			setTimeout(function () {
-				// eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-				console.log("[sofia-diag] BLUR notificando tras setTimeout", { campo: campo, valorFinal: el.innerHTML.trim(), timestamp: Date.now() });
 				notificarCambio(campo, el.innerHTML.trim());
 			}, 50);
 		});
@@ -364,13 +360,6 @@
 		var seccion = evento.target.closest ? evento.target.closest("section") : null;
 		if (!seccion) return;
 		evento.preventDefault();
-		// eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-		console.log("[sofia-diag] CLICK DERECHO", {
-			targetTag: evento.target.tagName,
-			targetEsContentEditable: evento.target.isContentEditable,
-			bloqueId: seccion.getAttribute("data-sofia-bloque-id"),
-			timestamp: Date.now(),
-		});
 
 		var contenedor = document.querySelector(".sofia-pagina");
 		// :scope > section (no contenedor.children) — ver el mismo
@@ -804,14 +793,6 @@
 				objeto[partes[partes.length - 1]] = campoEl.innerHTML.trim();
 			});
 			return objeto;
-		});
-		// eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-		console.log("[sofia-diag] notificarListaActualizada", {
-			campo: campo,
-			cantidadItemsEnDOM: contenedorLista.querySelectorAll(":scope > [data-sofia-item]").length,
-			items: items,
-			stackTrace: new Error().stack,
-			timestamp: Date.now(),
 		});
 		notificarCambio(campo, items);
 	}

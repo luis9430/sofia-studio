@@ -157,15 +157,11 @@ export function App({ config }) {
   }, []);
 
   function programarGuardado(campo, valor) {
-    // eslint-disable-next-line no-console -- logging temporal de diagnóstico, ver la memoria "sistema de estilo" para el bug que investiga.
-    console.log("[sofia-diag] programarGuardado", { campo, valor, timestamp: Date.now() });
     clearTimeout(timersPorCampo.current[campo]);
     timersPorCampo.current[campo] = setTimeout(() => guardarCampo(campo, valor), RETRASO_GUARDADO_MS);
   }
 
   async function guardarCampo(campo, valor) {
-    // eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-    console.log("[sofia-diag] guardarCampo EJECUTANDO", { campo, valor, timestamp: Date.now() });
     setEstado("guardando");
     try {
       const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/campo`, {
@@ -176,8 +172,6 @@ export function App({ config }) {
         },
         body: JSON.stringify({ campo, valor }),
       });
-      // eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-      console.log("[sofia-diag] guardarCampo RESPUESTA", { campo, ok: respuesta.ok, timestamp: Date.now() });
       setEstado(respuesta.ok ? "guardado" : "error");
     } catch {
       setEstado("error");
@@ -295,28 +289,20 @@ export function App({ config }) {
   // condición nueva aplicada — mismo patrón que agregarBloque().
   function cambiarCondicionDrawer(reglasNuevas) {
     if (!drawerEstilo) return;
-    // eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-    console.log("[sofia-diag] cambiarCondicionDrawer PROGRAMANDO", { idBloque: drawerEstilo.campo, reglasNuevas, timestamp: Date.now() });
     setDrawerEstilo({ ...drawerEstilo, condicion: reglasNuevas });
     setEstado("guardando");
 
     const idBloque = drawerEstilo.campo;
     clearTimeout(timerCondicion.current);
     timerCondicion.current = setTimeout(async () => {
-      // eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-      console.log("[sofia-diag] cambiarCondicionDrawer EJECUTANDO", { idBloque, reglasNuevas, timestamp: Date.now() });
       try {
         const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/campo`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
           body: JSON.stringify({ campo: `${idBloque}._condicion_bloque`, valor: reglasNuevas }),
         });
-        // eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-        console.log("[sofia-diag] cambiarCondicionDrawer RESPUESTA", { idBloque, ok: respuesta.ok, timestamp: Date.now() });
         setEstado(respuesta.ok ? "guardado" : "error");
         if (respuesta.ok && iframeRef.current) {
-          // eslint-disable-next-line no-console -- logging temporal de diagnóstico.
-          console.log("[sofia-diag] RELOAD DISPARADO por cambiarCondicionDrawer", { idBloque, timestamp: Date.now() });
           iframeRef.current.contentWindow.location.reload();
         }
       } catch {

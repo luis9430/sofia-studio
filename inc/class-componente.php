@@ -75,6 +75,33 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * Expone $this->props ya resueltas (defaults + lo que se le haya
+	 * pasado al construir) — usado por
+	 * Sofia_REST_Editor::guardar_estructura() para PERSISTIR los valores
+	 * por defecto de un bloque recién agregado en el contenido real de la
+	 * página, en vez de dejarlos existir solo en PHP hasta la primera
+	 * edición.
+	 *
+	 * Bug real que esto resuelve: un bloque con lista repetible (ej.
+	 * Franja de beneficios, 3 items) recién agregado no tenía
+	 * "{id}.items" en el contenido de GoPress — solo props_por_defecto()
+	 * los generaba en memoria en cada render. Si el usuario editaba UN
+	 * SOLO campo de UN SOLO item antes de que los demás se guardaran (ej.
+	 * un blur accidental al hacer click derecho para abrir el menú
+	 * contextual), Sofia_REST_Editor::asignar_valor_de_campo() escribía
+	 * "{id}.items" = [ese índice => ese campo] — un array con SOLO un
+	 * elemento, perdiendo los otros 2 que nunca habían llegado a
+	 * persistirse. Confirmado con logging real: el guardado individual
+	 * "funcionaba" (200 OK), pero corrompía silenciosamente el array
+	 * completo porque partía de una base vacía.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function props(): array {
+		return $this->props;
+	}
+
+	/**
 	 * Slugs de librerías JS que este Componente necesita en el frente
 	 * público (ej. array('gsap'), array('preact')) — Sofia_Tema::encolar_dependencias()
 	 * recorre TODOS los Componentes de la página, junta y deduplica esto

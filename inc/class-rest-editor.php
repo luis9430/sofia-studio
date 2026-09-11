@@ -318,8 +318,82 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_guardado_fallido', 'GoPress no confirmó el guardado.', array( 'status' => 502 ) );
 		}
 
+		self::persistir_defaults_de_bloques_nuevos( $slug, $estructura );
+
 		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'estructura' => $estructura ) );
+	}
+
+	/**
+	 * Persiste en el CONTENIDO real de la página los valores por defecto de
+	 * cualquier bloque de $estructura que todavía no tenga NADA guardado —
+	 * bug real corregido acá: un bloque recién agregado (ej. Franja de
+	 * beneficios, con 3 items) solo tenía sus valores por defecto en
+	 * memoria PHP (Sofia_Componente::props_por_defecto()), nunca escritos
+	 * en el contenido de GoPress. Si el usuario editaba UN SOLO campo de
+	 * UN SOLO item de la lista antes de que los demás se guardaran (ej. un
+	 * blur accidental al hacer click derecho para el menú contextual),
+	 * Sofia_REST_Editor::asignar_valor_de_campo() escribía el array de
+	 * items partiendo de CERO — perdiendo los otros items, que nunca
+	 * habían llegado a persistirse. Confirmado con logging real: el
+	 * guardado individual "funcionaba" (200 OK), pero corrompía en
+	 * silencio el array completo.
+	 *
+	 * "todavía no tiene nada guardado" se detecta por la AUSENCIA de
+	 * cualquier clave que empiece con "{id}." en el contenido actual — un
+	 * bloque ya editado (aunque sea un solo campo) no se toca, para nunca
+	 * pisar contenido real ya escrito por el usuario con sus defaults.
+	 */
+	private static function persistir_defaults_de_bloques_nuevos( string $slug, array $estructura ): void {
+		self::con_lock_de_pagina(
+			$slug,
+			function () use ( $slug, $estructura ) {
+				$pagina = Sofia_Cliente_GoPress::obtener_pagina( $slug );
+				if ( null === $pagina ) {
+					return;
+				}
+
+				$contenido = $pagina['contenido'];
+				$cambio    = false;
+
+				foreach ( $estructura as $bloque ) {
+					$id   = $bloque['id'] ?? '';
+					$tipo = $bloque['tipo'] ?? '';
+					if ( '' === $id || '' === $tipo || self::bloque_tiene_contenido( $contenido, $id ) ) {
+						continue;
+					}
+
+					$componente = Sofia_Componente_Factory::crear( $tipo, $id );
+					if ( null === $componente ) {
+						continue;
+					}
+
+					foreach ( $componente->props() as $campo => $valor ) {
+						$contenido[ "{$id}.{$campo}" ] = $valor;
+					}
+					$cambio = true;
+				}
+
+				if ( $cambio ) {
+					Sofia_Cliente_GoPress::guardar_contenido( $slug, $contenido );
+				}
+			}
+		);
+	}
+
+	/**
+	 * true si $contenido ya tiene AL MENOS una clave con el prefijo
+	 * "{id}." — mismo criterio de recorte que
+	 * Sofia_Pagina::props_de_bloque(), pero acá solo para detectar
+	 * presencia, no para extraer valores.
+	 */
+	private static function bloque_tiene_contenido( array $contenido, string $id ): bool {
+		foreach ( array_keys( $contenido ) as $clave ) {
+			if ( str_starts_with( $clave, "{$id}." ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
