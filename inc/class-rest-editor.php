@@ -47,6 +47,16 @@ class Sofia_REST_Editor {
 
 		register_rest_route(
 			'sofia/v1',
+			'/paginas/(?P<slug>[a-z0-9-]+)/bloque/(?P<id>[a-z0-9]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'obtener_html_de_bloque' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
 			'/catalogo-bloques',
 			array(
 				'methods'             => 'GET',
@@ -166,6 +176,39 @@ class Sofia_REST_Editor {
 	 * Preact arma su UI directo a partir de esto (reusa exactamente el
 	 * mismo shape que el tema ya consume para renderizar en público).
 	 */
+	/**
+	 * GET /wp-json/sofia/v1/paginas/{slug}/bloque/{id} — devuelve SOLO el
+	 * HTML renderizado de UN bloque puntual (Sofia_Componente::render()
+	 * real, mismo PHP que emite el sitio público) — evita que el panel
+	 * tenga que recargar la página ENTERA del iframe para reflejar un
+	 * bloque nuevo o un bloque cuya condición de Visibilidad cambió.
+	 *
+	 * Sigue el mismo principio de siempre ("PHP es la única fuente de HTML
+	 * real, el iframe/panel nunca inventa nada") — el cambio es CUÁNDO se
+	 * pide ese HTML: un fragmento puntual en vez de la página completa. El
+	 * panel decide qué hacer con el HTML devuelto (insertarlo como bloque
+	 * nuevo vía Muuri.add(), o reemplazar una <section> existente), este
+	 * endpoint no sabe ni le importa cuál de los dos casos es.
+	 */
+	public static function obtener_html_de_bloque( WP_REST_Request $request ) {
+		$slug = $request->get_param( 'slug' );
+		$id   = $request->get_param( 'id' );
+
+		$pagina = Sofia_Cliente_GoPress::obtener_pagina( $slug );
+		if ( null === $pagina ) {
+			return new WP_Error( 'sofia_pagina_no_encontrada', 'No se pudo obtener la página desde GoPress.', array( 'status' => 502 ) );
+		}
+
+		$sofia_pagina = new Sofia_Pagina( $pagina['estructura'], $pagina['contenido'] );
+		foreach ( $sofia_pagina->componentes() as $componente ) {
+			if ( $id === $componente->id() ) {
+				return rest_ensure_response( array( 'ok' => true, 'html' => $componente->render() ) );
+			}
+		}
+
+		return new WP_Error( 'sofia_bloque_no_encontrado', 'Ese bloque no existe en la estructura de la página.', array( 'status' => 404 ) );
+	}
+
 	public static function obtener_pagina( WP_REST_Request $request ) {
 		$slug   = $request->get_param( 'slug' );
 		$pagina = Sofia_Cliente_GoPress::obtener_pagina( $slug );

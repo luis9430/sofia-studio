@@ -345,9 +345,20 @@ export function App({ config }) {
   // necesita HTML real emitido por el Componente PHP correspondiente — el
   // iframe no puede "inventarlo" en JS sin duplicar el render (el tema es
   // deliberadamente "tonto", todo el HTML sale de Sofia_Componente::render()
-  // del lado PHP). Por eso este comando NO pasa por el iframe: guarda la
-  // estructura ampliada directo contra el proxy REST y recién ahí recarga
-  // el iframe, para que WordPress renderice el bloque nuevo con PHP real.
+  // del lado PHP). Antes esto recargaba la página ENTERA del iframe — bug
+  // de UX real señalado por el usuario ("es una experiencia algo molesta"):
+  // perdía scroll/estado por un cambio que solo agrega UNA sección. Ahora
+  // pide el HTML de SOLO ese bloque (GET .../bloque/{id}, ver
+  // Sofia_REST_Editor::obtener_html_de_bloque()) y lo manda al iframe para
+  // insertarlo vía Muuri.add() (ver alInsertarBloqueHTML en
+  // editor-iframe.js) — sigue siendo PHP la única fuente de HTML real,
+  // cambia solo CUÁNDO se pide: un fragmento puntual, no la página entera.
+  //
+  // Un bloque nuevo no trae "id" hasta que GoPress se lo asigna al guardar
+  // la estructura (ver store.GenerarIDBloque/rellenarIDsFaltantes, lado
+  // Go) — hay que releer la página y comparar contra la estructura ANTERIOR
+  // para identificar cuál id es el nuevo (el que no estaba antes).
+  //
   // $posicion: índice donde insertar dentro de la estructura (0 = antes
   // de todos, estructura.length = al final) — undefined/null preserva el
   // comportamiento original ("+ Agregar bloque" de la barra superior,
@@ -365,6 +376,7 @@ export function App({ config }) {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
       const estructuraActual = actual.estructura || [];
+      const idsAntes = new Set(estructuraActual.map((b) => b.id));
       const indice = posicion === undefined || posicion === null ? estructuraActual.length : posicion;
       const estructuraNueva = [...estructuraActual.slice(0, indice), { tipo }, ...estructuraActual.slice(indice)];
       const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/estructura`, {
@@ -373,9 +385,33 @@ export function App({ config }) {
         body: JSON.stringify({ estructura: estructuraNueva }),
       });
       setEstado(respuesta.ok ? "guardado" : "error");
-      if (respuesta.ok && iframeRef.current) {
+      if (!respuesta.ok || !iframeRef.current) return;
+
+      const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => r.json());
+      const bloqueNuevo = (pagina.estructura || []).find((b) => !idsAntes.has(b.id));
+      if (!bloqueNuevo) {
+        // No debería pasar (el guardado ya confirmó éxito), pero si por
+        // algún motivo no se puede identificar el bloque nuevo, un reload
+        // sigue siendo el fallback seguro — mejor una recarga ocasional
+        // que un editor que parece no haber agregado nada.
         iframeRef.current.contentWindow.location.reload();
+        return;
       }
+
+      const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${bloqueNuevo.id}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => r.json());
+      if (!html.ok) {
+        iframeRef.current.contentWindow.location.reload();
+        return;
+      }
+
+      iframeRef.current.contentWindow.postMessage(
+        { tipo: "sofia:insertar-bloque-html", html: html.html, posicion: indice },
+        "*"
+      );
     } catch {
       setEstado("error");
     }

@@ -260,6 +260,10 @@
 		}
 		if (datos.tipo === "sofia:eliminar-item-lista") {
 			alEliminarItemDeLista(datos.campoLista, datos.indiceItem);
+			return;
+		}
+		if (datos.tipo === "sofia:insertar-bloque-html") {
+			alInsertarBloqueHTML(datos.html, datos.posicion);
 		}
 	}
 
@@ -492,6 +496,59 @@
 		}
 	}
 
+	// Inserta un bloque NUEVO recibido como HTML ya renderizado por PHP
+	// (ver Sofia_REST_Editor::obtener_html_de_bloque(), pedido desde
+	// agregarBloque() en App.jsx) — reemplaza el reload completo de página
+	// que usaba antes: bug de UX real señalado por el usuario ("es una
+	// experiencia algo molesta"), perdía scroll/estado del canvas por
+	// agregar UNA sección. $posicion es el mismo índice que ya decidió
+	// App.jsx (0 = antes de todos, length = al final).
+	//
+	// template.content (no innerHTML de un <div>) — un <template> no
+	// ejecuta scripts ni produce efectos secundarios al parsear, y
+	// firstElementChild da directo el nodo <section> real sin envolverlo
+	// en nada.
+	function alInsertarBloqueHTML(html, posicion) {
+		var contenedor = document.querySelector(".sofia-pagina");
+		if (!contenedor) return;
+
+		var plantilla = document.createElement("template");
+		plantilla.innerHTML = html.trim();
+		var seccionNueva = plantilla.content.firstElementChild;
+		if (!seccionNueva || "SECTION" !== seccionNueva.tagName) return;
+
+		var secciones = contenedor.querySelectorAll(":scope > section");
+		var referencia = secciones[posicion] || null; // null → insertBefore(nodo, null) inserta al final, mismo comportamiento que "no hay siguiente".
+		contenedor.insertBefore(seccionNueva, referencia);
+
+		agregarHandleASeccion(seccionNueva);
+		activarCamposEditables(seccionNueva);
+
+		if (gridNivelSuperior) {
+			// add() con el índice real: Muuri necesita saber DÓNDE en su
+			// propio orden interno va el ítem nuevo, no solo agregarlo al
+			// final — sin esto, el layout visual coincidiría con el DOM
+			// pero el orden que reporta leerBloquesDeNivelSuperior() (que
+			// lee el DOM, no Muuri) quedaría bien igual; se pasa el índice
+			// de todos modos por claridad y por si Muuri lo necesita para
+			// animar la inserción en la posición correcta.
+			gridNivelSuperior.add(seccionNueva, { index: posicion });
+		}
+
+		// La Franja de beneficios/Testimonios/FAQ tienen su propia lista
+		// interna — activarReordenarListas() ya sabe ignorar contenedores
+		// que ya tienen instancia (instanciasListas.has), así que llamarlo
+		// de nuevo sobre TODO el documento es seguro y más simple que
+		// filtrar manualmente solo la sección nueva.
+		activarReordenarListas();
+
+		actualizarZIndexSecciones(contenedor);
+		activarLineasInsertar();
+		if (gridNivelSuperior) {
+			gridNivelSuperior.refreshItems().layout();
+		}
+	}
+
 	// Reindexa data-sofia-item Y data-sofia-campo de cada item restante
 	// tras un borrado — sin esto, un campo editado justo después de
 	// eliminar (antes de que el padre recargue el iframe) mandaría el
@@ -583,22 +640,27 @@
 		});
 	}
 
+	// Extraído de activarReordenar() para poder reusarlo sobre una
+	// <section> insertada dinámicamente (ver alInsertarBloqueHTML) —
+	// mismo handle, mismo título, un solo lugar que mantener.
+	function agregarHandleASeccion(seccion) {
+		if (seccion.querySelector(":scope > .sofia-handle-arrastre")) return; // ya tiene handle, evita duplicar si esto corriera dos veces.
+		var handle = document.createElement("div");
+		handle.className = "sofia-handle-arrastre";
+		// El título menciona el click derecho explícitamente — bug de
+		// UX real señalado por el usuario: sin esta pista, un usuario
+		// no técnico no tiene forma de descubrir que existe un menú
+		// contextual (eliminar bloque/item) más allá de arrastrar.
+		handle.setAttribute("title", "Arrastrar para reordenar · Click derecho para más opciones");
+		handle.textContent = "⠿";
+		seccion.prepend(handle);
+	}
+
 	function activarReordenar() {
 		var contenedor = document.querySelector(".sofia-pagina");
 		if (!contenedor || typeof Muuri === "undefined" || gridNivelSuperior) return; // ya inicializado, evita doble-instancia.
 
-		contenedor.querySelectorAll(":scope > section").forEach(function (seccion) {
-			if (seccion.querySelector(":scope > .sofia-handle-arrastre")) return; // ya tiene handle, evita duplicar si esto corriera dos veces.
-			var handle = document.createElement("div");
-			handle.className = "sofia-handle-arrastre";
-			// El título menciona el click derecho explícitamente — bug de
-			// UX real señalado por el usuario: sin esta pista, un usuario
-			// no técnico no tiene forma de descubrir que existe un menú
-			// contextual (eliminar bloque/item) más allá de arrastrar.
-			handle.setAttribute("title", "Arrastrar para reordenar · Click derecho para más opciones");
-			handle.textContent = "⠿";
-			seccion.prepend(handle);
-		});
+		contenedor.querySelectorAll(":scope > section").forEach(agregarHandleASeccion);
 
 		actualizarZIndexSecciones(contenedor);
 

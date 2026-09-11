@@ -102,6 +102,17 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * ID de instancia de este bloque — usado por
+	 * Sofia_REST_Editor::obtener_html_de_bloque() para encontrar, dentro
+	 * de la lista de Componentes de una página, cuál es el bloque puntual
+	 * pedido (evita recargar la página ENTERA del iframe solo para
+	 * insertar/actualizar UN bloque, ver la memoria de producto).
+	 */
+	public function id(): string {
+		return $this->id;
+	}
+
+	/**
 	 * Slugs de librerías JS que este Componente necesita en el frente
 	 * público (ej. array('gsap'), array('preact')) — Sofia_Tema::encolar_dependencias()
 	 * recorre TODOS los Componentes de la página, junta y deduplica esto
