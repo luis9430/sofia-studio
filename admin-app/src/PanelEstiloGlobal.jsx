@@ -63,8 +63,8 @@ const FUENTES = [
 ];
 
 const ROLES_MEDIDA = [
-  { clave: "tamano_base", etiqueta: "Tamaño de fuente base", placeholder: "1rem" },
-  { clave: "espaciado_base", etiqueta: "Espaciado base", placeholder: "1rem" },
+  { clave: "tamano_base", etiqueta: "Tamaño de fuente base", placeholder: "1rem", categoria: "texto" },
+  { clave: "espaciado_base", etiqueta: "Espaciado base", placeholder: "1rem", categoria: "space" },
 ];
 
 export function PanelEstiloGlobal({ config, onCerrar }) {
@@ -155,6 +155,7 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
                   <div key={rol.clave} className="sofia-panel-global__color">
                     <CampoConToken
                       tipo="text"
+                      categoria={rol.categoria}
                       valor={estilo.medidas[rol.clave]}
                       placeholderNormal={rol.placeholder}
                       onCambiar={(valor) => actualizarMedida(rol.clave, valor)}

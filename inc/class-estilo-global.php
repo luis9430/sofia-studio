@@ -82,6 +82,22 @@ class Sofia_Estilo_Global {
 	const PREFIJO_TOKEN_CORE_FRAMEWORK = 'cf:';
 
 	/**
+	 * true si $valor_guardado es un token de Core Framework CON NOMBRE —
+	 * a diferencia de un simple str_starts_with($valor, PREFIJO), esto
+	 * rechaza "cf:" solo (sin nombre después del prefijo), que puede
+	 * quedar guardado si el usuario activa el botón "CF" y cambia de campo
+	 * sin llegar a escribir un nombre (ver CampoConToken.jsx). Sin este
+	 * chequeo, resolver_valor("cf:") emite "var(--)" — CSS inválido que el
+	 * navegador descarta en silencio, dejando la propiedad entera sin
+	 * valor (bug real reportado por el usuario: un color de texto que
+	 * desaparecía por completo).
+	 */
+	public static function es_token_con_nombre( string $valor_guardado ): bool {
+		return str_starts_with( $valor_guardado, self::PREFIJO_TOKEN_CORE_FRAMEWORK )
+			&& '' !== substr( $valor_guardado, strlen( self::PREFIJO_TOKEN_CORE_FRAMEWORK ) );
+	}
+
+	/**
 	 * true si el plugin Core Framework está activo en este sitio —
 	 * chequea la presencia de su clase de storage real
 	 * (\CoreFramework\StylesheetStorage), el único punto de acoplamiento
@@ -135,6 +151,78 @@ class Sofia_Estilo_Global {
 		$nombres = array_unique( $coincidencias[1] ?? array() );
 		sort( $nombres );
 		return array_values( $nombres );
+	}
+
+	/**
+	 * PREFIJOS_CATEGORIA_CORE_FRAMEWORK: a qué CATEGORÍA pertenece cada
+	 * custom property de Core Framework, según su prefijo de nombre — ver
+	 * el catálogo completo auditado a mano (memoria de producto "Sofia
+	 * Studio: sistema de estilo") sobre el CSS real exportado. Necesario
+	 * porque el datalist de sugerencias, sin esto, ofrecía las 154
+	 * variables del sitio TAL CUAL en cualquier campo — nada impedía
+	 * escribir "bg-body" (una variable de COLOR) en "Radio de borde" (que
+	 * espera "radius-*"), un valor sintácticamente válido pero sin sentido
+	 * para esa propiedad. Con esto, cada CampoConToken solo sugiere las
+	 * variables de SU categoría — sigue siendo texto libre (nunca se
+	 * bloquea lo que no está en la lista), solo cambia qué aparece en el
+	 * <datalist>.
+	 *
+	 * Orden importa: "radius"/"shadow"/"space" antes que el genérico de
+	 * color, porque un nombre como "shadow-primary" también empieza con un
+	 * prefijo de color-family conocido si se buscara al revés — se
+	 * recorre en este orden y gana el primer prefijo que matchee.
+	 */
+	private const PREFIJOS_CATEGORIA_CORE_FRAMEWORK = array(
+		'radius'    => array( 'radius-' ),
+		'shadow'    => array( 'shadow-' ),
+		'space'     => array( 'space-' ),
+		'texto'     => array( 'text-' ),
+		'color'     => array(
+			'primary',
+			'secondary',
+			'tertiary',
+			'light',
+			'dark',
+			'success',
+			'error',
+			'bg-',
+			'border-',
+		),
+	);
+
+	/**
+	 * Clasifica UNA variable ya conocida (nombre sin "--") contra
+	 * PREFIJOS_CATEGORIA_CORE_FRAMEWORK — "otras" para cualquier nombre que
+	 * no matchee ninguna categoría reconocida (ej. una variable específica
+	 * de un Componente del propio proyecto de Core Framework, como
+	 * "btn-space"): sigue apareciendo en el datalist SIN categorizar, nunca
+	 * se descarta silenciosamente solo porque no encaja en el catálogo
+	 * genérico.
+	 */
+	private static function categoria_de_variable( string $nombre ): string {
+		foreach ( self::PREFIJOS_CATEGORIA_CORE_FRAMEWORK as $categoria => $prefijos ) {
+			foreach ( $prefijos as $prefijo ) {
+				if ( str_starts_with( $nombre, $prefijo ) ) {
+					return $categoria;
+				}
+			}
+		}
+		return 'otras';
+	}
+
+	/**
+	 * Mismas variables de variables_core_framework(), pero agrupadas por
+	 * categoría — {categoria => [nombres]} — para que el frontend pueda
+	 * ofrecer sugerencias específicas por control (ver CampoConToken.jsx,
+	 * prop `categoria`). "otras" siempre existe en el resultado (aunque
+	 * vacío) para que el frontend no tenga que chequear su ausencia.
+	 */
+	public static function variables_core_framework_por_categoria(): array {
+		$agrupadas = array( 'color' => array(), 'texto' => array(), 'radius' => array(), 'shadow' => array(), 'space' => array(), 'otras' => array() );
+		foreach ( self::variables_core_framework() as $nombre ) {
+			$agrupadas[ self::categoria_de_variable( $nombre ) ][] = $nombre;
+		}
+		return $agrupadas;
 	}
 
 	/**

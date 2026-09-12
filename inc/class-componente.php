@@ -426,9 +426,22 @@ abstract class Sofia_Componente {
 				continue;
 			}
 
-			if ( str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+			if ( Sofia_Estilo_Global::es_token_con_nombre( $valor ) ) {
 				$declaraciones[]        = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
 				$tokens_crudos[ $clave ] = $valor;
+			} elseif ( str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+				// Token SIN nombre ("cf:" solo) — se ignora en silencio, ver
+				// Sofia_Estilo_Global::es_token_con_nombre().
+				continue;
+			} elseif ( 'radius' === $clave ) {
+				// "radius" es INPUT LIBRE de una sola medida (ver
+				// CampoConToken.jsx, conUnidad) cuando no es token — mismo
+				// criterio de validación que tamano_fuente/espaciado_vertical,
+				// nunca solo esc_attr() para un valor que debería ser CSS
+				// válido.
+				if ( preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
+					$declaraciones[] = $propiedad_css . ':' . esc_attr( $valor );
+				}
 			} else {
 				$declaraciones[] = $propiedad_css . ':' . esc_attr( $valor );
 			}
@@ -549,9 +562,17 @@ abstract class Sofia_Componente {
 			// PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() reusados tal
 			// cual, nunca duplicados) en vez de un hex fijo elegido con el
 			// <input type="color"> del drawer.
-			if ( 'color' === $clave && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+			if ( 'color' === $clave && Sofia_Estilo_Global::es_token_con_nombre( $valor ) ) {
 				$declaraciones[]        = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
 				$tokens_crudos[ $clave ] = $valor;
+				continue;
+			}
+
+			// Token SIN nombre ("cf:" solo) — se ignora en silencio, mismo
+			// criterio que cualquier otro valor inválido de esta clave;
+			// nunca se emite como valor fijo tampoco (str_starts_with sigue
+			// siendo true, "cf:" no es un color hex válido).
+			if ( 'color' === $clave && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
 				continue;
 			}
 

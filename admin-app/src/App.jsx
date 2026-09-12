@@ -93,13 +93,26 @@ export function App({ config }) {
   // este guarda EN QUÉ POSICIÓN insertar y las coordenadas donde dibujar
   // el menú, igual que menuContextual.
   const [menuAgregarEnPosicion, setMenuAgregarEnPosicion] = useState(null); // { posicion, x, y } | null
-  // Nombres reales leídos del CSS de Core Framework (ver
-  // Sofia_Estilo_Global::variables_core_framework()) — vive ACÁ, no dentro
-  // de PanelEstiloGlobal, porque el botón "CF" (CampoConToken) también
-  // aparece en DrawerEstilo.jsx (Nivel 1/2), que puede abrirse sin que el
-  // panel global esté montado — el <datalist> que alimenta necesita
-  // existir en el documento sin importar cuál de los 2 esté abierto.
-  const [variablesCoreFramework, setVariablesCoreFramework] = useState([]);
+  // Nombres reales leídos del CSS de Core Framework, YA AGRUPADOS por
+  // categoría (ver Sofia_Estilo_Global::variables_core_framework_por_
+  // categoria()) — {color:[...], texto:[...], radius:[...], shadow:[...],
+  // space:[...], otras:[...]}. Vive ACÁ, no dentro de PanelEstiloGlobal,
+  // porque el botón "CF" (CampoConToken) también aparece en
+  // DrawerEstilo.jsx (Nivel 1/2), que puede abrirse sin que el panel
+  // global esté montado — los <datalist> que alimenta necesitan existir en
+  // el documento sin importar cuál de los 2 esté abierto. Agrupado (no la
+  // lista plana de antes) para que cada CampoConToken sugiera solo la
+  // categoría relevante a SU propiedad — bug real reportado por el
+  // usuario: el datalist plano permitía escribir "bg-body" (una variable
+  // de color) como sugerencia válida en "Radio de borde".
+  const [variablesCoreFramework, setVariablesCoreFramework] = useState({
+    color: [],
+    texto: [],
+    radius: [],
+    shadow: [],
+    space: [],
+    otras: [],
+  });
 
   // Catálogo real de Componentes del tema (mismo endpoint que ya usa
   // editor-iframe.js para los nombres del overlay de resaltado) — se pide
@@ -112,9 +125,18 @@ export function App({ config }) {
       .catch(() => setCatalogoBloques([]));
 
     fetch(`${config.restUrl}core-framework/variables`, { headers: { "X-WP-Nonce": config.nonce } })
-      .then((resp) => (resp.ok ? resp.json() : []))
-      .then(setVariablesCoreFramework)
-      .catch(() => setVariablesCoreFramework([]));
+      .then((resp) => (resp.ok ? resp.json() : {}))
+      .then((agrupadas) =>
+        setVariablesCoreFramework({
+          color: agrupadas.color || [],
+          texto: agrupadas.texto || [],
+          radius: agrupadas.radius || [],
+          shadow: agrupadas.shadow || [],
+          space: agrupadas.space || [],
+          otras: agrupadas.otras || [],
+        })
+      )
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -351,6 +351,36 @@ body {
   font-size: 12px;
 }
 
+.sofia-campo-token__medida {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.sofia-campo-token__medida input[type="number"] {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.sofia-campo-token__medida select {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 32px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
 .sofia-campo-token__cf {
   flex: 0 0 auto;
   width: 28px;

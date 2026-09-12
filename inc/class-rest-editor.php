@@ -506,17 +506,20 @@ class Sofia_REST_Editor {
 	}
 
 	/**
-	 * GET /wp-json/sofia/v1/core-framework/variables — lista los NOMBRES
-	 * de custom properties definidas en el CSS real de Core Framework (ver
-	 * Sofia_Estilo_Global::variables_core_framework()), para que el panel
-	 * "Estilo global" pueda ofrecer un dropdown real en vez de un campo de
-	 * texto libre a ciegas. Array vacío (nunca error) si el plugin no está
-	 * activo o el archivo no se pudo leer — el panel simplemente no
-	 * muestra sugerencias en ese caso, el campo de texto sigue funcionando
-	 * igual.
+	 * GET /wp-json/sofia/v1/core-framework/variables — nombres de custom
+	 * properties definidas en el CSS real de Core Framework, YA AGRUPADOS
+	 * por categoría (ver Sofia_Estilo_Global::variables_core_framework_por_
+	 * categoria()) — {color:[...], texto:[...], radius:[...], shadow:[...],
+	 * space:[...], otras:[...]}. Agrupado (no la lista plana de antes) para
+	 * que cada CampoConToken pueda sugerir solo lo relevante a SU propiedad
+	 * (nunca "bg-body" como sugerencia en un campo de Radio de borde) — ver
+	 * el bug real reportado por el usuario que motivó este cambio. Array
+	 * vacío (nunca error) si el plugin no está activo o el archivo no se
+	 * pudo leer — el panel simplemente no muestra sugerencias en ese caso,
+	 * el campo de texto sigue funcionando igual.
 	 */
 	public static function variables_core_framework( WP_REST_Request $request ) {
-		return rest_ensure_response( Sofia_Estilo_Global::variables_core_framework() );
+		return rest_ensure_response( Sofia_Estilo_Global::variables_core_framework_por_categoria() );
 	}
 }
 

@@ -203,6 +203,49 @@ class Sofia_Modo_Editor {
 				position: absolute; margin-left: 60px; width: calc(100% - 60px);
 				box-sizing: border-box; overflow: visible;
 			}
+			/* Utility classes de Ancho/Ancho máximo (Nivel 2, ver
+			   Sofia_Componente::CLASES_UTILITARIAS_BLOQUE) sin efecto visible
+			   dentro del editor — bug real encontrado en la práctica: la regla
+			   de arriba (".sofia-pagina > section", especificidad 0,1,1) le
+			   gana a una utility class sola como ".width-90" (especificidad
+			   0,1,0), así que "width:90%" del CSS de Core Framework nunca
+			   ganaba la cascada. Estas reglas combinan AMBOS selectores
+			   (0,2,1) para ganarle, sin tocar position/margin-left (Muuri
+			   sigue intacto) — mismo ancho final que tendría la visita
+			   pública real, ahora también visible mientras se edita. */
+			.sofia-pagina > section.max-width-10 { max-width: 10rem; }
+			.sofia-pagina > section.max-width-20 { max-width: 20rem; }
+			.sofia-pagina > section.max-width-30 { max-width: 30rem; }
+			.sofia-pagina > section.max-width-40 { max-width: 40rem; }
+			.sofia-pagina > section.max-width-50 { max-width: 50rem; }
+			.sofia-pagina > section.max-width-60 { max-width: 60rem; }
+			.sofia-pagina > section.max-width-70 { max-width: 70rem; }
+			.sofia-pagina > section.max-width-80 { max-width: 80rem; }
+			.sofia-pagina > section.max-width-90 { max-width: 90rem; }
+			.sofia-pagina > section.max-width-100 { max-width: 100rem; }
+			.sofia-pagina > section.max-site-width { max-width: var(--max-screen-width, 1400px); }
+			.sofia-pagina > section.width-10 { width: calc(10% - 60px); }
+			.sofia-pagina > section.width-20 { width: calc(20% - 60px); }
+			.sofia-pagina > section.width-30 { width: calc(30% - 60px); }
+			.sofia-pagina > section.width-40 { width: calc(40% - 60px); }
+			.sofia-pagina > section.width-50 { width: calc(50% - 60px); }
+			.sofia-pagina > section.width-60 { width: calc(60% - 60px); }
+			.sofia-pagina > section.width-70 { width: calc(70% - 60px); }
+			.sofia-pagina > section.width-80 { width: calc(80% - 60px); }
+			.sofia-pagina > section.width-90 { width: calc(90% - 60px); }
+			.sofia-pagina > section.full-width { width: calc(100% - 60px); }
+			.sofia-pagina > section.auto-width { width: auto; }
+			/* Centrado del bloque (ancho reducido, ej. Ancho: 50%) NO se
+			   resuelve acá con left/transform — Muuri posiciona cada
+			   <section> con su PROPIO transform:translate(x,y) inline (ver
+			   gridNivelSuperior en editor-iframe.js), que pisaría cualquier
+			   transform puesto por CSS. Queda pendiente como una fase aparte
+			   (JS: ajustar el X calculado, no CSS) — por ahora el ancho SÍ se
+			   ve reducido correctamente, pero pegado a la izquierda dentro
+			   del editor; en la visita pública real (sin Muuri) si se
+			   quisiera centrar de verdad, sería mismo problema con position
+			   normal — este control tal como está pensado hoy no incluye
+			   alineación, solo tamaño. */
 			.sofia-handle-arrastre {
 				position: absolute; top: 8px; left: -44px; z-index: 1;
 				width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;

@@ -95,6 +95,24 @@ Text Domain: sofia-studio
 	margin: 0;
 }
 
+/* max-width-* de Core Framework (Nivel 2, "Ancho máximo") se aplica a la
+   <section> del bloque en la visita PÚBLICA real (sin Muuri/editor de por
+   medio, ver class-modo-editor.php para el caso del editor) — una
+   <section> en flujo normal con max-width queda pegada a la izquierda por
+   default (display:block no centra por sí solo). margin-inline:auto la
+   centra, mismo comportamiento esperado de "limitar el ancho de un bloque"
+   (ej. un Hero de ancho completo con contenido centrado en el medio). Esta
+   regla NO aplica dentro del editor (.sofia-pagina > section fuerza
+   position:absolute/left ahí, ver el comentario largo en
+   class-modo-editor.php) — el editor solo refleja el TAMAÑO reducido, no
+   el centrado, hasta que se resuelva aparte (requiere tocar el cálculo de
+   posición de Muuri, no solo CSS). */
+.sofia-pagina > section[class*="max-width-"],
+.sofia-pagina > section.max-site-width {
+	margin-left: auto;
+	margin-right: auto;
+}
+
 /* Compatibilidad de utility classes de Core Framework aplicadas en Nivel 2
    (ver Sofia_Componente::clases_utilitarias_bloque()) — "fit-cover"/
    "fit-contain"/"fit-fill" son propiedades de Core Framework pensadas para

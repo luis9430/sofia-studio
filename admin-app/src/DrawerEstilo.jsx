@@ -556,7 +556,8 @@ export function DrawerEstilo({
                   <span className="sofia-drawer-estilo__etiqueta">Radio de borde</span>
                   <CampoConToken
                     tipo="text"
-                    placeholderNormal="ej. 8px"
+                    categoria="radius"
+                    conUnidad
                     valor={estilo.radius}
                     onCambiar={(valor) => actualizar({ radius: valor })}
                   />
@@ -566,6 +567,7 @@ export function DrawerEstilo({
                   <span className="sofia-drawer-estilo__etiqueta">Sombra</span>
                   <CampoConToken
                     tipo="text"
+                    categoria="shadow"
                     placeholderNormal="ej. 0 2px 6px rgba(0,0,0,.15)"
                     valor={estilo.sombra}
                     onCambiar={(valor) => actualizar({ sombra: valor })}

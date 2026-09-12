@@ -166,8 +166,20 @@
 	// porque JS no puede llamar directo al método PHP.
 	var PREFIJO_TOKEN_CORE_FRAMEWORK = "cf:";
 
+	// esTokenConNombre: espejo EXACTO de
+	// Sofia_Estilo_Global::es_token_con_nombre() del lado PHP — rechaza
+	// "cf:" solo (sin nombre después del prefijo), que puede quedar en el
+	// estado del drawer si el usuario activa el botón "CF" y cambia de
+	// campo sin llegar a escribir un nombre. Sin esto, resolverValorConToken
+	// devolvía "var(--)" — CSS inválido que el navegador descarta en
+	// silencio, dejando la propiedad entera sin valor (bug real reportado
+	// por el usuario: un color de texto que desaparecía por completo).
+	function esTokenConNombre(valor) {
+		return !!valor && valor.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0 && valor.length > PREFIJO_TOKEN_CORE_FRAMEWORK.length;
+	}
+
 	function resolverValorConToken(valor) {
-		if (!valor || valor.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) !== 0) return valor || "";
+		if (!esTokenConNombre(valor)) return valor && valor.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0 ? "" : valor || "";
 		return "var(--" + valor.slice(PREFIJO_TOKEN_CORE_FRAMEWORK.length) + ")";
 	}
 
@@ -223,7 +235,7 @@
 		// valorDeEstiloOToken(): sin esto, estiloActualDe() no podría
 		// reconstruir el modo token la próxima vez que se abra el drawer
 		// sobre este campo, dentro de la misma carga de página.
-		if (estilo.color && estilo.color.indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
+		if (esTokenConNombre(estilo.color)) {
 			el.setAttribute("data-sofia-estilo-color", estilo.color);
 		} else {
 			el.removeAttribute("data-sofia-estilo-color");
@@ -306,12 +318,17 @@
 
 		for (var clave in PROPIEDADES_TOKEN_BLOQUE) {
 			var par = PROPIEDADES_TOKEN_BLOQUE[clave];
-			seccion.style[par[0]] = resolverValorConToken(estilo[clave]);
+			var valorResuelto = resolverValorConToken(estilo[clave]);
+			seccion.style[par[0]] = valorResuelto;
 			if (clave === "color_borde") {
-				seccion.style.borderStyle = estilo[clave] ? "solid" : "";
-				seccion.style.borderWidth = estilo[clave] ? "1px" : "";
+				// !!valorResuelto (no !!estilo[clave]) — un token "cf:" sin
+				// nombre resuelve a "" (ver resolverValorConToken), y sin este
+				// chequeo quedaba un border-style:solid/border-width:1px sin
+				// ningún border-color real, un borde invisible pero presente.
+				seccion.style.borderStyle = valorResuelto ? "solid" : "";
+				seccion.style.borderWidth = valorResuelto ? "1px" : "";
 			}
-			if (estilo[clave] && estilo[clave].indexOf(PREFIJO_TOKEN_CORE_FRAMEWORK) === 0) {
+			if (esTokenConNombre(estilo[clave])) {
 				seccion.setAttribute(par[1], estilo[clave]);
 			} else {
 				seccion.removeAttribute(par[1]);
