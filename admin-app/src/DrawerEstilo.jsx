@@ -694,10 +694,9 @@ export function DrawerEstilo({
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Alineación del contenido</span>
                   <p className="sofia-drawer-estilo__ayuda-condicion">
-                    En Franja de beneficios/Testimonios hoy no tiene efecto visible (cada columna ya ocupa el 100% de
-                    su espacio) — queda guardado para cuando el layout interno de esos bloques lo aproveche. A
-                    diferencia de "Alineación del bloque" (que mueve el bloque entero en la página), esta apunta al
-                    contenido DENTRO del bloque.
+                    Solo tiene efecto visible en bloques con una lista de items (ej. Franja de beneficios,
+                    Testimonios) — alinea el texto DENTRO de cada columna, a diferencia de "Alineación del bloque" que
+                    mueve el bloque entero en la página.
                   </p>
                   <select
                     value={estilo.alineacion_contenido || ""}

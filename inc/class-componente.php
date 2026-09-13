@@ -386,15 +386,22 @@ abstract class Sofia_Componente {
 			'right'  => 'self-right',
 		),
 		// alineacion_contenido/alineacion_vertical_contenido: solo tienen
-		// efecto real en Componentes con una GRILLA interna propia (Franja
-		// de beneficios/Testimonios, ver .sofia-franja-beneficios__grid/
-		// .sofia-testimonios__grid en style.css, ambos display:grid) — en
-		// un Componente sin grid (Hero/CTA/FAQ/Texto libre) estas clases no
-		// tienen contenedor grid/flex del que colgar justify-items/
-		// align-items, así que no rompen nada pero tampoco hacen nada
-		// visible (mismo criterio ya usado en object_fit: se muestra
-		// siempre en el drawer con una nota aclaratoria, en vez de ocultar
-		// el control según el tipo de bloque).
+		// efecto real en Componentes con una lista de items propia (Franja
+		// de beneficios/Testimonios) — en un Componente sin eso (Hero/CTA/
+		// FAQ/Texto libre) la clase no tiene nada que targetear, así que no
+		// rompe nada pero tampoco hace nada visible (mismo criterio ya
+		// usado en object_fit: se muestra siempre en el drawer con una nota
+		// aclaratoria, en vez de ocultar el control según el tipo de
+		// bloque).
+		//
+		// Nombres "items-*" heredados de la utility class real de Core
+		// Framework, pero el CSS real (ver style.css) NO usa justify-items/
+		// align-items en el contenedor — bug real encontrado en la
+		// práctica: justify-items:center colapsaba cada columna a su
+		// min-content (texto envuelto letra por letra, sin ancho del que
+		// partir). El CSS mueve el TEXTO (text-align para horizontal,
+		// flex-column + justify-content para vertical) en vez de la CAJA
+		// de la columna — ver el comentario largo en style.css.
 		'alineacion_contenido' => array(
 			'left'   => 'items-left',
 			'center' => 'items-center',
