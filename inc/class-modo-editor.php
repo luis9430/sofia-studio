@@ -327,6 +327,64 @@ class Sofia_Modo_Editor {
 				font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 5px;
 			}
 
+			/* Badge "CF" — marca visual de "este campo/bloque usa un token de
+			   Core Framework en al menos UNA propiedad", pedido explícito del
+			   usuario: hoy no hay forma de saberlo sin abrir el drawer de
+			   cada campo/bloque uno por uno. Selector combinado: cualquiera
+			   de los data-sofia-estilo-{clave} que SÍ pueden ser token (ver
+			   Sofia_Componente::atributo_estilo()/atributo_estilo_bloque()) —
+			   MISMA lista en ambos niveles, un solo selector cubre Nivel 1
+			   (color/tamano_fuente, en el <h3>/<p> editable) y Nivel 2
+			   (color_fondo/color_borde/radius/sombra/offset_x/
+			   espaciado_vertical, en la <section>).
+			   position:relative necesario para posicionar el ::after — un
+			   <h3>/<p> normal no tiene position propio; no interfiere con
+			   Nivel 2 (la <section> ya es position:absolute, esta regla
+			   simplemente no cambia nada ahí).
+			   Solo visible en :hover (nunca permanente) — pedido explícito
+			   del usuario, para no ensuciar el canvas en reposo cuando hay
+			   varios campos con token en la misma pantalla. */
+			[data-sofia-estilo-color],
+			[data-sofia-estilo-tamano_fuente],
+			[data-sofia-estilo-color_fondo],
+			[data-sofia-estilo-color_borde],
+			[data-sofia-estilo-radius],
+			[data-sofia-estilo-sombra],
+			[data-sofia-estilo-offset_x],
+			[data-sofia-estilo-espaciado_vertical] {
+				position: relative;
+			}
+			[data-sofia-estilo-color]::before,
+			[data-sofia-estilo-tamano_fuente]::before,
+			[data-sofia-estilo-color_fondo]::before,
+			[data-sofia-estilo-color_borde]::before,
+			[data-sofia-estilo-radius]::before,
+			[data-sofia-estilo-sombra]::before,
+			[data-sofia-estilo-offset_x]::before,
+			[data-sofia-estilo-espaciado_vertical]::before {
+				content: "CF"; display: none;
+				/* top/right (no left) — en Nivel 2 la <section> ya tiene el
+				   handle de arrastre en la esquina superior IZQUIERDA
+				   (left:-44px, ver .sofia-handle-arrastre); el badge va del
+				   otro lado para no solaparse. En Nivel 1 (h3/p editable) no
+				   hay ningún otro elemento en esa esquina, así que el mismo
+				   lado funciona igual de bien ahí. */
+				position: absolute; top: -8px; right: -8px; z-index: 4;
+				background: #4a3fd9; color: #fff;
+				font-size: 9px; font-weight: 700; letter-spacing: 0.02em;
+				padding: 2px 5px; border-radius: 4px; pointer-events: none;
+			}
+			[data-sofia-estilo-color]:hover::before,
+			[data-sofia-estilo-tamano_fuente]:hover::before,
+			[data-sofia-estilo-color_fondo]:hover::before,
+			[data-sofia-estilo-color_borde]:hover::before,
+			[data-sofia-estilo-radius]:hover::before,
+			[data-sofia-estilo-sombra]:hover::before,
+			[data-sofia-estilo-offset_x]:hover::before,
+			[data-sofia-estilo-espaciado_vertical]:hover::before {
+				display: block;
+			}
+
 			/* Botón "+ Agregar" al final de una lista repetible — ver
 			   Sofia_Componente::boton_agregar_item(). Gris neutro (NO
 			   naranja) — bug real encontrado en la práctica: con el mismo
