@@ -82,29 +82,6 @@ const FUENTES = [
   { valor: "texto", etiqueta: "Texto (Inter)" },
 ];
 
-// parsearMedida/formatearMedida: separan un shorthand CSS de 1-4 valores
-// ("12px 8px" → {valores: ["12","8"], unidad: "px"}) para poder editarlos
-// como inputs numéricos independientes por lado (arriba/derecha/abajo/
-// izquierda) sin que el usuario escriba CSS a mano — mismo criterio de
-// "nunca CSS arbitrario" que el resto del drawer, con más control que un
-// select de 3 opciones (pedido explícito: "like Elementor", los 4 lados).
-function parsearMedida(shorthand) {
-  if (!shorthand) return { top: "", right: "", bottom: "", left: "", unidad: "px" };
-  const partes = shorthand.trim().split(/\s+/);
-  const unidad = (partes[0].match(/[a-z%]+$/) || ["px"])[0];
-  const numeros = partes.map((p) => p.replace(/[a-z%]+$/, ""));
-  // Shorthand CSS: 1 valor = los 4 lados, 2 = vertical/horizontal, 4 = cada lado.
-  if (numeros.length === 1) return { top: numeros[0], right: numeros[0], bottom: numeros[0], left: numeros[0], unidad };
-  if (numeros.length === 2) return { top: numeros[0], right: numeros[1], bottom: numeros[0], left: numeros[1], unidad };
-  return { top: numeros[0] || "", right: numeros[1] || "", bottom: numeros[2] || "", left: numeros[3] || "", unidad };
-}
-
-function formatearMedida({ top, right, bottom, left, unidad }) {
-  if (!top && !right && !bottom && !left) return "";
-  const n = (v) => `${v || 0}${unidad}`;
-  return `${n(top)} ${n(right)} ${n(bottom)} ${n(left)}`;
-}
-
 // COLUMNAS: mismas 3 opciones que Sofia_Componente::COLUMNAS_PERMITIDAS del
 // lado PHP — un grid solo tiene sentido en un rango chico (2 a 4).
 const COLUMNAS = ["2", "3", "4"];
@@ -477,30 +454,13 @@ export function DrawerEstilo({
 
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Tamaño de fuente</span>
-                  <div className="sofia-drawer-estilo__tamano-numerico">
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Por defecto"
-                      value={parsearMedida(estilo.tamano_fuente).top}
-                      onInput={(evento) => {
-                        const numero = evento.currentTarget.value;
-                        const unidad = parsearMedida(estilo.tamano_fuente).unidad;
-                        actualizar({ tamano_fuente: numero ? `${numero}${unidad}` : "" });
-                      }}
-                    />
-                    <select
-                      value={parsearMedida(estilo.tamano_fuente).unidad}
-                      onChange={(evento) => {
-                        const numero = parsearMedida(estilo.tamano_fuente).top;
-                        actualizar({ tamano_fuente: numero ? `${numero}${evento.currentTarget.value}` : "" });
-                      }}
-                    >
-                      <option value="px">px</option>
-                      <option value="rem">rem</option>
-                      <option value="%">%</option>
-                    </select>
-                  </div>
+                  <CampoConToken
+                    tipo="text"
+                    categoria="texto"
+                    conUnidad
+                    valor={estilo.tamano_fuente}
+                    onCambiar={(valor) => actualizar({ tamano_fuente: valor })}
+                  />
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo">
@@ -607,30 +567,13 @@ export function DrawerEstilo({
 
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Espaciado vertical (arriba y abajo)</span>
-                  <div className="sofia-drawer-estilo__tamano-numerico">
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Por defecto"
-                      value={parsearMedida(estilo.espaciado_vertical).top}
-                      onInput={(evento) => {
-                        const numero = evento.currentTarget.value;
-                        const unidad = parsearMedida(estilo.espaciado_vertical).unidad;
-                        actualizar({ espaciado_vertical: numero ? `${numero}${unidad}` : "" });
-                      }}
-                    />
-                    <select
-                      value={parsearMedida(estilo.espaciado_vertical).unidad}
-                      onChange={(evento) => {
-                        const numero = parsearMedida(estilo.espaciado_vertical).top;
-                        actualizar({ espaciado_vertical: numero ? `${numero}${evento.currentTarget.value}` : "" });
-                      }}
-                    >
-                      <option value="px">px</option>
-                      <option value="rem">rem</option>
-                      <option value="%">%</option>
-                    </select>
-                  </div>
+                  <CampoConToken
+                    tipo="text"
+                    categoria="space"
+                    conUnidad
+                    valor={estilo.espaciado_vertical}
+                    onCambiar={(valor) => actualizar({ espaciado_vertical: valor })}
+                  />
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo">

@@ -500,10 +500,27 @@ abstract class Sofia_Componente {
 			}
 		}
 
-		if ( ! empty( $estilo['espaciado_vertical'] ) && is_string( $estilo['espaciado_vertical'] ) && preg_match( self::PATRON_MEDIDA_CSS, $estilo['espaciado_vertical'] ) ) {
-			$valor            = esc_attr( $estilo['espaciado_vertical'] );
-			$declaraciones[] = 'padding-top:' . $valor;
-			$declaraciones[] = 'padding-bottom:' . $valor;
+		// espaciado_vertical: INPUT LIBRE (número + unidad, ver
+		// CampoConToken.jsx conUnidad) que ahora también puede ser un token
+		// de Core Framework — mismo criterio que "radius"/offset_x: el
+		// data-attribute crudo se emite SIEMPRE (token o fijo), porque acá
+		// no hay un "el.style.paddingTop" simple del que el JS pueda leer
+		// de vuelta CUALQUIERA de los 2 casos de forma confiable (dos
+		// propiedades, padding-top Y padding-bottom, derivadas del mismo
+		// valor único).
+		$espaciado_vertical = $estilo['espaciado_vertical'] ?? null;
+		if ( ! empty( $espaciado_vertical ) && is_string( $espaciado_vertical ) ) {
+			if ( Sofia_Estilo_Global::es_token_con_nombre( $espaciado_vertical ) ) {
+				$valor_resuelto                        = Sofia_Estilo_Global::resolver_valor( $espaciado_vertical );
+				$declaraciones[]                       = 'padding-top:' . $valor_resuelto;
+				$declaraciones[]                       = 'padding-bottom:' . $valor_resuelto;
+				$tokens_crudos['espaciado_vertical'] = $espaciado_vertical;
+			} elseif ( ! str_starts_with( $espaciado_vertical, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) && preg_match( self::PATRON_MEDIDA_CSS, $espaciado_vertical ) ) {
+				$valor            = esc_attr( $espaciado_vertical );
+				$declaraciones[] = 'padding-top:' . $valor;
+				$declaraciones[] = 'padding-bottom:' . $valor;
+				$tokens_crudos['espaciado_vertical'] = $espaciado_vertical;
+			}
 		}
 
 		// offset_x: desplazamiento horizontal LIBRE del bloque, que se SUMA
@@ -624,20 +641,12 @@ abstract class Sofia_Componente {
 				continue;
 			}
 
-			// tamano_fuente es INPUT LIBRE del usuario (ver DrawerEstilo.jsx)
-			// — a diferencia del resto (opciones fijas elegidas por el
-			// drawer), necesita validarse como una medida CSS real antes de
-			// emitirse, no solo escaparse.
-			if ( 'tamano_fuente' === $clave && ! preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
-				continue;
-			}
-
-			// "color" puede ser un token de Core Framework
+			// "color"/"tamano_fuente" pueden ser un token de Core Framework
 			// ("cf:{nombre}", mismo mecanismo que Sofia_Estilo_Global —
 			// PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() reusados tal
-			// cual, nunca duplicados) en vez de un hex fijo elegido con el
-			// <input type="color"> del drawer.
-			if ( 'color' === $clave && Sofia_Estilo_Global::es_token_con_nombre( $valor ) ) {
+			// cual, nunca duplicados) en vez de un valor fijo elegido con el
+			// <input type="color">/número+unidad del drawer.
+			if ( in_array( $clave, array( 'color', 'tamano_fuente' ), true ) && Sofia_Estilo_Global::es_token_con_nombre( $valor ) ) {
 				$declaraciones[]        = $propiedad_css . ':' . Sofia_Estilo_Global::resolver_valor( $valor );
 				$tokens_crudos[ $clave ] = $valor;
 				continue;
@@ -646,8 +655,16 @@ abstract class Sofia_Componente {
 			// Token SIN nombre ("cf:" solo) — se ignora en silencio, mismo
 			// criterio que cualquier otro valor inválido de esta clave;
 			// nunca se emite como valor fijo tampoco (str_starts_with sigue
-			// siendo true, "cf:" no es un color hex válido).
-			if ( 'color' === $clave && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+			// siendo true, "cf:" no es un color hex ni una medida válida).
+			if ( in_array( $clave, array( 'color', 'tamano_fuente' ), true ) && str_starts_with( $valor, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) ) {
+				continue;
+			}
+
+			// tamano_fuente es INPUT LIBRE del usuario (ver DrawerEstilo.jsx)
+			// cuando NO es token — a diferencia del resto (opciones fijas
+			// elegidas por el drawer), necesita validarse como una medida
+			// CSS real antes de emitirse, no solo escaparse.
+			if ( 'tamano_fuente' === $clave && ! preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
 				continue;
 			}
 
@@ -664,9 +681,9 @@ abstract class Sofia_Componente {
 
 		$atributos_token = '';
 		foreach ( $tokens_crudos as $clave => $valor_crudo ) {
-			// data-sofia-estilo-color — nombre derivado de la clave, un
-			// atributo por propiedad que SÍ puede ser token (hoy solo
-			// "color" en Nivel 1).
+			// data-sofia-estilo-{clave} — nombre derivado de la clave, un
+			// atributo por propiedad que SÍ puede ser token (hoy "color" y
+			// "tamano_fuente" en Nivel 1).
 			$atributos_token .= sprintf( ' data-sofia-estilo-%s="%s"', esc_attr( $clave ), esc_attr( $valor_crudo ) );
 		}
 

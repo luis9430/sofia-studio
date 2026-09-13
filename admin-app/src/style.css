@@ -845,20 +845,6 @@ body {
   background-color: var(--gp-panel-2) !important;
 }
 
-.sofia-drawer-estilo__tamano-numerico {
-  display: flex;
-  gap: 6px;
-}
-
-.sofia-drawer-estilo__tamano-numerico input {
-  flex: 1;
-  min-width: 0;
-}
-
-.sofia-drawer-estilo__tamano-numerico select {
-  width: 64px;
-}
-
 .sofia-drawer-estilo__select-fuente {
   width: 100%;
 }

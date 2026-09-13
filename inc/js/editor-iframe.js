@@ -201,7 +201,7 @@
 		return {
 			alineacion: el.style.textAlign || "",
 			color: valorDeEstiloOToken(el, "data-sofia-estilo-color", "color"),
-			tamano_fuente: el.style.fontSize || "",
+			tamano_fuente: valorDeEstiloOToken(el, "data-sofia-estilo-tamano_fuente", "fontSize"),
 			tipo_fuente: claveDeFuente(el.style.fontFamily),
 			negrita: el.style.fontWeight || "",
 			sombra_texto: el.style.textShadow || "",
@@ -226,7 +226,7 @@
 
 		el.style.textAlign = estilo.alineacion || "";
 		el.style.color = resolverValorConToken(estilo.color);
-		el.style.fontSize = estilo.tamano_fuente || "";
+		el.style.fontSize = resolverValorConToken(estilo.tamano_fuente);
 		el.style.fontFamily = FUENTES_PERMITIDAS[estilo.tipo_fuente] || "";
 		el.style.fontWeight = estilo.negrita || "";
 		el.style.textShadow = estilo.sombra_texto || "";
@@ -239,6 +239,11 @@
 			el.setAttribute("data-sofia-estilo-color", estilo.color);
 		} else {
 			el.removeAttribute("data-sofia-estilo-color");
+		}
+		if (esTokenConNombre(estilo.tamano_fuente)) {
+			el.setAttribute("data-sofia-estilo-tamano_fuente", estilo.tamano_fuente);
+		} else {
+			el.removeAttribute("data-sofia-estilo-tamano_fuente");
 		}
 
 		notificarCambio(campo + "._estilo", estilo);
@@ -292,9 +297,10 @@
 	function estiloBloqueActualDe(seccion) {
 		var estilo = {
 			columnas: seccion.style.getPropertyValue("--sofia-columnas").trim() || "",
-			espaciado_vertical: seccion.style.paddingTop || "",
-			// data-sofia-estilo-offset_x guarda SIEMPRE el crudo (token o
-			// fijo) — ver el comentario largo en alAplicarEstiloBloque().
+			// data-sofia-estilo-espaciado_vertical/offset_x guardan SIEMPRE
+			// el crudo (token o fijo) — ver el comentario largo en
+			// alAplicarEstiloBloque().
+			espaciado_vertical: seccion.getAttribute("data-sofia-estilo-espaciado_vertical") || "",
 			offset_x: seccion.getAttribute("data-sofia-estilo-offset_x") || "",
 		};
 		for (var clave in PROPIEDADES_TOKEN_BLOQUE) {
@@ -319,8 +325,14 @@
 		} else {
 			seccion.style.removeProperty("--sofia-columnas");
 		}
-		seccion.style.paddingTop = estilo.espaciado_vertical || "";
-		seccion.style.paddingBottom = estilo.espaciado_vertical || "";
+		var espaciadoResuelto = resolverValorConToken(estilo.espaciado_vertical);
+		seccion.style.paddingTop = espaciadoResuelto;
+		seccion.style.paddingBottom = espaciadoResuelto;
+		if (estilo.espaciado_vertical) {
+			seccion.setAttribute("data-sofia-estilo-espaciado_vertical", estilo.espaciado_vertical);
+		} else {
+			seccion.removeAttribute("data-sofia-estilo-espaciado_vertical");
+		}
 
 		for (var clave in PROPIEDADES_TOKEN_BLOQUE) {
 			var par = PROPIEDADES_TOKEN_BLOQUE[clave];
