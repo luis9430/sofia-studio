@@ -262,7 +262,24 @@ class Sofia_Modo_Editor {
 			   ej. display:grid de 3 columnas, para cualquier visitante).
 			   width explícito en el item: position:absolute no hereda el
 			   ancho automático que tenía en flujo normal (grid/flex). */
-			[data-sofia-lista] { position: relative; }
+			/* width:100% explícito — bug real encontrado en la práctica
+			   (reportado por el usuario con captura: texto envuelto letra
+			   por letra en Franja de beneficios/Testimonios con "Alineación
+			   del contenido" activa). Causa raíz: [data-sofia-lista] es
+			   display:grid (ver .sofia-franja-beneficios__grid/
+			   .sofia-testimonios__grid en style.css) SIN width explícito —
+			   en flujo normal, un grid container mide el 100% de su padre
+			   por default, PERO acá todos sus HIJOS son position:absolute
+			   (ver [data-sofia-item] abajo, requisito de Muuri), así que no
+			   queda contenido en flujo que le dé un tamaño intrínseco al
+			   grid: colapsa al mínimo posible (la suma de sus gaps, ej.
+			   2 gaps de 24px = 48px con 3 columnas — el número exacto que
+			   medía en el bug real). Como los hijos calculan su propio
+			   ancho como % del padre (width:calc(100%/N), ver
+			   [data-sofia-item]), sin este width explícito hay una
+			   dependencia circular: el padre no puede medirse sin sus
+			   hijos, los hijos no pueden medirse sin el padre. */
+			[data-sofia-lista] { position: relative; width: 100%; }
 			/* width vía --sofia-columnas (default 3) — Muuri en modo editor
 			   NUNCA usa CSS Grid/display:grid real (cada item se posiciona a
 			   mano con position:absolute + transform, ver el comentario largo
