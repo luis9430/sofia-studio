@@ -186,6 +186,25 @@ const ALINEACIONES_BLOQUE = [
   { valor: "right", etiqueta: "Derecha" },
 ];
 
+// ALINEACIONES_CONTENIDO/ALINEACIONES_VERTICALES_CONTENIDO: mismas claves
+// que Sofia_Componente::CLASES_UTILITARIAS_BLOQUE["alineacion_contenido"/
+// "alineacion_vertical_contenido"] del lado PHP (items-left/-center/-right,
+// items-top/-middle/-bottom) — a diferencia de "Alineación del bloque"
+// (mueve el BLOQUE ENTERO en la página), estas alinean el CONTENIDO
+// interno (texto/items) DENTRO del bloque — solo tienen efecto visible en
+// Componentes con una grilla propia (Franja de beneficios/Testimonios).
+const ALINEACIONES_CONTENIDO = [
+  { valor: "", etiqueta: "Por defecto (izquierda)" },
+  { valor: "center", etiqueta: "Centrado" },
+  { valor: "right", etiqueta: "Derecha" },
+];
+
+const ALINEACIONES_VERTICALES_CONTENIDO = [
+  { valor: "", etiqueta: "Por defecto (arriba)" },
+  { valor: "middle", etiqueta: "Al medio" },
+  { valor: "bottom", etiqueta: "Abajo" },
+];
+
 // VARIABLES_CONDICION: mismas claves que
 // Sofia_Componente::variables_condicion() del lado PHP — lista corta
 // curada (whitelist), nunca un campo de texto libre para "campo" como el
@@ -650,6 +669,59 @@ export function DrawerEstilo({
                     onChange={(evento) => actualizar({ alineacion_bloque: evento.currentTarget.value })}
                   >
                     {ALINEACIONES_BLOQUE.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Desplazamiento horizontal</span>
+                  <p className="sofia-drawer-estilo__ayuda-condicion">
+                    Se suma a la Alineación del bloque de arriba — ej. "Centrado" + 20px queda centrado y corrido 20px
+                    más a la derecha desde ese centro.
+                  </p>
+                  <CampoConToken
+                    tipo="text"
+                    categoria="space"
+                    conUnidad
+                    valor={estilo.offset_x}
+                    onCambiar={(valor) => actualizar({ offset_x: valor })}
+                  />
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Alineación del contenido</span>
+                  <p className="sofia-drawer-estilo__ayuda-condicion">
+                    En Franja de beneficios/Testimonios hoy no tiene efecto visible (cada columna ya ocupa el 100% de
+                    su espacio) — queda guardado para cuando el layout interno de esos bloques lo aproveche. A
+                    diferencia de "Alineación del bloque" (que mueve el bloque entero en la página), esta apunta al
+                    contenido DENTRO del bloque.
+                  </p>
+                  <select
+                    value={estilo.alineacion_contenido || ""}
+                    onChange={(evento) => actualizar({ alineacion_contenido: evento.currentTarget.value })}
+                  >
+                    {ALINEACIONES_CONTENIDO.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Alineación vertical del contenido</span>
+                  <p className="sofia-drawer-estilo__ayuda-condicion">
+                    Útil cuando los items tienen alturas distintas (ej. un título más largo que otro) — mismo alcance
+                    que la Alineación del contenido de arriba.
+                  </p>
+                  <select
+                    value={estilo.alineacion_vertical_contenido || ""}
+                    onChange={(evento) => actualizar({ alineacion_vertical_contenido: evento.currentTarget.value })}
+                  >
+                    {ALINEACIONES_VERTICALES_CONTENIDO.map((op) => (
                       <option key={op.valor || "ninguno"} value={op.valor}>
                         {op.etiqueta}
                       </option>

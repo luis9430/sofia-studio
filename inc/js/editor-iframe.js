@@ -273,6 +273,8 @@
 		object_fit: { contain: "fit-contain", cover: "fit-cover", fill: "fit-fill" },
 		z_index: { "-1": "z--1", 0: "z-0", 1: "z-1", 10: "z-10", 100: "z-100", 1000: "z-1000", 10000: "z-10000" },
 		alineacion_bloque: { left: "self-left", center: "self-center", right: "self-right" },
+		alineacion_contenido: { left: "items-left", center: "items-center", right: "items-right" },
+		alineacion_vertical_contenido: { top: "items-top", middle: "items-middle", bottom: "items-bottom" },
 	};
 
 	// claveUtilitariaActual: recorre las clases posibles de UNA categoría
@@ -291,6 +293,9 @@
 		var estilo = {
 			columnas: seccion.style.getPropertyValue("--sofia-columnas").trim() || "",
 			espaciado_vertical: seccion.style.paddingTop || "",
+			// data-sofia-estilo-offset_x guarda SIEMPRE el crudo (token o
+			// fijo) — ver el comentario largo en alAplicarEstiloBloque().
+			offset_x: seccion.getAttribute("data-sofia-estilo-offset_x") || "",
 		};
 		for (var clave in PROPIEDADES_TOKEN_BLOQUE) {
 			var par = PROPIEDADES_TOKEN_BLOQUE[clave];
@@ -348,6 +353,51 @@
 			if (estilo[claveUtil] && opciones[estilo[claveUtil]]) {
 				seccion.classList.add(opciones[estilo[claveUtil]]);
 			}
+		}
+
+		// offset_x (Desplazamiento horizontal): a diferencia de las
+		// propiedades de PROPIEDADES_TOKEN_BLOQUE, nunca se escribe en
+		// seccion.style.transform acá — Muuri es quien controla ese
+		// atributo (su propio transform:translate(x,y) de posición, ver
+		// layoutNivelSuperiorConAlineacion). Acá se resuelve el valor
+		// (fijo o token) a PÍXELES reales aplicándolo temporalmente a un
+		// elemento invisible y leyendo getComputedStyle, y se guarda ese
+		// número en data-sofia-offset-x-px — que layoutNivelSuperiorConAlineacion
+		// lee y suma en el próximo layout() de abajo.
+		//
+		// data-sofia-estilo-offset_x guarda el valor CRUDO completo
+		// (token O fijo, cualquiera) — a diferencia de color/color_fondo
+		// (donde el crudo solo hace falta para un TOKEN, porque un color
+		// fijo se puede releer tal cual de el.style.color), acá no hay
+		// ningún "el.style.transform" del que leer de vuelta el string
+		// original (Muuri lo pisa) — sin este data-attribute, reabrir el
+		// drawer perdería el valor guardado incluso para un offset fijo.
+		if (estilo.offset_x) {
+			seccion.setAttribute("data-sofia-estilo-offset_x", estilo.offset_x);
+
+			var medidor = document.createElement("div");
+			medidor.style.position = "absolute";
+			medidor.style.visibility = "hidden";
+			medidor.style.transform = "translateX(" + resolverValorConToken(estilo.offset_x) + ")";
+			document.body.appendChild(medidor);
+			var tx = 0;
+			var transformResuelto = window.getComputedStyle(medidor).transform;
+			var match = transformResuelto && transformResuelto.match(/matrix\(([^)]+)\)/);
+			if (match) {
+				var valores = match[1].split(",").map(function (v) {
+					return parseFloat(v.trim());
+				});
+				tx = valores.length >= 5 ? valores[4] : 0;
+			}
+			document.body.removeChild(medidor);
+			if (tx) {
+				seccion.setAttribute("data-sofia-offset-x-px", String(tx));
+			} else {
+				seccion.removeAttribute("data-sofia-offset-x-px");
+			}
+		} else {
+			seccion.removeAttribute("data-sofia-estilo-offset_x");
+			seccion.removeAttribute("data-sofia-offset-x-px");
 		}
 
 		notificarCambio(id + "._estilo_bloque", estilo);
@@ -659,6 +709,7 @@
 		}
 
 		if (gridNivelSuperior) {
+			congelarOffsetXDe(seccionNueva); // ANTES de add() — ver el comentario largo en congelarOffsetXDe().
 			// add() con el índice real: Muuri necesita saber DÓNDE en su
 			// propio orden interno va el ítem nuevo, no solo agregarlo al
 			// final — sin esto, el layout visual coincidiría con el DOM
@@ -818,16 +869,34 @@
 	// itemMargin.left ya incluye ese margin-left:60px (Muuri lee el margin
 	// CSS real de cada item) — nunca duplicar sumándolo de nuevo al X
 	// calculado, solo usarlo para saber dónde empieza el espacio útil.
+	//
+	// data-sofia-offset-x-px (leído acá, escrito por congelarOffsetXInicial
+	// más abajo): el offset EN PÍXELES ya resuelto, tomado UNA SOLA VEZ
+	// ANTES de que Muuri tome control del transform del elemento — Muuri
+	// fija su propio transform:translate(x,y) completo en cada layout
+	// (element.style.transform es un único atributo, no se pueden componer
+	// 2 transforms independientes ahí), así que leer el offset con
+	// getComputedStyle DENTRO de esta función leería el transform que
+	// MUURI ya puso (que incluye el x/y calculado), no el offset original
+	// — el offset se sumaría de nuevo en cada recálculo, creciendo sin
+	// control. El data-attribute es un snapshot inmutable tomado antes de
+	// ese punto.
+	function offsetXDesdeAtributo(el) {
+		var valor = el.getAttribute("data-sofia-offset-x-px");
+		return valor ? parseFloat(valor) || 0 : 0;
+	}
+
 	function layoutNivelSuperiorConAlineacion(grid, layoutId, items, width, height, callback) {
 		var layout = { id: layoutId, items: items, slots: [], styles: {} };
 		var y = 0;
 
 		items.forEach(function (item) {
+			var el = item.getElement();
 			var itemMargin = item.getMargin();
 			var itemWidth = item.getWidth();
 			var itemHeight = item.getHeight();
 			var espacioDisponible = width - itemMargin.left - itemMargin.right;
-			var alineacion = claveUtilitariaActual(item.getElement(), CLASES_UTILITARIAS_BLOQUE.alineacion_bloque);
+			var alineacion = claveUtilitariaActual(el, CLASES_UTILITARIAS_BLOQUE.alineacion_bloque);
 
 			var x = 0; // default: pegado al margin-left fijo (comportamiento de siempre).
 			if ("center" === alineacion) {
@@ -835,6 +904,7 @@
 			} else if ("right" === alineacion) {
 				x = Math.max(0, espacioDisponible - itemWidth);
 			}
+			x += offsetXDesdeAtributo(el); // se SUMA a la alineación, nunca la reemplaza — pedido explícito del usuario.
 
 			layout.slots.push(x, y);
 			y += itemHeight + itemMargin.top + itemMargin.bottom;
@@ -843,6 +913,36 @@
 		layout.styles.width = width + "px";
 		layout.styles.height = y + "px";
 		callback(layout);
+	}
+
+	// congelarOffsetXDe: lee el transform:translateX(...) que PHP pudo
+	// haber emitido en el style="..." inicial de UNA <section> (ver
+	// Sofia_Componente::atributo_estilo_bloque(), "offset_x") y lo
+	// convierte a un número de píxeles YA RESUELTO (sea un valor fijo o un
+	// token de Core Framework — getComputedStyle devuelve el resultado
+	// final de la cascada en ambos casos), guardándolo en
+	// data-sofia-offset-x-px ANTES de que Muuri tome control del transform
+	// del elemento. Debe llamarse ANTES de instanciar Muuri (todas las
+	// secciones de la carga inicial, ver activarReordenar) o ANTES de
+	// gridNivelSuperior.add() (una sección insertada/reemplazada después,
+	// ver alInsertarBloqueHTML) — nunca dentro del layout function (ver el
+	// comentario largo ahí): para ese punto Muuri ya pisó el transform con
+	// su propia posición calculada, y leerlo ahí sumaría el offset una y
+	// otra vez en cada recálculo.
+	function congelarOffsetXDe(seccion) {
+		var transform = window.getComputedStyle(seccion).transform;
+		if (!transform || "none" === transform) return;
+		var match = transform.match(/matrix\(([^)]+)\)/);
+		if (!match) return;
+		var valores = match[1].split(",").map(function (v) {
+			return parseFloat(v.trim());
+		});
+		var tx = valores.length >= 5 ? valores[4] : 0; // tx es el 5to valor de matrix(a,b,c,d,tx,ty).
+		if (tx) seccion.setAttribute("data-sofia-offset-x-px", String(tx));
+	}
+
+	function congelarOffsetXInicial(contenedor) {
+		contenedor.querySelectorAll(":scope > section").forEach(congelarOffsetXDe);
 	}
 
 	// Asigna z-index DECRECIENTE a cada <section> de nivel superior según
@@ -886,6 +986,7 @@
 		contenedor.querySelectorAll(":scope > section").forEach(agregarHandleASeccion);
 
 		actualizarZIndexSecciones(contenedor);
+		congelarOffsetXInicial(contenedor); // ANTES de instanciar Muuri — ver el comentario largo en esa función.
 
 		gridNivelSuperior = new Muuri(contenedor, {
 			// "section" (sin ":scope >") — bug real encontrado en la

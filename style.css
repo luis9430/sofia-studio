@@ -45,6 +45,55 @@ Text Domain: sofia-studio
 	gap: 24px;
 }
 
+/* Compatibilidad de "Alineación del contenido"/"Alineación vertical del
+   contenido" (Nivel 2, items-left/-center/-right, items-top/-middle/
+   -bottom de Core Framework) — mismo motivo que .sofia-hero.fit-cover >
+   img más abajo: justify-items/align-items solo tienen efecto en el
+   elemento que ES el contenedor grid/flex, nunca en un ancestro. La clase
+   la agrega Sofia_Componente::atributos_seccion() a la <section> externa
+   (el único elemento con class="..." accesible desde el drawer de
+   bloque), pero el grid real vive en el <div> hijo
+   .sofia-franja-beneficios__grid/.sofia-testimonios__grid.
+
+   justify-items (horizontal) hoy NO tiene efecto visible en la práctica:
+   cada .sofia-*__item ya ocupa el 100% del ancho de su columna por
+   default (justify-self:stretch implícito de CSS Grid), así que no hay
+   nada que "centrar" dentro de una celda que ya está llena — decisión
+   consciente del usuario: mantener el mecanismo fiel a la utility class
+   REAL de Core Framework en vez de improvisar un text-align que no es lo
+   que items-center realmente hace, aun sabiendo que hoy no cambia nada
+   visualmente en estos 2 Componentes. align-items (vertical) SÍ tiene
+   efecto real cuando las columnas tienen alturas distintas. */
+.sofia-franja-beneficios.items-left > .sofia-franja-beneficios__grid,
+.sofia-testimonios.items-left > .sofia-testimonios__grid {
+	justify-items: start;
+}
+
+.sofia-franja-beneficios.items-center > .sofia-franja-beneficios__grid,
+.sofia-testimonios.items-center > .sofia-testimonios__grid {
+	justify-items: center;
+}
+
+.sofia-franja-beneficios.items-right > .sofia-franja-beneficios__grid,
+.sofia-testimonios.items-right > .sofia-testimonios__grid {
+	justify-items: end;
+}
+
+.sofia-franja-beneficios.items-top > .sofia-franja-beneficios__grid,
+.sofia-testimonios.items-top > .sofia-testimonios__grid {
+	align-items: start;
+}
+
+.sofia-franja-beneficios.items-middle > .sofia-franja-beneficios__grid,
+.sofia-testimonios.items-middle > .sofia-testimonios__grid {
+	align-items: center;
+}
+
+.sofia-franja-beneficios.items-bottom > .sofia-franja-beneficios__grid,
+.sofia-testimonios.items-bottom > .sofia-testimonios__grid {
+	align-items: end;
+}
+
 .sofia-testimonios__grid {
 	display: grid;
 	grid-template-columns: repeat(var(--sofia-columnas, 3), 1fr);

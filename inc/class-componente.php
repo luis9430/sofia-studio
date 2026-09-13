@@ -385,6 +385,26 @@ abstract class Sofia_Componente {
 			'center' => 'self-center',
 			'right'  => 'self-right',
 		),
+		// alineacion_contenido/alineacion_vertical_contenido: solo tienen
+		// efecto real en Componentes con una GRILLA interna propia (Franja
+		// de beneficios/Testimonios, ver .sofia-franja-beneficios__grid/
+		// .sofia-testimonios__grid en style.css, ambos display:grid) — en
+		// un Componente sin grid (Hero/CTA/FAQ/Texto libre) estas clases no
+		// tienen contenedor grid/flex del que colgar justify-items/
+		// align-items, así que no rompen nada pero tampoco hacen nada
+		// visible (mismo criterio ya usado en object_fit: se muestra
+		// siempre en el drawer con una nota aclaratoria, en vez de ocultar
+		// el control según el tipo de bloque).
+		'alineacion_contenido' => array(
+			'left'   => 'items-left',
+			'center' => 'items-center',
+			'right'  => 'items-right',
+		),
+		'alineacion_vertical_contenido' => array(
+			'top'    => 'items-top',
+			'middle' => 'items-middle',
+			'bottom' => 'items-bottom',
+		),
 	);
 
 	/**
@@ -477,6 +497,39 @@ abstract class Sofia_Componente {
 			$valor            = esc_attr( $estilo['espaciado_vertical'] );
 			$declaraciones[] = 'padding-top:' . $valor;
 			$declaraciones[] = 'padding-bottom:' . $valor;
+		}
+
+		// offset_x: desplazamiento horizontal LIBRE del bloque, que se SUMA
+		// a "Alineación del bloque" (self-left/-center/-right) en vez de
+		// reemplazarla — pedido explícito del usuario ("centrado pero un
+		// poco corrido"). transform:translateX() en vez de sumarlo a
+		// margin-left: "self-center" ya define margin-inline:auto (visita
+		// pública) — un margin-left fijo adicional ahí competiría con ese
+		// auto en vez de sumarse, dando un resultado impredecible.
+		// translateX() se aplica DESPUÉS de que el navegador ya resolvió
+		// margin/posición, así que siempre desplaza desde donde sea que el
+		// bloque haya quedado, sin importar qué alineación esté activa.
+		// Puede ser un token de Core Framework (ej. un valor de "space-*"),
+		// mismo mecanismo que radius/sombra.
+		//
+		// data-sofia-estilo-offset_x se emite SIEMPRE (fijo o token) — a
+		// diferencia del resto de $tokens_crudos (que solo hace falta para
+		// un TOKEN, porque un valor fijo se puede releer tal cual de
+		// el.style.borderRadius, por ejemplo), acá no hay ningún
+		// "el.style.transform" del que el JS pueda leer de vuelta el
+		// string original: dentro del editor, Muuri controla ese
+		// atributo por completo (ver layoutNivelSuperiorConAlineacion en
+		// editor-iframe.js) — sin este data-attribute, reabrir el drawer
+		// perdería el offset guardado incluso cuando es un valor fijo.
+		$offset_x = $estilo['offset_x'] ?? null;
+		if ( ! empty( $offset_x ) && is_string( $offset_x ) ) {
+			if ( Sofia_Estilo_Global::es_token_con_nombre( $offset_x ) ) {
+				$declaraciones[]           = 'transform:translateX(' . Sofia_Estilo_Global::resolver_valor( $offset_x ) . ')';
+				$tokens_crudos['offset_x'] = $offset_x;
+			} elseif ( ! str_starts_with( $offset_x, Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK ) && preg_match( self::PATRON_MEDIDA_CSS, $offset_x ) ) {
+				$declaraciones[]           = 'transform:translateX(' . esc_attr( $offset_x ) . ')';
+				$tokens_crudos['offset_x'] = $offset_x;
+			}
 		}
 
 		if ( empty( $declaraciones ) ) {
