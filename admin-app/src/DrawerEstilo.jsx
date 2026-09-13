@@ -174,6 +174,18 @@ const Z_INDICES = [
   { valor: "10000", etiqueta: "10000 (siempre encima)" },
 ];
 
+// ALINEACIONES_BLOQUE: mismas 3 opciones que
+// Sofia_Componente::CLASES_UTILITARIAS_BLOQUE["alineacion_bloque"] del
+// lado PHP (self-left/-center/-right, utility classes REALES de Core
+// Framework) — solo tiene efecto visible cuando el bloque además tiene un
+// Ancho/Ancho máximo menor al 100%, mismo criterio que la ayuda de
+// Object-fit de abajo.
+const ALINEACIONES_BLOQUE = [
+  { valor: "", etiqueta: "Por defecto (izquierda)" },
+  { valor: "center", etiqueta: "Centrado" },
+  { valor: "right", etiqueta: "Derecha" },
+];
+
 // VARIABLES_CONDICION: mismas claves que
 // Sofia_Componente::variables_condicion() del lado PHP — lista corta
 // curada (whitelist), nunca un campo de texto libre para "campo" como el
@@ -620,6 +632,24 @@ export function DrawerEstilo({
                   <span className="sofia-drawer-estilo__etiqueta">Ancho</span>
                   <select value={estilo.ancho || ""} onChange={(evento) => actualizar({ ancho: evento.currentTarget.value })}>
                     {ANCHOS.map((op) => (
+                      <option key={op.valor || "ninguno"} value={op.valor}>
+                        {op.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sofia-drawer-estilo__grupo">
+                  <span className="sofia-drawer-estilo__etiqueta">Alineación del bloque</span>
+                  <p className="sofia-drawer-estilo__ayuda-condicion">
+                    Solo tiene efecto visible si además elegiste un Ancho o Ancho máximo menor al 100% — un bloque de
+                    ancho completo no tiene espacio de sobra para desplazarse.
+                  </p>
+                  <select
+                    value={estilo.alineacion_bloque || ""}
+                    onChange={(evento) => actualizar({ alineacion_bloque: evento.currentTarget.value })}
+                  >
+                    {ALINEACIONES_BLOQUE.map((op) => (
                       <option key={op.valor || "ninguno"} value={op.valor}>
                         {op.etiqueta}
                       </option>

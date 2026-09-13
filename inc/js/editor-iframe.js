@@ -272,6 +272,7 @@
 		aspect_ratio: { 1: "aspect-1", "4-3": "aspect-4-3", "3-4": "aspect-3-4", "3-2": "aspect-3-2", "2-3": "aspect-2-3", "16-9": "aspect-16-9", "9-16": "aspect-9-16" },
 		object_fit: { contain: "fit-contain", cover: "fit-cover", fill: "fit-fill" },
 		z_index: { "-1": "z--1", 0: "z-0", 1: "z-1", 10: "z-10", 100: "z-100", 1000: "z-1000", 10000: "z-10000" },
+		alineacion_bloque: { left: "self-left", center: "self-center", right: "self-right" },
 	};
 
 	// claveUtilitariaActual: recorre las clases posibles de UNA categoría
@@ -795,6 +796,55 @@
 	// footer terminaba superpuesto sobre contenido real).
 	var observerAlturaSecciones = null;
 
+	// layoutNivelSuperiorConAlineacion: layout personalizado de Muuri (API
+	// documentada: function(grid, layoutId, items, width, height, callback))
+	// para gridNivelSuperior — reemplaza el layout default de "una columna,
+	// x siempre en 0" por uno que respeta "Alineación del bloque" (Nivel 2,
+	// ver CLASES_UTILITARIAS_BLOQUE.alineacion_bloque/self-left/-center/
+	// -right) cuando el bloque tiene un Ancho/Ancho máximo menor al 100%.
+	//
+	// Bug real que esto resuelve: sin un layout custom, Ancho/Ancho máximo
+	// SÍ reducían el tamaño visual del bloque dentro del editor (ver el fix
+	// de especificidad en class-modo-editor.php), pero el bloque quedaba
+	// siempre pegado a la izquierda — Muuri fija left:0/x:0 para todo item
+	// en su layout default de una columna, ignorando cualquier margin:auto
+	// que el CSS pudiera declarar (position:absolute no reacciona a margin
+	// auto). Acá se calcula el X a mano: si el item tiene "self-center" o
+	// "self-right", se centra/alinea a la derecha DENTRO del espacio
+	// disponible real (el ancho del contenedor MENOS el margin-left:60px
+	// fijo del handle, que sigue aplicando siempre — ver
+	// class-modo-editor.php).
+	//
+	// itemMargin.left ya incluye ese margin-left:60px (Muuri lee el margin
+	// CSS real de cada item) — nunca duplicar sumándolo de nuevo al X
+	// calculado, solo usarlo para saber dónde empieza el espacio útil.
+	function layoutNivelSuperiorConAlineacion(grid, layoutId, items, width, height, callback) {
+		var layout = { id: layoutId, items: items, slots: [], styles: {} };
+		var y = 0;
+
+		items.forEach(function (item) {
+			var itemMargin = item.getMargin();
+			var itemWidth = item.getWidth();
+			var itemHeight = item.getHeight();
+			var espacioDisponible = width - itemMargin.left - itemMargin.right;
+			var alineacion = claveUtilitariaActual(item.getElement(), CLASES_UTILITARIAS_BLOQUE.alineacion_bloque);
+
+			var x = 0; // default: pegado al margin-left fijo (comportamiento de siempre).
+			if ("center" === alineacion) {
+				x = Math.max(0, (espacioDisponible - itemWidth) / 2);
+			} else if ("right" === alineacion) {
+				x = Math.max(0, espacioDisponible - itemWidth);
+			}
+
+			layout.slots.push(x, y);
+			y += itemHeight + itemMargin.top + itemMargin.bottom;
+		});
+
+		layout.styles.width = width + "px";
+		layout.styles.height = y + "px";
+		callback(layout);
+	}
+
 	// Asigna z-index DECRECIENTE a cada <section> de nivel superior según
 	// su posición real en el DOM — la primera sección siempre queda por
 	// encima de todas las que le siguen. Necesario porque cada <section>
@@ -858,6 +908,7 @@
 			// (reordenamiento errático con movimientos chicos).
 			dragSortHeuristics: { sortInterval: 100, minDragDistance: 10 },
 			dragSortPredicate: { threshold: 50, action: "move" },
+			layout: layoutNivelSuperiorConAlineacion,
 		});
 
 		gridNivelSuperior.on("dragEnd", function () {

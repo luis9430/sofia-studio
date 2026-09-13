@@ -370,6 +370,21 @@ abstract class Sofia_Componente {
 			'1000'  => 'z-1000',
 			'10000' => 'z-10000',
 		),
+		// alineacion_bloque: solo tiene efecto real cuando además hay un
+		// Ancho/Ancho máximo menor al 100% (mismo criterio documentado en
+		// style.css) — .self-left/-center/-right son las utility classes
+		// REALES de Core Framework (margin-inline/left/right:auto +
+		// place-self), funcionan tal cual en la visita pública (bloque en
+		// flujo normal). DENTRO del editor, Muuri posiciona cada <section>
+		// con su propio transform (position:absolute), que ignora margin
+		// auto — ahí, editor-iframe.js lee esta MISMA clase para calcular a
+		// mano el X centrado/derecha (ver layoutNivelSuperior()), en vez de
+		// depender de que el navegador resuelva el margin.
+		'alineacion_bloque' => array(
+			'left'   => 'self-left',
+			'center' => 'self-center',
+			'right'  => 'self-right',
+		),
 	);
 
 	/**

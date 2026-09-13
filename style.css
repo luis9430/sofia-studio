@@ -95,20 +95,28 @@ Text Domain: sofia-studio
 	margin: 0;
 }
 
-/* max-width-* de Core Framework (Nivel 2, "Ancho máximo") se aplica a la
-   <section> del bloque en la visita PÚBLICA real (sin Muuri/editor de por
-   medio, ver class-modo-editor.php para el caso del editor) — una
-   <section> en flujo normal con max-width queda pegada a la izquierda por
-   default (display:block no centra por sí solo). margin-inline:auto la
-   centra, mismo comportamiento esperado de "limitar el ancho de un bloque"
-   (ej. un Hero de ancho completo con contenido centrado en el medio). Esta
-   regla NO aplica dentro del editor (.sofia-pagina > section fuerza
-   position:absolute/left ahí, ver el comentario largo en
-   class-modo-editor.php) — el editor solo refleja el TAMAÑO reducido, no
-   el centrado, hasta que se resuelva aparte (requiere tocar el cálculo de
-   posición de Muuri, no solo CSS). */
-.sofia-pagina > section[class*="max-width-"],
-.sofia-pagina > section.max-site-width {
+/* max-width-*/width-* de Core Framework (Nivel 2, "Ancho máximo"/"Ancho")
+   se aplican a la <section> del bloque en la visita PÚBLICA real (sin
+   Muuri/editor de por medio, ver class-modo-editor.php para el caso del
+   editor) — una <section> en flujo normal con max-width/width menor a
+   100% queda pegada a la izquierda por default (display:block no centra
+   por sí solo). Centrado por DEFECTO (mismo comportamiento esperado de
+   "limitar el ancho de un bloque", ej. un Hero de ancho completo con
+   contenido centrado en el medio) — el :not(.self-left):not(.self-right)
+   deja el paso libre a "Alineación del bloque" (self-left/-center/-right,
+   las utility classes REALES de Core Framework, ver DrawerEstilo.jsx)
+   cuando el usuario elige algo distinto a centro; sin el :not(), esta
+   regla (con margin-left/right:auto explícitos) pisaría siempre a
+   self-left/-right (que solo fijan UN lado de los dos, dejando el otro
+   en su valor inicial).
+
+   Esta regla NO aplica dentro del editor (.sofia-pagina > section fuerza
+   position:absolute/left ahí) — ver layoutNivelSuperiorConAlineacion() en
+   editor-iframe.js, que calcula el X a mano leyendo la misma clase
+   self-left/-center/-right. */
+.sofia-pagina > section[class*="max-width-"]:not(.self-left):not(.self-right),
+.sofia-pagina > section.max-site-width:not(.self-left):not(.self-right),
+.sofia-pagina > section[class*="width-"]:not(.self-left):not(.self-right) {
 	margin-left: auto;
 	margin-right: auto;
 }
