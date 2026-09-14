@@ -279,6 +279,44 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * imagen_o_placeholder( $valor ): $valor tal cual (ya pasado por
+	 * esc_url()) si no está vacío, o un placeholder SVG inline (data-URI,
+	 * nunca un archivo/request externo) SOLO en modo editor si está
+	 * vacío — usar esto en vez de un `if ($imagen) { <img ...> }` a secas
+	 * en cualquier Componente con un campo de imagen opcional.
+	 *
+	 * Bug real reportado por el usuario ("el de imagen no funciona, no
+	 * sale nada al darle agregar y no hay errores"): un Componente con
+	 * SOLO un campo de imagen (Sofia_Componente_Image) que omite el
+	 * <img> por completo cuando está vacío deja su <section> sin NINGÚN
+	 * elemento clickeable — activarImagen()/wp.media() (ver
+	 * editor-iframe.js) necesita un <img> real para engancharse, así que
+	 * el usuario no tenía ninguna forma de agregar la imagen la primera
+	 * vez. Mismo problema (menos grave, porque el título sí da algo
+	 * clickeable) en Sofia_Componente_Hero.
+	 *
+	 * Vacío en visita pública real: mismo criterio silencioso que el
+	 * resto del sistema con un campo sin configurar (ver
+	 * props_por_defecto()) — un visitante real nunca debe ver el
+	 * placeholder de "Click para elegir imagen", eso es chrome de
+	 * edición puro (mismo criterio que boton_agregar_item()/
+	 * data-sofia-oculto-condicion).
+	 *
+	 * Devuelve '' (nunca el placeholder) si $valor ya viene con contenido
+	 * — el caller decide si imprime el <img> según este resultado estar
+	 * vacío o no, igual que antes.
+	 */
+	protected function imagen_o_placeholder( string $valor ): string {
+		if ( $valor ) {
+			return $valor;
+		}
+		if ( ! class_exists( 'Sofia_Modo_Editor' ) || ! Sofia_Modo_Editor::activo() ) {
+			return '';
+		}
+		return 'data:image/svg+xml,' . rawurlencode( '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23e5e5e5"/><text x="200" y="150" font-family="sans-serif" font-size="18" fill="%23888" text-anchor="middle" dominant-baseline="middle">Click para elegir imagen</text></svg>' );
+	}
+
+	/**
 	 * ESTILOS_CAMPO_PERMITIDOS: whitelist de propiedades CSS que un campo
 	 * puede tener guardadas en su "{campo}._estilo" (ver atributo_estilo()
 	 * abajo) — mismo criterio que ETIQUETAS_FORMATO_PERMITIDAS: nunca CSS

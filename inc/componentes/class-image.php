@@ -22,7 +22,13 @@ class Sofia_Componente_Image extends Sofia_Componente {
 	}
 
 	public function render(): string {
-		$imagen = esc_url( $this->props['imagen'] );
+		// imagen_o_placeholder() (clase base): sin esto, un bloque Image
+		// recién agregado (sin valor todavía) no emitía ningún <img> — un
+		// <section> completamente vacío no tiene NADA clickeable para
+		// abrir el selector de medios, así que el usuario no tenía forma
+		// de agregar la imagen la primera vez (bug real reportado tras
+		// probar en vivo). Ver el comentario largo del método.
+		$imagen = $this->imagen_o_placeholder( esc_url( $this->props['imagen'] ) );
 
 		$html = '<section ' . $this->atributos_seccion( 'sofia-image' ) . '>';
 		if ( $imagen ) {

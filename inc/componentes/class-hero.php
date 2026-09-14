@@ -20,7 +20,12 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 
 	public function render(): string {
 		$titulo = $this->texto_enriquecido( $this->props['titulo'] );
-		$imagen = esc_url( $this->props['imagen'] );
+		// imagen_o_placeholder() (clase base): sin esto, un Hero recién
+		// agregado (sin imagen todavía) no tenía forma de agregarla la
+		// primera vez fuera de que el TÍTULO diera algo clickeable — mismo
+		// bug real que Sofia_Componente_Image, ver el comentario largo del
+		// método.
+		$imagen = $this->imagen_o_placeholder( esc_url( $this->props['imagen'] ) );
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-hero' ) . '>';
 		$html .= '<h1 ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h1>';
