@@ -803,32 +803,29 @@
 	// que también la borra del DOM) y recién ahí inserta la nueva en el
 	// MISMO índice — reusa alInsertarBloqueHTML en vez de duplicar la
 	// lógica de "parsear + insertar + activar campos + agregar a Muuri".
-	// LIMITACIÓN CONOCIDA (Fase 3, fuera del alcance declarado de esta
-	// fase — ver la memoria de producto): esta función sigue asumiendo
-	// SIEMPRE nivel superior (":scope > section" de ".sofia-pagina"), a
-	// diferencia de alEliminarBloque/alHacerClickDerecho/alMoverMouse que
-	// ya usan contenedorGridDe(). Cambiar la condición de Visibilidad
+	// Usa contenedorGridDe() (mismo criterio que
+	// alEliminarBloque/alHacerClickDerecho/alMoverMouse) para resolver el
+	// grid/índice/containerId REALES del bloque — bug real encontrado en
+	// revisión de código: la versión original de Fase 3 asumía SIEMPRE
+	// nivel superior acá, así que cambiar la condición de Visibilidad
 	// (único caller, ver cambiarCondicionDrawer en App.jsx) de un bloque
-	// DENTRO de un container hoy no hace nada (indice queda en -1, return
-	// temprano silencioso) — el bloque anidado en sí funciona bien para
-	// todo lo demás (insertar/eliminar/reordenar), Visibilidad sobre un
-	// bloque anidado específicamente queda pendiente de una fase futura.
+	// DENTRO de un container no hacía nada (indice quedaba en -1, return
+	// temprano silencioso, sin ningún error visible para el usuario).
 	function alReemplazarBloqueHTML(id, html) {
 		var seccionVieja = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
-		if (!seccionVieja || !gridNivelSuperior) return;
+		if (!seccionVieja) return;
 
-		var contenedor = document.querySelector(".sofia-pagina");
-		var indice = contenedor
-			? Array.prototype.indexOf.call(contenedor.querySelectorAll(":scope > section"), seccionVieja)
-			: -1;
-		if (indice < 0) return;
+		var grid = contenedorGridDe(seccionVieja);
+		if (grid.indice < 0) return;
+		var instanciaGrid = grid.containerId ? instanciasContainers.get(grid.contenedor) : gridNivelSuperior;
+		if (!instanciaGrid) return;
 
-		var itemViejo = gridNivelSuperior.getItems(seccionVieja);
+		var itemViejo = instanciaGrid.getItems(seccionVieja);
 		if (itemViejo.length) {
-			gridNivelSuperior.remove(itemViejo, { removeElements: true });
+			instanciaGrid.remove(itemViejo, { removeElements: true });
 		}
 
-		alInsertarBloqueHTML(html, indice);
+		alInsertarBloqueHTML(html, grid.indice, grid.containerId);
 	}
 
 	// Reindexa data-sofia-item Y data-sofia-campo de cada item restante
@@ -893,6 +890,28 @@
 		var items = instanciaGrid.getItems(seccion);
 		if (!items.length) return;
 		instanciaGrid.remove(items, { removeElements: true });
+
+		// Si el bloque eliminado ES un container (o contiene, en cualquier
+		// profundidad, otros containers anidados adentro), sus instancias
+		// Muuri propias (las que gobiernan SUS hijos, ver
+		// activarReordenarDentroDeContainers) quedan con el elemento raíz ya
+		// fuera del DOM (removeElements:true de arriba) pero siguen vivas en
+		// instanciasContainers — bug real encontrado en revisión de código:
+		// sin este cleanup, cada container eliminado deja una o más
+		// instancias Muuri huérfanas que activarLineasInsertar() sigue
+		// invocando (refreshItems/layout) indefinidamente en cada
+		// reordenamiento/inserción posterior, acumulando memoria y
+		// listeners fantasma en una sesión de edición larga. Recursivo
+		// (querySelectorAll, no solo el hijo directo) porque un Container
+		// puede tener otro Container anidado adentro — eliminar el de
+		// afuera debe limpiar TODA la cadena, no solo el nivel inmediato.
+		var containersInternos = seccion.querySelectorAll(".sofia-container");
+		Array.prototype.forEach.call(containersInternos, function (contenedorInterno) {
+			if (instanciasContainers.has(contenedorInterno)) {
+				instanciasContainers.get(contenedorInterno).destroy();
+				instanciasContainers.delete(contenedorInterno);
+			}
+		});
 
 		seccionResaltada = null;
 		window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
