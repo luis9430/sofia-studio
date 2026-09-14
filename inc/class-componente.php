@@ -51,16 +51,38 @@ abstract class Sofia_Componente {
 	protected array $props = array();
 
 	/**
-	 * Construye un Componente ya con su tipo, ID de instancia y props
-	 * resueltas — usado por Sofia_Componente_Factory::crear(), nunca
+	 * Bloques HIJOS de este Componente, YA RESUELTOS por Sofia_Pagina
+	 * (instanciados vía Sofia_Componente_Factory::crear(), con su propio
+	 * contenido ya recortado) — ver Sofia_Pagina::resolver_bloques() y la
+	 * memoria de producto "Sofia Studio: plan de primitivas de layout".
+	 * Vacío para el 99% de los Componentes (Hero, CTA, etc. no tienen
+	 * hijos) — solo Sofia_Componente_Container los usa de verdad, llamando
+	 * ->render() de cada uno dentro de su propio render().
+	 *
+	 * Deliberadamente objetos YA resueltos, nunca el array crudo de
+	 * {id,tipo,hijos} ni acceso al contenido completo de la página — un
+	 * Container no debe poder ver/leer el contenido de un bloque FUERA de
+	 * su propio árbol de hijos, mismo principio de aislamiento que ya
+	 * protege a dos bloques del mismo tipo entre sí a nivel superior.
+	 *
+	 * @var Sofia_Componente[]
+	 */
+	protected array $hijos = array();
+
+	/**
+	 * Construye un Componente ya con su tipo, ID de instancia, props
+	 * resueltas e hijos ya resueltos — usado por Sofia_Pagina, nunca
 	 * instanciado directo.
 	 *
 	 * @param array<string,mixed> $props
+	 * @param Sofia_Componente[]  $hijos Vacío para cualquier Componente sin
+	 *        anidamiento, que puede ignorar este parámetro por completo.
 	 */
-	final public function __construct( string $tipo, string $id, array $props = array() ) {
+	final public function __construct( string $tipo, string $id, array $props = array(), array $hijos = array() ) {
 		$this->tipo  = $tipo;
 		$this->id    = $id;
 		$this->props = array_merge( $this->props_por_defecto(), $props );
+		$this->hijos = $hijos;
 	}
 
 	/**

@@ -32,12 +32,32 @@ class Sofia_Pagina {
 	 *         devolviendo null) se omite, no rompe el resto de la página.
 	 */
 	public function componentes(): array {
+		return $this->resolver_bloques( $this->estructura );
+	}
+
+	/**
+	 * Instancia recursivamente CADA bloque de $estructura (nivel superior O
+	 * anidado dentro de un "container", ver Sofia Studio: plan de
+	 * "primitivas de layout") — ÚNICO punto del sistema que conoce el
+	 * $contenido completo de la página y sabe recortarlo por ID de
+	 * instancia; un Sofia_Componente_Container recibe sus hijos YA
+	 * resueltos como objetos Sofia_Componente listos, nunca el array crudo
+	 * ni el contenido de otros bloques — mismo principio de aislamiento
+	 * que ya protege a los Componentes de nivel superior entre sí (dos
+	 * bloques del mismo tipo no comparten contenido), ahora también entre
+	 * un bloque y sus hijos.
+	 *
+	 * @param array<int,array<string,mixed>> $estructura
+	 * @return Sofia_Componente[]
+	 */
+	private function resolver_bloques( array $estructura ): array {
 		$componentes = array();
-		foreach ( $this->estructura as $bloque ) {
+		foreach ( $estructura as $bloque ) {
 			$tipo       = $bloque['tipo'] ?? '';
 			$id         = $bloque['id'] ?? '';
 			$props      = $this->props_de_bloque( $id );
-			$componente = Sofia_Componente_Factory::crear( $tipo, $id, $props );
+			$hijos      = is_array( $bloque['hijos'] ?? null ) ? $this->resolver_bloques( $bloque['hijos'] ) : array();
+			$componente = Sofia_Componente_Factory::crear( $tipo, $id, $props, $hijos );
 			if ( null !== $componente ) {
 				$componentes[] = $componente;
 			}

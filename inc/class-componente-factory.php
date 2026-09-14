@@ -11,28 +11,35 @@
 class Sofia_Componente_Factory {
 
 	/**
-	 * @param string             $tipo  ej. "hero", "franja_beneficios".
-	 * @param string             $id    ID de INSTANCIA de este bloque en la
-	 *                                  página (ver Sofia_Componente::$id) —
-	 *                                  distinto del tipo, generado por
-	 *                                  GoPress (store.GenerarIDBloque).
+	 * @param string              $tipo  ej. "hero", "franja_beneficios",
+	 *                                   "container".
+	 * @param string              $id    ID de INSTANCIA de este bloque en la
+	 *                                   página (ver Sofia_Componente::$id) —
+	 *                                   distinto del tipo, generado por
+	 *                                   GoPress (store.GenerarIDBloque).
 	 * @param array<string,mixed> $props Props YA recortadas a este bloque
-	 *                                    (ver Sofia_Pagina::componentes()).
+	 *                                    (ver Sofia_Pagina::resolver_bloques()).
+	 * @param Sofia_Componente[]  $hijos Hijos YA resueltos (ver
+	 *                                    Sofia_Componente::$hijos) — vacío
+	 *                                    para cualquier tipo sin anidamiento,
+	 *                                    que lo ignora por completo.
 	 */
-	public static function crear( string $tipo, string $id, array $props = array() ): ?Sofia_Componente {
+	public static function crear( string $tipo, string $id, array $props = array(), array $hijos = array() ): ?Sofia_Componente {
 		switch ( $tipo ) {
 			case 'hero':
-				return new Sofia_Componente_Hero( $tipo, $id, $props );
+				return new Sofia_Componente_Hero( $tipo, $id, $props, $hijos );
 			case 'franja_beneficios':
-				return new Sofia_Componente_Franja_Beneficios( $tipo, $id, $props );
+				return new Sofia_Componente_Franja_Beneficios( $tipo, $id, $props, $hijos );
 			case 'testimonios':
-				return new Sofia_Componente_Testimonios( $tipo, $id, $props );
+				return new Sofia_Componente_Testimonios( $tipo, $id, $props, $hijos );
 			case 'faq':
-				return new Sofia_Componente_FAQ( $tipo, $id, $props );
+				return new Sofia_Componente_FAQ( $tipo, $id, $props, $hijos );
 			case 'cta':
-				return new Sofia_Componente_CTA( $tipo, $id, $props );
+				return new Sofia_Componente_CTA( $tipo, $id, $props, $hijos );
 			case 'texto_libre':
-				return new Sofia_Componente_Texto_Libre( $tipo, $id, $props );
+				return new Sofia_Componente_Texto_Libre( $tipo, $id, $props, $hijos );
+			case 'container':
+				return new Sofia_Componente_Container( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
