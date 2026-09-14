@@ -6,14 +6,28 @@
  * acá en el documento padre por el mismo motivo de siempre: los controles
  * de edición viven fuera del iframe, superpuestos por posición.
  *
- * Dos acciones posibles, mutuamente excluyentes según si `posicion.item`
- * viene informado: "Eliminar item" (un "Beneficio" individual dentro de
- * una Franja, el bloque sigue existiendo) o "Eliminar bloque" (la sección
- * completa). El diseño ya contempla sumar más comandos (clonar, mover)
- * más adelante, mismo patrón: un botón nuevo acá + un caso nuevo en
- * alRecibirMensajeDelPadre del iframe.
+ * Acciones posibles: "Eliminar item" (un "Beneficio" individual dentro de
+ * una Franja, el bloque sigue existiendo, mutuamente excluyente con
+ * "Eliminar bloque" según si `posicion.item` viene informado), "Eliminar
+ * bloque" (la sección completa), y "Seleccionar contenedor" (Fase 3,
+ * "primitivas de layout" — SOLO si `posicion.containerId` viene informado,
+ * es decir, el bloque clickeado vive DENTRO de un Container). Bug de UX
+ * real reportado por el usuario: sin esta opción, no había forma de
+ * apuntar al Container PADRE cuando tenía hijos adentro — cualquier click
+ * en su área visible resolvía primero al hijo bajo el cursor, así que
+ * "Eliminar bloque" sobre el Container completo (borrando también su
+ * contenido) era inalcanzable desde la UI. El diseño ya contempla sumar
+ * más comandos (clonar, mover) más adelante, mismo patrón: un botón nuevo
+ * acá + un caso nuevo en alRecibirMensajeDelPadre del iframe.
  */
-export function MenuContextualBloque({ posicion, onEliminarBloque, onEliminarItem, onEstiloBloque, onCerrar }) {
+export function MenuContextualBloque({
+  posicion,
+  onEliminarBloque,
+  onEliminarItem,
+  onEstiloBloque,
+  onSeleccionarContenedorPadre,
+  onCerrar,
+}) {
   if (!posicion) return null;
 
   return (
@@ -30,6 +44,11 @@ export function MenuContextualBloque({ posicion, onEliminarBloque, onEliminarIte
         <button type="button" className="sofia-menu-contextual__opcion" onClick={onEstiloBloque}>
           Estilo del bloque
         </button>
+        {posicion.containerId && (
+          <button type="button" className="sofia-menu-contextual__opcion" onClick={onSeleccionarContenedorPadre}>
+            Seleccionar contenedor
+          </button>
+        )}
         {posicion.item && (
           <button
             type="button"

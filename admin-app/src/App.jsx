@@ -447,6 +447,26 @@ export function App({ config }) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:eliminar-bloque", id }, "*");
   }
 
+  // Seleccionar contenedor: reabre el menú contextual apuntando al
+  // Container PADRE del bloque sobre el que se clickeó — ver el botón
+  // "Seleccionar contenedor" en MenuContextualBloque.jsx (solo visible
+  // cuando el bloque clickeado tiene containerId, es decir, vive DENTRO
+  // de un Container) y alSeleccionarContenedorPadre en editor-iframe.js.
+  // Reusa las MISMAS coordenadas x/y del menú actual — el usuario no movió
+  // el mouse, solo cambió de opción dentro del mismo menú, así que el
+  // reemplazo debe aparecer en el mismo lugar de la pantalla.
+  function seleccionarContenedorPadre() {
+    const containerId = menuContextual?.containerId;
+    const x = menuContextual?.x;
+    const y = menuContextual?.y;
+    setMenuContextual(null);
+    if (!containerId) return;
+    iframeRef.current?.contentWindow.postMessage(
+      { tipo: "sofia:seleccionar-contenedor-padre", containerId, x, y },
+      "*"
+    );
+  }
+
   // Eliminar UN item de una lista repetible (ej. un "Beneficio" de la
   // Franja) — distinto de eliminarBloque: el bloque sigue existiendo,
   // solo se quita un item de su array. El iframe reconstruye el array
@@ -660,6 +680,7 @@ export function App({ config }) {
               onEliminarBloque={eliminarBloque}
               onEliminarItem={eliminarItemDeLista}
               onEstiloBloque={abrirDrawerEstiloBloque}
+              onSeleccionarContenedorPadre={seleccionarContenedorPadre}
               onCerrar={() => setMenuContextual(null)}
             />
             {menuAgregarEnPosicion && (

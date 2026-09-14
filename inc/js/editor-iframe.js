@@ -449,6 +449,10 @@
 			alEliminarItemDeLista(datos.campoLista, datos.indiceItem);
 			return;
 		}
+		if (datos.tipo === "sofia:seleccionar-contenedor-padre") {
+			alSeleccionarContenedorPadre(datos.containerId, datos.x, datos.y);
+			return;
+		}
 		if (datos.tipo === "sofia:insertar-bloque-html") {
 			alInsertarBloqueHTML(datos.html, datos.posicion, datos.containerId);
 			return;
@@ -545,11 +549,24 @@
 	// "contextmenu" no tiene ese problema: se dispara UNA vez, dentro del
 	// iframe, sin competir con mouseover/mouseleave. preventDefault() evita
 	// que el navegador muestre además su propio menú nativo.
-	function alHacerClickDerecho(evento) {
-		var seccion = evento.target.closest ? evento.target.closest("section") : null;
-		if (!seccion) return;
-		evento.preventDefault();
-
+	// mandarMenuContextualDe(seccion, x, y, itemInfo) — arma y manda
+	// "sofia:menu-contextual-bloque" para UNA <section> ya resuelta.
+	// Extraído de alHacerClickDerecho (que sigue siendo el caller
+	// principal, vía evento de mouse real) para que
+	// alSeleccionarContenedorPadre (Fase 3, botón "Seleccionar
+	// contenedor" del menú — ver MenuContextualBloque.jsx) pueda abrir el
+	// MISMO menú apuntando al Container PADRE de un hijo, sin duplicar
+	// toda esta lógica. Bug de UX real reportado por el usuario: sin este
+	// mecanismo, no existía ninguna forma de apuntar al Container en sí
+	// cuando tenía hijos adentro — cualquier click (derecho incluido) en
+	// el área visible de un Container con contenido siempre resolvía
+	// primero al HIJO bajo el cursor (evento.target.closest("section")
+	// encuentra la <section> más cercana, nunca la del padre), así que
+	// "Eliminar bloque" sobre el Container completo (con todo lo de
+	// adentro) era inalcanzable desde la UI aunque el mecanismo de borrado
+	// en sí ya lo soportara (ver alEliminarBloque, limpieza recursiva de
+	// instanciasContainers).
+	function mandarMenuContextualDe(seccion, x, y, itemInfo) {
 		// contenedorGridDe (Fase 3) — el índice y el containerId ahora son
 		// relativos al grid REAL que contiene a esta sección (nivel
 		// superior o el .sofia-container que la envuelve), ver el
@@ -560,8 +577,36 @@
 		// contextual hubiera actuado sobre el bloque EQUIVOCADO de nivel
 		// superior, en la misma posición numérica por coincidencia.
 		var grid = contenedorGridDe(seccion);
-		var indice = grid.indice;
-		var containerId = grid.containerId;
+
+		// id/tipo/estilo del bloque — necesarios para "Estilo del bloque"
+		// (Nivel 2): a diferencia de eliminar (que solo necesita la
+		// POSICIÓN, indice), abrir el drawer de estilo necesita la clave
+		// real "{id}._estilo_bloque" para guardar (ver
+		// Sofia_Componente::atributo_estilo_bloque()) y el estilo YA
+		// aplicado para que el drawer abra reflejando el estado real (mismo
+		// criterio de "editar lo que ves" que el resto del editor) — se
+		// manda directo acá, en vez de un roundtrip aparte cuando el
+		// usuario elige la opción del menú.
+		window.parent.postMessage(
+			{
+				tipo: "sofia:menu-contextual-bloque",
+				indice: grid.indice,
+				containerId: grid.containerId,
+				id: seccion.getAttribute("data-sofia-bloque-id") || "",
+				tipoBloque: seccion.getAttribute("data-sofia-bloque-tipo") || "",
+				estiloBloque: estiloBloqueActualDe(seccion),
+				item: itemInfo || null,
+				x: x,
+				y: y,
+			},
+			"*"
+		);
+	}
+
+	function alHacerClickDerecho(evento) {
+		var seccion = evento.target.closest ? evento.target.closest("section") : null;
+		if (!seccion) return;
+		evento.preventDefault();
 
 		// Si el click fue DENTRO de un item de lista repetible (ej. un
 		// "Beneficio" concreto de la Franja), el menú ofrece "Eliminar
@@ -583,29 +628,21 @@
 			};
 		}
 
-		// id/tipo/estilo del bloque — necesarios para "Estilo del bloque"
-		// (Nivel 2): a diferencia de eliminar (que solo necesita la
-		// POSICIÓN, indice), abrir el drawer de estilo necesita la clave
-		// real "{id}._estilo_bloque" para guardar (ver
-		// Sofia_Componente::atributo_estilo_bloque()) y el estilo YA
-		// aplicado para que el drawer abra reflejando el estado real (mismo
-		// criterio de "editar lo que ves" que el resto del editor) — se
-		// manda directo acá, en vez de un roundtrip aparte cuando el
-		// usuario elige la opción del menú.
-		window.parent.postMessage(
-			{
-				tipo: "sofia:menu-contextual-bloque",
-				indice: indice,
-				containerId: containerId,
-				id: seccion.getAttribute("data-sofia-bloque-id") || "",
-				tipoBloque: seccion.getAttribute("data-sofia-bloque-tipo") || "",
-				estiloBloque: estiloBloqueActualDe(seccion),
-				item: itemInfo,
-				x: evento.clientX,
-				y: evento.clientY,
-			},
-			"*"
-		);
+		mandarMenuContextualDe(seccion, evento.clientX, evento.clientY, itemInfo);
+	}
+
+	// alSeleccionarContenedorPadre(containerId, x, y) — Fase 3: reabre el
+	// menú contextual apuntando al Container PADRE (dado su id de
+	// instancia, que el menú del hijo ya conocía vía "containerId" en
+	// "sofia:menu-contextual-bloque") en vez de al bloque que el usuario
+	// clickeó originalmente. x/y llegan del click en el botón del menú
+	// (mismo criterio que activarLineasInsertar: coordenadas de PANTALLA,
+	// no del documento del iframe) para que el menú reabierto aparezca
+	// donde el usuario tiene el cursor, no en el origen del documento.
+	function alSeleccionarContenedorPadre(containerId, x, y) {
+		var seccionPadre = document.querySelector('[data-sofia-bloque-id="' + containerId + '"]');
+		if (!seccionPadre) return;
+		mandarMenuContextualDe(seccionPadre, x, y, null);
 	}
 
 	// Elimina UN item de una lista repetible (ej. un "Beneficio" de la
