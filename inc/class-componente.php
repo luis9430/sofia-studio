@@ -1100,4 +1100,38 @@ abstract class Sofia_Componente {
 	public static function schema_propio(): array {
 		return array();
 	}
+
+	/**
+	 * schema_contenido(): declara los campos de CONTENIDO de este
+	 * Componente (título, texto, imagen, url, lista repetible) — distinto
+	 * de schema_bloque_generico()/schema_propio() (Nivel 2, ESTILO visual
+	 * de la caja/bloque completo): esto describe qué CAMPOS existen y de
+	 * qué TIPO son, no cómo se ven. Agregado en la Fase 4 del plan de
+	 * "primitivas de layout" (memoria de producto) — el generador de
+	 * árboles por IA necesita saber, para cada tipo de bloque, "Hero tiene
+	 * título (texto) e imagen (imagen)" antes de poder llenar props de
+	 * contenido con sentido, y el validador/reparador del lado PHP
+	 * (Sofia_REST_Editor::validar_y_reparar_arbol(), ver ia/generar) lo usa
+	 * para descartar cualquier prop con una clave que el Componente real no
+	 * declara.
+	 *
+	 * Vacío por defecto (mismo criterio que schema_propio()) — un
+	 * Componente sin campos de contenido propios (hoy solo Container, cuyo
+	 * "contenido" es enteramente su árbol de $hijos, ya cubierto por el
+	 * modelo recursivo {id,tipo,hijos} y no por props) simplemente no hace
+	 * override, en vez de tener que devolver un array vacío explícito.
+	 *
+	 * Shape de cada entrada: {tipo: 'texto'|'texto_largo'|'imagen'|'url'|'lista',
+	 * etiqueta: string, ...}. Una entrada de tipo 'lista' además lleva
+	 * 'campos' con el MISMO shape recursivo (ej. items de Franja de
+	 * beneficios: cada item tiene 'titulo' y 'texto', ambos declarados con
+	 * su propio {tipo, etiqueta}) — un solo nivel de anidamiento alcanza
+	 * hoy (ninguna lista real del catálogo tiene una lista DENTRO de otra
+	 * lista), así que no se generaliza más allá de lo que existe.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	public static function schema_contenido(): array {
+		return array();
+	}
 }

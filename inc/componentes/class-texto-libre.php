@@ -17,6 +17,16 @@ class Sofia_Componente_Texto_Libre extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA): un único
+	 * campo de texto largo, mismo campo que props_por_defecto() declara.
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'contenido' => array( 'tipo' => 'texto_largo', 'etiqueta' => __( 'Contenido', 'sofia-studio' ) ),
+		);
+	}
+
 	public function render(): string {
 		$contenido = $this->texto_enriquecido( $this->props['contenido'] );
 

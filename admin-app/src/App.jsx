@@ -5,6 +5,7 @@ import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
 import { MenuContextualBloque } from "./MenuContextualBloque.jsx";
 import { PanelEstiloGlobal } from "./PanelEstiloGlobal.jsx";
+import { PanelGenerarIA } from "./PanelGenerarIA.jsx";
 import { ListaVariablesCoreFramework } from "./CampoConToken.jsx";
 
 // debounce simple: junta ediciones rápidas del mismo campo (ej. varias
@@ -128,6 +129,10 @@ export function App({ config }) {
   // — vive detrás de su propio botón en la barra superior, ver
   // PanelEstiloGlobal.jsx.
   const [panelGlobalAbierto, setPanelGlobalAbierto] = useState(false);
+  // Panel "Generar con IA" (Fase 4, ver PanelGenerarIA.jsx) — mismo
+  // criterio que panelGlobalAbierto: un booleano simple, sin relación con
+  // ningún campo/bloque seleccionado del iframe.
+  const [panelIAAbierto, setPanelIAAbierto] = useState(false);
   // Menú contextual de un bloque (click derecho, ver
   // alHacerClickDerecho en editor-iframe.js) — reemplaza un primer intento
   // con un botón "✕" flotante en el overlay de resaltado, que tenía un bug
@@ -303,6 +308,42 @@ export function App({ config }) {
     } catch {
       setEstado("error");
     }
+  }
+
+  // aplicarArbolGeneradoPorIA (Fase 4, ver PanelGenerarIA.jsx): "Aplicar a
+  // la página" del panel de IA — el árbol YA viene reparado/confirmado por
+  // el usuario después de ver el preview, así que esto es solo persistirlo
+  // + refrescar. Reusa guardarEstructura() tal cual (el MISMO PUT
+  // sofia/v1/paginas/{slug}/estructura que ya usa cualquier reordenamiento/
+  // agregado manual, ver el comentario largo de guardarEstructura arriba) en
+  // vez de duplicar la llamada fetch — pedido explícito del plan ("reusa el
+  // endpoint ya existente"). A diferencia de un agregarBloque() puntual
+  // (que inserta HTML de UN bloque sin recargar todo el iframe), acá el
+  // árbol generado puede reemplazar/agregar varios bloques a la vez —
+  // recargar el iframe completo es más simple y suficientemente bueno para
+  // esta primera pasada del mecanismo (mismo criterio de alcance acotado
+  // documentado en PanelGenerarIA.jsx), en vez de tener que calcular un
+  // diff fino de qué bloques son nuevos como si fuera un agregarBloque().
+  //
+  // El árbol generado por IA REEMPLAZA la estructura completa de la
+  // página (no se agrega al final) — el usuario describe "lo que quiere
+  // en la página" en el prompt, no "un bloque más para agregar al final";
+  // agregar en vez de reemplazar dejaría bloques placeholder viejos (ej.
+  // el Hero por defecto de una página recién creada) mezclados con los
+  // nuevos sin que el usuario lo haya pedido.
+  async function aplicarArbolGeneradoPorIA(arbolGenerado) {
+    setEstado("guardando");
+    const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/estructura`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
+      body: JSON.stringify({ estructura: arbolGenerado }),
+    });
+    if (!respuesta.ok) {
+      setEstado("error");
+      throw new Error("No se pudo guardar la estructura generada por IA.");
+    }
+    setEstado("guardado");
+    iframeRef.current?.contentWindow.location.reload();
   }
 
   // El propio iframe ejecuta document.execCommand sobre su selección real
@@ -616,6 +657,13 @@ export function App({ config }) {
         </button>
         <button
           type="button"
+          className="sofia-editor-admin__generar-ia"
+          onClick={() => setPanelIAAbierto(true)}
+        >
+          ✨ Generar con IA
+        </button>
+        <button
+          type="button"
           className="sofia-editor-admin__agregar-bloque"
           onClick={() => setMenuAgregarAbierto((abierto) => !abierto)}
         >
@@ -630,6 +678,13 @@ export function App({ config }) {
         />
       )}
       {panelGlobalAbierto && <PanelEstiloGlobal config={config} onCerrar={() => setPanelGlobalAbierto(false)} />}
+      {panelIAAbierto && (
+        <PanelGenerarIA
+          config={config}
+          onCerrar={() => setPanelIAAbierto(false)}
+          onAplicar={aplicarArbolGeneradoPorIA}
+        />
+      )}
       <div className="sofia-lienzo-wrap">
         <div className="sofia-sitio-frame">
           <div className="sofia-sitio-chrome">

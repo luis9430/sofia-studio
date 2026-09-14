@@ -46,11 +46,22 @@ class Sofia_Panel_Editor {
 			'sofia-editor-admin',
 			'SofiaEditorConfig',
 			array(
-				'slug'      => $slug,
-				'restUrl'   => rest_url( 'sofia/v1/' ),
-				'nonce'     => wp_create_nonce( 'wp_rest' ),
-				'urlPagina' => home_url( '/' . $slug . '/' ),
-				'urlSalir'  => admin_url(),
+				'slug'           => $slug,
+				'restUrl'        => rest_url( 'sofia/v1/' ),
+				'nonce'          => wp_create_nonce( 'wp_rest' ),
+				'urlPagina'      => home_url( '/' . $slug . '/' ),
+				'urlSalir'       => admin_url(),
+				// hojasEstiloTema (Fase 4 — generador de árboles por IA, ver
+				// PanelGenerarIA.jsx): el CSS real del tema, para que el
+				// <iframe srcdoc> de vista previa se vea razonablemente
+				// parecido a la página pública real en vez de HTML desnudo
+				// sin ningún estilo. Un único archivo hoy (get_stylesheet_uri(),
+				// el style.css real del tema — mismo que se encola en
+				// cualquier visita pública, ver functions.php) — si algún
+				// día el tema suma hojas de estilo adicionales encoladas por
+				// separado, agregarlas acá es lo único que hace falta, el
+				// componente ya itera un array.
+				'hojasEstiloTema' => array( get_stylesheet_uri() ),
 			)
 		);
 	}

@@ -77,6 +77,36 @@ class Sofia_REST_Editor {
 
 		register_rest_route(
 			'sofia/v1',
+			'/catalogo-bloques/(?P<tipo>[a-z0-9_]+)/schema-contenido',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'schema_contenido_de_bloque' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/ia/generar',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'ia_generar_arbol' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/ia/preview',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'ia_preview_arbol' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
 			'/estilo-global',
 			array(
 				array(
@@ -524,6 +554,344 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_tipo_desconocido', 'Tipo de bloque desconocido.', array( 'status' => 404 ) );
 		}
 		return rest_ensure_response( $schema );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/catalogo-bloques/{tipo}/schema-contenido — Fase
+	 * 4 ("primitivas de layout" + generador de árboles por IA), paralela a
+	 * schema_de_bloque() pero para CONTENIDO en vez de estilo, ver
+	 * Sofia_Componente_Factory::schema_contenido_de(). Mismo criterio de
+	 * 404 para un tipo desconocido.
+	 */
+	public static function schema_contenido_de_bloque( WP_REST_Request $request ) {
+		$schema = Sofia_Componente_Factory::schema_contenido_de( $request->get_param( 'tipo' ) );
+		if ( null === $schema ) {
+			return new WP_Error( 'sofia_tipo_desconocido', 'Tipo de bloque desconocido.', array( 'status' => 404 ) );
+		}
+		return rest_ensure_response( $schema );
+	}
+
+	/**
+	 * POST /wp-json/sofia/v1/ia/generar — Fase 4 ("primitivas de layout":
+	 * generador de árboles de bloques por IA, ver la memoria de producto).
+	 * Recibe {prompt} del admin-app, arma el catálogo COMPLETO de tipos con
+	 * AMBOS schemas (estilo + contenido, ver
+	 * Sofia_Componente_Factory::catalogo_para_ia()) 100% local (nunca un
+	 * request HTTP a sí mismo — este método YA corre server-side dentro de
+	 * WordPress), se lo pasa a Sofia_Cliente_GoPress::generar_arbol_ia()
+	 * (que reenvía a GoPress, que a su vez llama a OpenRouter con el único
+	 * secreto global — WordPress nunca ve la API key de OpenRouter, mismo
+	 * principio de proxy que el resto de este cliente), y VALIDA/REPARA el
+	 * árbol crudo que devolvió el LLM contra el catálogo REAL de este tema
+	 * antes de devolverlo al frontend — ver validar_y_reparar_arbol_ia()
+	 * para el detalle de cada regla y por qué.
+	 *
+	 * Deliberadamente NO persiste nada acá — el árbol reparado vuelve al
+	 * admin-app para que el usuario lo previsualice (sofia/v1/ia/preview) y
+	 * decida si lo aplica de verdad (PUT sofia/v1/paginas/{slug}/estructura,
+	 * el endpoint YA EXISTENTE de Nivel 2 — nunca uno nuevo, ver el plan).
+	 */
+	public static function ia_generar_arbol( WP_REST_Request $request ) {
+		$prompt = (string) $request->get_param( 'prompt' );
+		if ( '' === trim( $prompt ) ) {
+			return new WP_Error( 'sofia_prompt_requerido', 'El parámetro "prompt" es obligatorio.', array( 'status' => 400 ) );
+		}
+
+		$catalogo = Sofia_Componente_Factory::catalogo_para_ia();
+
+		$resultado = Sofia_Cliente_GoPress::generar_arbol_ia( $prompt, $catalogo );
+		if ( null === $resultado ) {
+			return new WP_Error( 'sofia_ia_fallo', 'No se pudo generar el árbol — GoPress no respondió o OpenRouter no está configurado.', array( 'status' => 502 ) );
+		}
+
+		$arbol_crudo = is_array( $resultado['arbol'] ?? null ) ? $resultado['arbol'] : array();
+		$avisos_go   = is_array( $resultado['avisos'] ?? null ) ? $resultado['avisos'] : array();
+
+		list( $arbol_reparado, $avisos_php ) = self::validar_y_reparar_arbol_ia( $arbol_crudo );
+
+		return rest_ensure_response(
+			array(
+				'ok'             => true,
+				'arbol_reparado' => $arbol_reparado,
+				'avisos'         => array_merge( $avisos_go, $avisos_php ),
+			)
+		);
+	}
+
+	/**
+	 * validar_y_reparar_arbol_ia(): el árbol crudo que devuelve el LLM
+	 * NUNCA se confía tal cual — mismo principio de seguridad que el resto
+	 * del plan de "primitivas de layout": el LLM nunca escribe código que
+	 * se ejecuta, pasa por el mismo tipo de validación defensiva que
+	 * cualquier dato externo. Puerto a PHP del mismo criterio que
+	 * validateTree() de CraftTreeAssistantService (ecommerce, ver la
+	 * memoria de producto de esta fase) — MISMO ESPÍRITU, forma distinta
+	 * porque el modelo de árbol acá es recursivo {id,tipo,hijos} (ver
+	 * BloqueEstructuraPlantilla del lado GoPress) en vez de un mapa plano
+	 * {nodeId: nodo} con referencias "nodes"/"linkedNodes" — no hace falta
+	 * podar referencias colgantes por separado, un hijo inválido
+	 * simplemente no aparece en el array "hijos" de su padre.
+	 *
+	 * Reglas aplicadas, cada una con su criterio documentado:
+	 *
+	 * 1. Tipo desconocido (no está en Sofia_Componente_Factory::catalogo(),
+	 *    ver TIPOS_REGISTRADOS) → se PODA ESE NODO COMPLETO (no solo se
+	 *    vacían sus props) — a diferencia de una prop de contenido con
+	 *    clave desconocida (regla 3, que descarta solo esa clave puntual),
+	 *    un TIPO desconocido no tiene ningún Componente PHP que lo pueda
+	 *    renderizar en absoluto (Sofia_Componente_Factory::crear() devuelve
+	 *    null) — dejarlo en el árbol con props vacías igual produciría un
+	 *    bloque roto en el guardado/preview. Se poda el NODO, no la RAMA
+	 *    completa (sus propios hijos, si los tuviera, se re-adjuntan al
+	 *    padre en su lugar, en la misma posición) — mismo criterio que
+	 *    "nunca tumbar el árbol completo por un nodo malo" del plan: si el
+	 *    LLM generó un Container con 3 hijos válidos pero le puso un tipo
+	 *    inventado al Container mismo, perder los 3 hijos junto con el
+	 *    error sería más destructivo que necesario. Caso real esperado:
+	 *    el LLM alucina un tipo plausible pero inexistente (ej. "footer" o
+	 *    "navbar", que no existen en este catálogo).
+	 * 2. IDs faltantes o duplicados → se REGENERAN con el mismo formato que
+	 *    store.GenerarIDBloque() del lado Go (8 hex de
+	 *    random_bytes(4)) — replicado acá en vez de llamar a GoPress porque
+	 *    es una operación puramente local (generar bytes al azar), pedirle
+	 *    esto a GoPress sería un roundtrip HTTP innecesario. IDs faltantes
+	 *    de por sí ya los rellena store.RellenarIDsFaltantes() cuando el
+	 *    árbol reparado se guarde de verdad vía PUT .../estructura (el
+	 *    flujo de "confirmar", ver el plan) — pero acá se generan de todas
+	 *    formas para que el PREVIEW (sofia/v1/ia/preview, que NUNCA toca
+	 *    GoPress) tenga IDs reales para atributos_seccion()/data-sofia-*, y
+	 *    para poder detectar/corregir DUPLICADOS, que
+	 *    RellenarIDsFaltantes() no cubre (solo rellena vacíos, nunca
+	 *    detecta que dos bloques ya tienen el MISMO id no vacío — caso real
+	 *    esperado si el LLM reutiliza un id corto tipo "1"/"2" en más de un
+	 *    nodo, algo confirmado como patrón real de alucinación de LLMs con
+	 *    árboles grandes).
+	 * 3. Prop de contenido con clave no declarada en
+	 *    Sofia_Componente_Factory::schema_contenido_de($tipo) → se descarta
+	 *    SOLO esa clave puntual, el resto del nodo (y sus props válidas)
+	 *    sigue intacto — mismo criterio que "nunca tumbar de más": una
+	 *    clave inventada de más (ej. el LLM agrega "subtitulo" a un Hero
+	 *    que solo declara "titulo"/"imagen") no amerita perder el resto del
+	 *    contenido real que sí generó bien.
+	 *
+	 * @param array<int,array<string,mixed>> $nodos
+	 * @return array{0:array<int,array<string,mixed>>,1:string[]} [árbol
+	 *         reparado, avisos]
+	 */
+	private static function validar_y_reparar_arbol_ia( array $nodos ): array {
+		$avisos = array();
+		$ids_ya_usados = array();
+		$reparado = self::reparar_nodos_arbol_ia( $nodos, $avisos, $ids_ya_usados );
+		return array( $reparado, $avisos );
+	}
+
+	/**
+	 * @param array<int,array<string,mixed>> $nodos
+	 * @param string[]                       $avisos       (por referencia,
+	 *        se van acumulando aunque la recursión baje de nivel)
+	 * @param array<string,bool>             $ids_ya_usados (por referencia
+	 *        — compartido entre TODA la recursión, no solo el nivel actual,
+	 *        así un ID duplicado entre dos ramas distintas del árbol
+	 *        también se detecta, no solo entre hermanos directos)
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function reparar_nodos_arbol_ia( array $nodos, array &$avisos, array &$ids_ya_usados ): array {
+		$catalogo_tipos_validos = array_column( Sofia_Componente_Factory::catalogo(), 'tipo' );
+		$resultado = array();
+
+		foreach ( $nodos as $nodo ) {
+			if ( ! is_array( $nodo ) ) {
+				continue;
+			}
+
+			$tipo = (string) ( $nodo['tipo'] ?? '' );
+			$hijos_crudos = is_array( $nodo['hijos'] ?? null ) ? $nodo['hijos'] : array();
+			// Hijos SIEMPRE se procesan primero, tenga o no el nodo actual
+			// un tipo válido — ver la regla 1 arriba: si este nodo se poda
+			// por tipo desconocido, sus hijos ya reparados se re-adjuntan
+			// al padre en su lugar (nunca se pierden junto con el nodo).
+			$hijos_reparados = empty( $hijos_crudos ) ? array() : self::reparar_nodos_arbol_ia( $hijos_crudos, $avisos, $ids_ya_usados );
+
+			if ( ! in_array( $tipo, $catalogo_tipos_validos, true ) ) {
+				$avisos[] = sprintf( 'La IA propuso un bloque de tipo "%s", que no existe en este tema — se omitió (sus hijos, si tenía, se conservaron en su lugar).', $tipo ?: '(vacío)' );
+				// Los hijos ya reparados de un nodo podado pasan a formar
+				// parte del resultado directamente, en la misma posición
+				// que hubiera ocupado el padre — nunca se descartan.
+				foreach ( $hijos_reparados as $hijo_promovido ) {
+					$resultado[] = $hijo_promovido;
+				}
+				continue;
+			}
+
+			$id = (string) ( $nodo['id'] ?? '' );
+			if ( '' === $id || isset( $ids_ya_usados[ $id ] ) ) {
+				$id_anterior = $id;
+				$id          = self::generar_id_bloque_ia();
+				if ( '' !== $id_anterior ) {
+					$avisos[] = sprintf( 'Un bloque tipo "%s" tenía un ID duplicado ("%s") — se le asignó uno nuevo.', $tipo, $id_anterior );
+				}
+			}
+			$ids_ya_usados[ $id ] = true;
+
+			$props_crudas = is_array( $nodo['props'] ?? null ) ? $nodo['props'] : array();
+			$props_reparadas = self::reparar_props_contenido_ia( $tipo, $props_crudas, $avisos );
+
+			$nodo_reparado = array(
+				'id'   => $id,
+				'tipo' => $tipo,
+			);
+			if ( ! empty( $props_reparadas ) ) {
+				$nodo_reparado['props'] = $props_reparadas;
+			}
+			if ( ! empty( $hijos_reparados ) ) {
+				$nodo_reparado['hijos'] = $hijos_reparados;
+			}
+			$resultado[] = $nodo_reparado;
+		}
+
+		return $resultado;
+	}
+
+	/**
+	 * Descarta, de $props_crudas, cualquier clave que
+	 * Sofia_Componente_Factory::schema_contenido_de($tipo) no declare para
+	 * este $tipo — ver la regla 3 del comentario largo en
+	 * validar_y_reparar_arbol_ia(). Un $tipo sin schema de contenido
+	 * (Container, o un tipo que aún no lo declaró) descarta TODAS las
+	 * props — no hay ninguna clave válida a la que aferrarse.
+	 *
+	 * No valida el VALOR de cada prop (ej. que "imagen" sea de verdad una
+	 * URL) — eso queda para el render real (Sofia_Componente::render() ya
+	 * escapa todo con esc_url/esc_html/wp_kses, ver class-componente.php),
+	 * mismo criterio de "cada capa valida lo que le corresponde" que el
+	 * resto del sistema.
+	 *
+	 * @param array<string,mixed> $props_crudas
+	 * @param string[]            $avisos
+	 * @return array<string,mixed>
+	 */
+	private static function reparar_props_contenido_ia( string $tipo, array $props_crudas, array &$avisos ): array {
+		$schema_contenido = Sofia_Componente_Factory::schema_contenido_de( $tipo );
+		if ( ! is_array( $schema_contenido ) || empty( $schema_contenido ) ) {
+			if ( ! empty( $props_crudas ) ) {
+				$avisos[] = sprintf( 'Un bloque tipo "%s" no tiene campos de contenido declarados — se descartaron %d prop(s) que la IA le puso.', $tipo, count( $props_crudas ) );
+			}
+			return array();
+		}
+
+		$props_validas = array();
+		foreach ( $props_crudas as $clave => $valor ) {
+			if ( ! isset( $schema_contenido[ $clave ] ) ) {
+				$avisos[] = sprintf( 'Un bloque tipo "%s" tenía un campo "%s" que no existe para ese tipo — se descartó.', $tipo, (string) $clave );
+				continue;
+			}
+			$props_validas[ $clave ] = $valor;
+		}
+		return $props_validas;
+	}
+
+	/**
+	 * generar_id_bloque_ia(): MISMO formato que store.GenerarIDBloque() del
+	 * lado GoPress (8 caracteres hex, de 4 bytes al azar) — ver el
+	 * comentario largo en la regla 2 de validar_y_reparar_arbol_ia() sobre
+	 * por qué se replica acá en vez de pedírselo a GoPress. random_bytes()
+	 * (no mt_rand/wp_generate_password) por el mismo motivo que el lado Go
+	 * usa crypto/rand: no hace falta que sea criptográficamente
+	 * impredecible (es solo un identificador corto, no un secreto), pero
+	 * random_bytes() ya está disponible en PHP 7+ sin dependencias extra y
+	 * da la misma distribución uniforme que bin2hex(random_bytes(4)) —
+	 * forma más directa de llegar a "8 hex" que armar un charset a mano.
+	 */
+	private static function generar_id_bloque_ia(): string {
+		try {
+			return bin2hex( random_bytes( 4 ) );
+		} catch ( \Exception $e ) {
+			// random_bytes() puede fallar en teoría si el sistema no tiene
+			// ninguna fuente segura de aleatoriedad disponible — caso
+			// extremo que nunca se vio en la práctica, pero mejor un ID
+			// igual (con uniqid, mucho menos ideal pero nunca vacío) que
+			// dejar el bloque sin id y romper el guardado.
+			return substr( str_replace( '.', '', uniqid( '', true ) ), 0, 8 );
+		}
+	}
+
+	/**
+	 * POST /wp-json/sofia/v1/ia/preview — Fase 4: recibe {arbol} (el ya
+	 * reparado por sofia/v1/ia/generar, confirmado por el usuario que
+	 * quiere previsualizarlo) e instancia Sofia_Pagina/
+	 * Sofia_Componente_Factory::crear() recursivo contra ESE árbol en
+	 * MEMORIA — NUNCA lo persiste en GoPress, ni siquiera de forma
+	 * temporal. Mismo renderer real que cualquier página de producción
+	 * (Sofia_Componente::render()), mismo criterio de seguridad del plan:
+	 * el LLM nunca escribe código que se ejecuta, solo datos que pasan por
+	 * el mismo validador/renderer que ya existen para el editor manual.
+	 *
+	 * $contenido se arma A PARTIR del árbol mismo (no viene de GoPress,
+	 * esta página no existe todavía como PaginaSitio real) — cada prop de
+	 * cada nodo se aplana a la notación "{id}.campo" que Sofia_Pagina ya
+	 * sabe leer (ver props_de_bloque()), mismo shape exacto que
+	 * PaginaSitio.Contenido tendría si este árbol ya estuviera guardado.
+	 * Sofia_Modo_Editor::activo() se ignora a propósito acá (este preview
+	 * no pasa por el flujo normal de ?sofia_editor=1) — el HTML devuelto es
+	 * el de una visita PÚBLICA real, sin chrome de edición (handles,
+	 * botones "+ Agregar item", etc.), que es lo que el usuario espera ver
+	 * en la vista previa antes de aplicar.
+	 */
+	public static function ia_preview_arbol( WP_REST_Request $request ) {
+		$arbol = $request->get_param( 'arbol' );
+		if ( ! is_array( $arbol ) || empty( $arbol ) ) {
+			return new WP_Error( 'sofia_arbol_requerido', 'El parámetro "arbol" necesita al menos un bloque.', array( 'status' => 400 ) );
+		}
+
+		$contenido = array();
+		self::aplanar_contenido_arbol_ia( $arbol, $contenido );
+
+		$sofia_pagina = new Sofia_Pagina( $arbol, $contenido );
+		$html         = '';
+		foreach ( $sofia_pagina->componentes() as $componente ) {
+			if ( ! $componente->bloque_visible() ) {
+				// Mismo criterio que page.php en visita pública real: un
+				// bloque con condición de Visibilidad no cumplida no se
+				// renderiza en absoluto (nunca solo se oculta con CSS) —
+				// ver Sofia_Componente::bloque_visible().
+				continue;
+			}
+			$html .= $componente->render();
+		}
+
+		return rest_ensure_response( array( 'ok' => true, 'html' => $html ) );
+	}
+
+	/**
+	 * Aplana recursivamente {id,tipo,props,hijos} → {"{id}.campo": valor,
+	 * ...} — mismo shape que PaginaSitio.Contenido (y lo que
+	 * Sofia_Pagina::props_de_bloque() espera encontrar), necesario porque
+	 * ia_preview_arbol() recibe el árbol con las props YA anidadas dentro
+	 * de cada nodo (más natural para el LLM/frontend), pero Sofia_Pagina
+	 * fue diseñada para recortar un mapa PLANO por prefijo de ID — en vez
+	 * de duplicar esa lógica de recorte, se aplana acá una sola vez al
+	 * shape que la clase ya sabe consumir.
+	 *
+	 * @param array<int,array<string,mixed>> $nodos
+	 * @param array<string,mixed>            $contenido (por referencia)
+	 */
+	private static function aplanar_contenido_arbol_ia( array $nodos, array &$contenido ): void {
+		foreach ( $nodos as $nodo ) {
+			if ( ! is_array( $nodo ) ) {
+				continue;
+			}
+			$id    = (string) ( $nodo['id'] ?? '' );
+			$props = is_array( $nodo['props'] ?? null ) ? $nodo['props'] : array();
+			if ( '' !== $id ) {
+				foreach ( $props as $campo => $valor ) {
+					$contenido[ "{$id}.{$campo}" ] = $valor;
+				}
+			}
+			$hijos = is_array( $nodo['hijos'] ?? null ) ? $nodo['hijos'] : array();
+			if ( ! empty( $hijos ) ) {
+				self::aplanar_contenido_arbol_ia( $hijos, $contenido );
+			}
+		}
 	}
 
 	/**

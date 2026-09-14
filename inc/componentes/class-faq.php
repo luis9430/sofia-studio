@@ -23,6 +23,24 @@ class Sofia_Componente_FAQ extends Sofia_Componente {
 		return array( 'items' => $items );
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA): mismo
+	 * criterio que Franja de beneficios/Testimonios — "items" es tipo
+	 * 'lista' de {pregunta, respuesta}.
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'items' => array(
+				'tipo'     => 'lista',
+				'etiqueta' => __( 'Preguntas frecuentes', 'sofia-studio' ),
+				'campos'   => array(
+					'pregunta'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Pregunta', 'sofia-studio' ) ),
+					'respuesta' => array( 'tipo' => 'texto_largo', 'etiqueta' => __( 'Respuesta', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 

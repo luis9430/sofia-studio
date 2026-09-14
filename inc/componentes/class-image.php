@@ -21,6 +21,16 @@ class Sofia_Componente_Image extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA): un único
+	 * campo de imagen.
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'imagen' => array( 'tipo' => 'imagen', 'etiqueta' => __( 'Imagen', 'sofia-studio' ) ),
+		);
+	}
+
 	public function render(): string {
 		// imagen_o_placeholder() (clase base): sin esto, un bloque Image
 		// recién agregado (sin valor todavía) no emitía ningún <img> — un

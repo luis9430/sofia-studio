@@ -21,6 +21,21 @@ class Sofia_Componente_CTA extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA): 4 campos
+	 * sueltos, sin lista — "boton_enlace" es tipo 'url' (no 'texto'),
+	 * mismo criterio que atributo_editable() lo trata distinto (no es
+	 * contenteditable, es un atributo href).
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'titulo'       => array( 'tipo' => 'texto', 'etiqueta' => __( 'Título', 'sofia-studio' ) ),
+			'texto'        => array( 'tipo' => 'texto_largo', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
+			'boton_texto'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto del botón', 'sofia-studio' ) ),
+			'boton_enlace' => array( 'tipo' => 'url', 'etiqueta' => __( 'Enlace del botón', 'sofia-studio' ) ),
+		);
+	}
+
 	public function render(): string {
 		$titulo       = $this->texto_enriquecido( $this->props['titulo'] );
 		$texto        = $this->texto_enriquecido( $this->props['texto'] );

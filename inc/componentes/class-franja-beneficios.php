@@ -27,6 +27,28 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 		return array( 'items' => $items );
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA): "items" es
+	 * tipo 'lista' — cada elemento tiene 'campos' con el mismo shape
+	 * recursivo {tipo, etiqueta} que cualquier campo suelto (ver el
+	 * comentario largo en Sofia_Componente::schema_contenido()), un solo
+	 * nivel de anidamiento (ningún item acá tiene a su vez una lista
+	 * propia). El LLM usa esto para saber que "items" es un ARRAY de
+	 * {titulo, texto}, no un campo de texto suelto.
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'items' => array(
+				'tipo'     => 'lista',
+				'etiqueta' => __( 'Beneficios', 'sofia-studio' ),
+				'campos'   => array(
+					'titulo' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Título', 'sofia-studio' ) ),
+					'texto'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 

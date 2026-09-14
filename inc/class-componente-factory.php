@@ -138,4 +138,72 @@ class Sofia_Componente_Factory {
 		}
 		return array_merge( Sofia_Componente::schema_bloque_generico(), $componente::schema_propio() );
 	}
+
+	/**
+	 * schema_contenido_de( $tipo ): schema de CONTENIDO (Fase 4 — generador
+	 * de árboles por IA, ver Sofia_Componente::schema_contenido()) de un
+	 * tipo puntual — hermano de schema_de() (que es de ESTILO), nunca
+	 * fusionado con él: son dos preguntas distintas ("qué campos tiene este
+	 * bloque" vs. "cómo se ve"), y el generador de IA necesita poder pedir
+	 * SOLO contenido sin arrastrar los 12+ controles de estilo genérico que
+	 * no le sirven para decidir qué texto escribir.
+	 *
+	 * A diferencia de schema_de(), acá NO hay nada "genérico" que fusionar
+	 * — cada Componente declara sus propios campos de punta a punta, no
+	 * existe un set de campos de contenido común a todo el catálogo (a
+	 * diferencia de Nivel 2, donde color de fondo/ancho/etc. sí aplican a
+	 * cualquier bloque).
+	 *
+	 * @return array<string,array<string,mixed>>|null null si $tipo no
+	 *         corresponde a ningún Componente real, mismo criterio que
+	 *         schema_de().
+	 */
+	public static function schema_contenido_de( string $tipo ): ?array {
+		$componente = self::crear( $tipo, 'schema' );
+		if ( null === $componente ) {
+			return null;
+		}
+		return $componente::schema_contenido();
+	}
+
+	/**
+	 * catalogo_para_ia(): el catálogo completo de tipos registrados, cada
+	 * uno con su nombre legible + AMBOS schemas (estilo y contenido) ya
+	 * resueltos — pensado específicamente para armar el system prompt del
+	 * generador de árboles por IA (ver Sofia_REST_Editor::generar_arbol_ia()
+	 * y Sofia_Cliente_GoPress::generar_arbol_ia()), que necesita el
+	 * catálogo COMPLETO de una sola vez, no tipo por tipo como sí hace el
+	 * drawer manual (que solo pide el schema del bloque seleccionado en ese
+	 * momento).
+	 *
+	 * Decisión de diseño (documentada acá porque el plan dejaba la elección
+	 * abierta): NO se agregó un endpoint REST nuevo "estilo+contenido
+	 * juntos" expuesto directo al navegador — este método es 100% interno,
+	 * llamado desde PHP dentro del mismo request de
+	 * sofia/v1/ia/generar (Sofia_REST_Editor ya corre server-side y puede
+	 * llamar estos métodos directo, sin necesitar un roundtrip HTTP a sí
+	 * mismo). El drawer manual (Nivel 2) sigue usando
+	 * sofia/v1/catalogo-bloques/{tipo}/schema tal cual, sin cambios — ese
+	 * endpoint es de ESTILO nada más y seguirá siéndolo, separar
+	 * "estilo puro" (drawer) de "estilo+contenido" (generador de IA) evita
+	 * que un cliente HTTP futuro reciba de más sin pedirlo.
+	 *
+	 * @return array<int,array{tipo:string,nombre:string,schema_estilo:array,schema_contenido:array}>
+	 */
+	public static function catalogo_para_ia(): array {
+		$catalogo = array();
+		foreach ( self::TIPOS_REGISTRADOS as $tipo ) {
+			$componente = self::crear( $tipo, 'catalogo' );
+			if ( null === $componente ) {
+				continue;
+			}
+			$catalogo[] = array(
+				'tipo'             => $tipo,
+				'nombre'           => $componente->nombre(),
+				'schema_estilo'    => array_merge( Sofia_Componente::schema_bloque_generico(), $componente::schema_propio() ),
+				'schema_contenido' => $componente::schema_contenido(),
+			);
+		}
+		return $catalogo;
+	}
 }

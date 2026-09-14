@@ -31,6 +31,25 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		return array( 'items' => $items );
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA): mismo
+	 * criterio que Franja de beneficios — "items" es tipo 'lista' de
+	 * {foto, nombre, cita}, "foto" declarado como 'imagen' (no 'texto').
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'items' => array(
+				'tipo'     => 'lista',
+				'etiqueta' => __( 'Testimonios', 'sofia-studio' ),
+				'campos'   => array(
+					'foto'   => array( 'tipo' => 'imagen', 'etiqueta' => __( 'Foto', 'sofia-studio' ) ),
+					'nombre' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Nombre', 'sofia-studio' ) ),
+					'cita'   => array( 'tipo' => 'texto_largo', 'etiqueta' => __( 'Cita', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 

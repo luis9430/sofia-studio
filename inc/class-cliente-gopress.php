@@ -223,4 +223,87 @@ class Sofia_Cliente_GoPress {
 
 		return 200 === wp_remote_retrieve_response_code( $respuesta );
 	}
+
+	/**
+	 * generar_arbol_ia(): Fase 4 ("primitivas de layout" — generador de
+	 * árboles de bloques por IA, ver la memoria de producto). Llama a
+	 * POST /sites/{sitio}/ia/generar-arbol?token=... (ver
+	 * internal/server/ia_generar_arbol.go de GoPress) — mismo mecanismo de
+	 * autenticación por AgenteToken que el resto de este cliente, sin
+	 * cookie de sesión (WordPress corre server-side, dentro del proxy REST
+	 * de wp-admin, nunca directo desde el navegador — ver
+	 * Sofia_REST_Editor::ia_generar_arbol()).
+	 *
+	 * $catalogo viaja COMPLETO en el body (tipos + AMBOS schemas, ver
+	 * Sofia_Componente_Factory::catalogo_para_ia()) — GoPress es AGNÓSTICO
+	 * de qué Componentes PHP existen en este tema (mismo principio que
+	 * catalogo_bloques() ya establece: el catálogo real vive en el tema,
+	 * nunca curado aparte del lado de GoPress), así que cada request le
+	 * manda el catálogo actual en vez de que GoPress lo conozca de
+	 * antemano.
+	 *
+	 * timeout 180s (no los 5s del resto de este cliente) — generar un árbol
+	 * completo con un LLM tarda mucho más que cualquier otra llamada a
+	 * GoPress (que son todas operaciones locales de SQLite), mismo
+	 * criterio de timeout generoso que CraftTreeAssistantService (ecommerce,
+	 * ver la memoria de producto de esta fase) usa para el mismo tipo de
+	 * llamada.
+	 *
+	 * @param array<int,array<string,mixed>> $catalogo
+	 * @return array{arbol:array<int,array<string,mixed>>,avisos:string[]}|null
+	 *         null si GoPress no está configurado, la request falla, o
+	 *         GoPress devuelve un error (OPENROUTER_API_KEY no configurada
+	 *         del lado GoPress, timeout de OpenRouter, respuesta no
+	 *         parseable como JSON — todos casos que GoPress ya distingue
+	 *         con su propio mensaje de error, pero este cliente solo
+	 *         necesita saber "funcionó o no" para decidir qué WP_Error
+	 *         devolver, ver Sofia_REST_Editor::ia_generar_arbol()).
+	 */
+	public static function generar_arbol_ia( string $prompt, array $catalogo ): ?array {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return null;
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return null;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/ia/generar-arbol';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'POST',
+				// 180s: ver el comentario largo arriba — generar un árbol
+				// completo con un LLM es, por lejos, la request más lenta
+				// de todo este cliente.
+				'timeout' => 180,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode(
+					array(
+						'prompt'   => $prompt,
+						'catalogo' => $catalogo,
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $respuesta ) ) {
+			return null;
+		}
+		if ( 200 !== wp_remote_retrieve_response_code( $respuesta ) ) {
+			return null;
+		}
+
+		$cuerpo = json_decode( wp_remote_retrieve_body( $respuesta ), true );
+		if ( ! is_array( $cuerpo ) || ! isset( $cuerpo['arbol'] ) ) {
+			return null;
+		}
+
+		return array(
+			'arbol'  => is_array( $cuerpo['arbol'] ) ? $cuerpo['arbol'] : array(),
+			'avisos' => is_array( $cuerpo['avisos'] ?? null ) ? $cuerpo['avisos'] : array(),
+		);
+	}
 }

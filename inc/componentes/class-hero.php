@@ -18,6 +18,19 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * schema_contenido() (Fase 4 — generador de árboles por IA, ver el
+	 * comentario largo en Sofia_Componente): mismos 2 campos que
+	 * props_por_defecto() declara arriba, con su tipo real para que el LLM
+	 * sepa qué generar.
+	 */
+	public static function schema_contenido(): array {
+		return array(
+			'titulo' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Título', 'sofia-studio' ) ),
+			'imagen' => array( 'tipo' => 'imagen', 'etiqueta' => __( 'Imagen', 'sofia-studio' ) ),
+		);
+	}
+
 	public function render(): string {
 		$titulo = $this->texto_enriquecido( $this->props['titulo'] );
 		// imagen_o_placeholder() (clase base): sin esto, un Hero recién

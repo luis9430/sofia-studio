@@ -93,6 +93,18 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	}
 
 	/**
+	 * Sin override de schema_contenido() (Fase 4 — generador de árboles por
+	 * IA, ver Sofia_Componente::schema_contenido()) — Container no tiene
+	 * NINGÚN campo de contenido propio, su "contenido" es enteramente su
+	 * árbol de $hijos, ya cubierto por el modelo recursivo {id,tipo,hijos}
+	 * (ver BloqueEstructuraPlantilla del lado GoPress) — el LLM llena el
+	 * contenido de cada HIJO por separado, no de este nodo. El default
+	 * vacío heredado de la clase base es exactamente lo correcto acá, así
+	 * que no hace falta el override — mismo criterio documentado en el
+	 * plan de la Fase 4.
+	 */
+
+	/**
 	 * schema_propio(): controles de layout que solo Container tiene —
 	 * ninguno de estos afecta el HTML de render() todavía (eso queda
 	 * fuera de esta Fase 2, ver el comentario largo arriba de la clase);
