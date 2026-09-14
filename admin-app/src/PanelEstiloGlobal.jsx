@@ -1,83 +1,59 @@
 import { useEffect, useState } from "preact/hooks";
-import { CampoConToken } from "./CampoConToken.jsx";
+import { CampoTokenVisual } from "./CampoTokenVisual.jsx";
 
 /**
- * Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
- * (paleta de colores + tipografía base), distinto del drawer de campo/
- * bloque (DrawerEstilo.jsx, que edita UN elemento o sección de UNA
- * página). Vive detrás de un botón propio en la barra superior, nunca
- * dentro del iframe ni anclado a ninguna posición del canvas — no depende
- * de que haya nada seleccionado.
+ * Panel de Estilo Global (Nivel 3) — configuración del SITIO completo,
+ * distinto del drawer de campo/bloque (DrawerEstilo.jsx, que edita UN
+ * elemento o sección de UNA página). Vive detrás de un botón propio en la
+ * barra superior, nunca dentro del iframe ni anclado a ninguna posición del
+ * canvas — no depende de que haya nada seleccionado.
  *
- * Se guarda vía sofia/v1/estilo-global (GET/PUT), que a su vez persiste en
- * store.Sitio.EstiloGlobal del lado de GoPress — sobrevive a reinstalar el
- * tema, a diferencia de cualquier config que viviera en wp_options. El
- * tema imprime estas mismas custom properties en CADA visita pública (ver
- * Sofia_Estilo_Global::imprimir(), enganchado a wp_head).
+ * REDISEÑO COMPLETO (ver la memoria de producto, conversación "¿de verdad
+ * nos sirve Estilo Global?"): la versión anterior de este panel INVENTABA
+ * 8 variables propias del tema (--sofia-color-texto, etc.) — un color hex
+ * fijo por defecto, con un botón CF opcional para referenciar un token. Eso
+ * era un sistema paralelo a los 154 tokens reales de Core Framework, sin
+ * agregar nada que CF no tuviera ya mejor resuelto (escalas coherentes,
+ * responsive fluido real). Decisión acordada con el usuario: Estilo Global
+ * deja de INVENTAR valores — su trabajo pasa a ser asignar ROLES, "el texto
+ * principal de este sitio es el token primary de Core Framework". 12 roles
+ * (ver Sofia_Estilo_Global::ROLES_SITIO, fuente de verdad — este panel los
+ * pide vía sofia/v1/estilo-global/roles en vez de tenerlos hardcodeados,
+ * mismo criterio "PHP decide qué controles existen" que ya rige Nivel 2
+ * desde Fase 2) agrupados por categoría de CF (color/texto/radius/shadow/
+ * space/breakpoint), cada uno resuelto con CampoTokenVisual.jsx — el mismo
+ * selector con etiqueta humana + preview real que ya usa el drawer de
+ * bloque, reusado tal cual acá (nunca un control paralelo).
  *
- * Mismas claves que la whitelist del lado PHP
- * (Sofia_Estilo_Global::COLORES_PERMITIDOS/FUENTES_PERMITIDAS/MEDIDAS_PERMITIDAS)
- * — nunca CSS arbitrario, solo lo que este panel realmente ofrece como
- * control: color hex/medida libre por rol, fuente de una lista corta
- * curada.
+ * Shape del JSON guardado simplificado de {colores, tipografia, medidas} a
+ * {roles: {rol: "cf:{token}"}, tipografia: {...}} — decisión explícita del
+ * usuario ("puedes romper cualquier cosa, es demo y de prueba"), sin
+ * necesidad de migrar sitios reales.
  *
- * Cada color O medida puede ser un valor fijo O una referencia a un token
- * de Core Framework (coreframework.com) — guardado como "cf:{nombre}" (ver
- * Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor() del
- * lado PHP, que lo traduce a var(--{nombre}, ...) en el CSS emitido — SIN
- * prefijo "cf-" propio, corrige una suposición equivocada de la primera
- * versión: el CSS real exportado por Core Framework usa nombres tal
- * cual, "--primary"/"--secondary", nunca "--cf-primary"). El mismo
- * mecanismo (botón CF, ver CampoConToken) es agnóstico a la categoría de
- * Core Framework (Colors, Typography, Spacing, etc.) — cualquier custom
- * property que el CSS real defina puede referenciarse desde cualquier
- * control de este panel, no hay lógica separada por categoría.
- *
- * Core Framework no expone una API de tokens, pero SÍ es un archivo CSS
- * legible desde PHP — sofia/v1/core-framework/variables (ver
- * Sofia_Estilo_Global::variables_core_framework()) lee ese archivo real y
- * devuelve los nombres encontrados, usados como sugerencias de un
- * <datalist> — el campo sigue siendo texto libre (el usuario puede
- * escribir un nombre que no esté en la lista, ej. si Core Framework
- * generó el CSS después de cargar este panel), pero ya no es "a ciegas".
- *
- * CampoConToken vive en su propio archivo (CampoConToken.jsx) — el mismo
- * control se reusa en DrawerEstilo.jsx (Nivel 1/2, estilo por campo/
- * bloque), nunca duplicado entre los 2 niveles. El <datalist> compartido
- * (ListaVariablesCoreFramework) vive montado en App.jsx, NO acá — el
- * botón CF también aparece en el drawer, que puede estar abierto sin que
- * este panel lo esté, así que el elemento con ese id necesita existir
- * siempre en el documento, sin importar cuál de los 2 está montado.
+ * "Tipografía base" (fuente de títulos/texto corrido) es la ÚNICA sección
+ * que sigue como lista curada propia, sin tocar — Core Framework no expone
+ * font-family, solo tamaños de texto (ya cubiertos por el rol
+ * "tamano_base").
  */
-const ROLES_COLOR = [
-  { clave: "texto", etiqueta: "Texto principal" },
-  { clave: "texto_suave", etiqueta: "Texto suave" },
-  { clave: "acento", etiqueta: "Acento" },
-  { clave: "fondo", etiqueta: "Fondo" },
-];
-
-const FUENTES = [
-  { valor: "", etiqueta: "Por defecto del tema" },
-  { valor: "display", etiqueta: "Fraunces (display)" },
-  { valor: "texto", etiqueta: "Inter (texto)" },
-];
-
-const ROLES_MEDIDA = [
-  { clave: "tamano_base", etiqueta: "Tamaño de fuente base", placeholder: "1rem", categoria: "texto" },
-  { clave: "espaciado_base", etiqueta: "Espaciado base", placeholder: "1rem", categoria: "space" },
-];
-
 export function PanelEstiloGlobal({ config, onCerrar }) {
-  const [estilo, setEstilo] = useState({ colores: {}, tipografia: {}, medidas: {} });
+  const [roles, setRoles] = useState(null); // {rol: {variable, categoria, etiqueta, token_fijo?}}
+  const [estilo, setEstilo] = useState({ roles: {}, tipografia: {} });
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    fetch(`${config.restUrl}estilo-global`, { headers: { "X-WP-Nonce": config.nonce } })
-      .then((resp) => (resp.ok ? resp.json() : {}))
-      .then((datos) =>
-        setEstilo({ colores: datos.colores || {}, tipografia: datos.tipografia || {}, medidas: datos.medidas || {} })
-      )
+    Promise.all([
+      fetch(`${config.restUrl}estilo-global/roles`, { headers: { "X-WP-Nonce": config.nonce } }).then((resp) =>
+        resp.ok ? resp.json() : {}
+      ),
+      fetch(`${config.restUrl}estilo-global`, { headers: { "X-WP-Nonce": config.nonce } }).then((resp) =>
+        resp.ok ? resp.json() : {}
+      ),
+    ])
+      .then(([rolesRecibidos, datos]) => {
+        setRoles(rolesRecibidos);
+        setEstilo({ roles: datos.roles || {}, tipografia: datos.tipografia || {} });
+      })
       .catch(() => {})
       .finally(() => setCargando(false));
   }, []);
@@ -96,17 +72,31 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
     }
   }
 
-  function actualizarColor(clave, valor) {
-    guardar({ ...estilo, colores: { ...estilo.colores, [clave]: valor } });
+  function actualizarRol(rol, valor) {
+    guardar({ ...estilo, roles: { ...estilo.roles, [rol]: valor } });
   }
 
-  function actualizarFuente(rol, valor) {
-    guardar({ ...estilo, tipografia: { ...estilo.tipografia, [rol]: valor } });
+  function actualizarFuente(rolTipografia, valor) {
+    guardar({ ...estilo, tipografia: { ...estilo.tipografia, [rolTipografia]: valor } });
   }
 
-  function actualizarMedida(clave, valor) {
-    guardar({ ...estilo, medidas: { ...estilo.medidas, [clave]: valor } });
-  }
+  // Agrupa los 12 roles por categoría de CF — mismo orden/etiquetas de
+  // sección que se acordó en la conversación: Colores, luego Tipografía
+  // (tamaño, no fuente — eso vive en su propia sección más abajo),
+  // Espaciado y forma (space+radius+shadow juntos, son "cómo se siente la
+  // caja" del sitio), y Pantalla (breakpoints).
+  const rolesPorCategoria = roles
+    ? Object.entries(roles).reduce((acc, [rol, definicion]) => {
+        (acc[definicion.categoria] ||= []).push({ rol, ...definicion });
+        return acc;
+      }, {})
+    : {};
+
+  const FUENTES = [
+    { valor: "", etiqueta: "Por defecto del tema" },
+    { valor: "display", etiqueta: "Fraunces (display)" },
+    { valor: "texto", etiqueta: "Inter (texto)" },
+  ];
 
   return (
     <div className="sofia-panel-global__fondo" onClick={onCerrar}>
@@ -123,44 +113,21 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
         ) : (
           <div className="sofia-panel-global__cuerpo">
             <section className="sofia-panel-global__seccion">
-              <h3>Paleta de colores</h3>
+              <h3>Colores</h3>
               <p className="sofia-panel-global__ayuda">
-                Aplica a todas las páginas del sitio. Con el botón <strong>CF</strong> podés usar un token ya definido
-                en Core Framework (si el plugin está activo en este sitio) en vez de un color fijo — escribí el
-                nombre tal como lo llamaste ahí.
+                Cada rol es un color real de la paleta de Core Framework de este sitio — aplica a todas las páginas.
               </p>
-              <div className="sofia-panel-global__colores">
-                {ROLES_COLOR.map((rol) => (
-                  <div key={rol.clave} className="sofia-panel-global__color">
-                    <CampoConToken
-                      tipo="color"
-                      valor={estilo.colores[rol.clave]}
-                      onCambiar={(valor) => actualizarColor(rol.clave, valor)}
+              <div className="sofia-panel-global__roles">
+                {(rolesPorCategoria.color || []).map(({ rol, etiqueta }) => (
+                  <div key={rol} className="sofia-panel-global__rol">
+                    <span className="sofia-panel-global__rol-etiqueta">{etiqueta}</span>
+                    <CampoTokenVisual
+                      categoria="color"
+                      valor={estilo.roles[rol]}
+                      onCambiar={(valor) => actualizarRol(rol, valor)}
+                      restUrl={config.restUrl}
+                      nonce={config.nonce}
                     />
-                    <span>{rol.etiqueta}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="sofia-panel-global__seccion">
-              <h3>Medidas base</h3>
-              <p className="sofia-panel-global__ayuda">
-                Tamaño de fuente y espaciado de referencia del sitio — valor libre (ej. "1rem", "16px") o un token de
-                Core Framework con el botón <strong>CF</strong> (ej. las categorías Typography/Spacing del editor
-                visual).
-              </p>
-              <div className="sofia-panel-global__medidas">
-                {ROLES_MEDIDA.map((rol) => (
-                  <div key={rol.clave} className="sofia-panel-global__color">
-                    <CampoConToken
-                      tipo="text"
-                      categoria={rol.categoria}
-                      valor={estilo.medidas[rol.clave]}
-                      placeholderNormal={rol.placeholder}
-                      onCambiar={(valor) => actualizarMedida(rol.clave, valor)}
-                    />
-                    <span>{rol.etiqueta}</span>
                   </div>
                 ))}
               </div>
@@ -169,7 +136,8 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
             <section className="sofia-panel-global__seccion">
               <h3>Tipografía base</h3>
               <p className="sofia-panel-global__ayuda">
-                Lista corta curada — las mismas 2 fuentes que ya carga el tema, para mantener cohesión visual.
+                Fuente: lista corta curada, las mismas 2 que ya carga el tema. Tamaño: de la escala real de Core
+                Framework.
               </p>
               <div className="sofia-panel-global__tipografia">
                 <label>
@@ -199,7 +167,71 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
                   </select>
                 </label>
               </div>
+              <div className="sofia-panel-global__roles">
+                {(rolesPorCategoria.texto || []).map(({ rol, etiqueta }) => (
+                  <div key={rol} className="sofia-panel-global__rol">
+                    <span className="sofia-panel-global__rol-etiqueta">{etiqueta}</span>
+                    <CampoTokenVisual
+                      categoria="texto"
+                      valor={estilo.roles[rol]}
+                      onCambiar={(valor) => actualizarRol(rol, valor)}
+                      restUrl={config.restUrl}
+                      nonce={config.nonce}
+                    />
+                  </div>
+                ))}
+              </div>
             </section>
+
+            <section className="sofia-panel-global__seccion">
+              <h3>Espaciado y forma</h3>
+              <p className="sofia-panel-global__ayuda">
+                Cómo se siente la caja del sitio por defecto — espaciado entre secciones, radio de borde, sombra.
+              </p>
+              <div className="sofia-panel-global__roles">
+                {[...(rolesPorCategoria.space || []), ...(rolesPorCategoria.radius || []), ...(rolesPorCategoria.shadow || [])].map(
+                  ({ rol, categoria, etiqueta }) => (
+                    <div key={rol} className="sofia-panel-global__rol">
+                      <span className="sofia-panel-global__rol-etiqueta">{etiqueta}</span>
+                      <CampoTokenVisual
+                        categoria={categoria}
+                        valor={estilo.roles[rol]}
+                        onCambiar={(valor) => actualizarRol(rol, valor)}
+                        restUrl={config.restUrl}
+                        nonce={config.nonce}
+                      />
+                    </div>
+                  )
+                )}
+              </div>
+            </section>
+
+            {(rolesPorCategoria.breakpoint || []).length > 0 && (
+              <section className="sofia-panel-global__seccion">
+                <h3>Pantalla</h3>
+                <p className="sofia-panel-global__ayuda">
+                  Activá los breakpoints ya definidos en Core Framework para este sitio — decisión del usuario: "mejor
+                  que lo maneje CF", Sofia Studio solo detecta y activa el token real, nunca inventa un valor propio.
+                </p>
+                <div className="sofia-panel-global__roles">
+                  {rolesPorCategoria.breakpoint.map(({ rol, etiqueta, token_fijo }) => (
+                    <div key={rol} className="sofia-panel-global__rol sofia-panel-global__rol--fila">
+                      <span className="sofia-panel-global__rol-etiqueta">
+                        {etiqueta}
+                        <code className="sofia-panel-global__token-fijo">--{token_fijo}</code>
+                      </span>
+                      <button
+                        type="button"
+                        className={`sofia-drawer-estilo__toggle ${estilo.roles[rol] ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                        onClick={() => actualizarRol(rol, estilo.roles[rol] ? "" : "activo")}
+                      >
+                        {estilo.roles[rol] ? "Activado" : "Desactivado"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <p className="sofia-panel-global__estado">{guardando ? "Guardando…" : "Los cambios se guardan al instante"}</p>
           </div>

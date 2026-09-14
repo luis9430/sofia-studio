@@ -134,6 +134,16 @@ class Sofia_REST_Editor {
 
 		register_rest_route(
 			'sofia/v1',
+			'/estilo-global/roles',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'roles_estilo_global' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
 			'/core-framework/tokens-visual',
 			array(
 				'methods'             => 'GET',
@@ -1042,8 +1052,8 @@ class Sofia_REST_Editor {
 	 * PUT /wp-json/sofia/v1/estilo-global — guarda el JSON completo de
 	 * estilo global (siempre el objeto entero, mismo criterio que
 	 * guardar_estructura(): nunca "cambié solo el color de acento", el
-	 * panel Preact manda el objeto {colores, tipografia} completo cada
-	 * vez).
+	 * panel Preact manda el objeto {roles, tipografia} completo cada vez
+	 * — shape simplificado, ver Sofia_Estilo_Global::ROLES_SITIO).
 	 */
 	public static function guardar_estilo_global( WP_REST_Request $request ) {
 		$estilo_global = $request->get_param( 'estilo_global' );
@@ -1057,6 +1067,18 @@ class Sofia_REST_Editor {
 
 		self::purgar_cache_pagina_completa();
 		return rest_ensure_response( array( 'ok' => true, 'estilo_global' => $estilo_global ) );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/estilo-global/roles — los 13 roles de Estilo
+	 * Global (ver Sofia_Estilo_Global::roles_sitio()) con su categoría de
+	 * CF/etiqueta humana — PanelEstiloGlobal.jsx arma sus controles a
+	 * partir de esto en vez de tenerlos hardcodeados, mismo criterio "PHP
+	 * es la fuente de verdad de qué controles existen" que ya rige Nivel 2
+	 * desde Fase 2.
+	 */
+	public static function roles_estilo_global( WP_REST_Request $request ) {
+		return rest_ensure_response( Sofia_Estilo_Global::roles_sitio() );
 	}
 
 	/**

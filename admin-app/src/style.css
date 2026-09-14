@@ -317,24 +317,46 @@ body {
   line-height: 1.5;
 }
 
-.sofia-panel-global__colores {
+/* Rediseño de Estilo Global (ver el comentario largo en
+   PanelEstiloGlobal.jsx): grilla de "roles" en vez de las secciones
+   colores/medidas separadas — cada rol es un CampoTokenVisual completo
+   (etiqueta + selector con swatches), mismo patrón para cualquier
+   categoría de CF (color/texto/radius/shadow). */
+.sofia-panel-global__roles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
 }
 
-.sofia-panel-global__medidas {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sofia-panel-global__color {
+.sofia-panel-global__rol {
   display: flex;
   flex-direction: column;
   gap: 6px;
   font-size: 12.5px;
   color: var(--gp-panel-text);
+}
+
+.sofia-panel-global__rol-etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Roles "breakpoint" (toggle simple, ver PanelEstiloGlobal.jsx) —
+   etiqueta+toggle en una sola fila, no la columna etiqueta-arriba-control-
+   abajo del resto de roles (un switch no necesita esa altura). */
+.sofia-panel-global__rol--fila {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sofia-panel-global__token-fijo {
+  font-size: 10.5px;
+  color: var(--gp-panel-text-dim);
+  background: var(--gp-panel-3, rgba(255, 255, 255, 0.06));
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 /* CampoConToken (CampoConToken.jsx) — control compartido entre el panel

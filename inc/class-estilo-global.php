@@ -22,18 +22,53 @@
 class Sofia_Estilo_Global {
 
 	/**
-	 * COLORES_PERMITIDOS/FUENTES_PERMITIDAS: whitelist de qué claves del
-	 * JSON de estilo global tienen efecto — mismo criterio que
-	 * Sofia_Componente::ESTILOS_CAMPO_PERMITIDOS/FUENTES_PERMITIDAS: nunca
-	 * CSS arbitrario, solo lo que el panel "Estilo global" del editor
-	 * realmente ofrece como control. Clave = nombre guardado en el JSON,
-	 * valor = nombre de la custom property CSS a emitir.
+	 * ROLES_SITIO: rediseño completo de Estilo Global (Nivel 3) tras la
+	 * conversación de arquitectura "¿de verdad nos sirve Estilo Global?"
+	 * (ver la memoria de producto) — el panel original INVENTABA 8
+	 * variables propias del tema (--sofia-color-texto, etc.) como un
+	 * sistema paralelo a los 154 tokens reales de Core Framework, sin
+	 * agregar nada que CF no tuviera ya mejor resuelto. Conclusión
+	 * acordada con el usuario: Estilo Global no debía desaparecer, pero
+	 * su trabajo real es ASIGNAR ROLES — decirle al tema "el texto
+	 * principal de ESTE sitio es el token primary de CF", nunca inventar
+	 * un valor propio. Shape del JSON simplificado de {colores,
+	 * tipografia, medidas} a un solo grupo plano "roles" (decisión
+	 * explícita del usuario: "puedes romper cualquier cosa, es demo y de
+	 * prueba, solo lo que sea mejor" — sin necesidad de migrar sitios
+	 * reales).
+	 *
+	 * 13 roles acordados en la conversación, cada uno con la CATEGORÍA de
+	 * CF que lo resuelve (mismas 6 categorías ya usadas en
+	 * catalogo_tokens_visual()/CampoTokenVisual.jsx — mismo selector
+	 * visual con etiqueta humana + preview, reusado tal cual acá):
+	 * - color: texto, texto_suave, fondo, primario, secundario, borde.
+	 * - texto (escala de tamaño, no fuente): tamano_base.
+	 * - radius: radio_borde.
+	 * - shadow: sombra.
+	 * - space: espaciado_base.
+	 * - breakpoint (caso especial, no es token de CF — ver imprimir()):
+	 *   ancho_minimo_pantalla, ancho_maximo_pantalla.
+	 *
+	 * Deliberadamente NO incluye "columnas" (se descartó en la
+	 * conversación: es composición de BLOQUE, ya resuelto por
+	 * Container/schema_propio() en Fase 2, nunca una decisión de
+	 * identidad de sitio completo).
+	 *
+	 * @var array<string,array{variable:string,categoria:string,etiqueta:string}>
 	 */
-	private const COLORES_PERMITIDOS = array(
-		'texto'        => '--sofia-color-texto',
-		'texto_suave'  => '--sofia-color-texto-suave',
-		'acento'       => '--sofia-color-acento',
-		'fondo'        => '--sofia-color-fondo',
+	private const ROLES_SITIO = array(
+		'texto'                  => array( 'variable' => '--sofia-color-texto', 'categoria' => 'color', 'etiqueta' => 'Texto principal' ),
+		'texto_suave'            => array( 'variable' => '--sofia-color-texto-suave', 'categoria' => 'color', 'etiqueta' => 'Texto suave' ),
+		'fondo'                  => array( 'variable' => '--sofia-color-fondo', 'categoria' => 'color', 'etiqueta' => 'Fondo del sitio' ),
+		'primario'               => array( 'variable' => '--sofia-color-primario', 'categoria' => 'color', 'etiqueta' => 'Primario / Acento' ),
+		'secundario'             => array( 'variable' => '--sofia-color-secundario', 'categoria' => 'color', 'etiqueta' => 'Secundario' ),
+		'borde'                  => array( 'variable' => '--sofia-color-borde', 'categoria' => 'color', 'etiqueta' => 'Borde' ),
+		'tamano_base'            => array( 'variable' => '--sofia-tamano-base', 'categoria' => 'texto', 'etiqueta' => 'Tamaño de texto base' ),
+		'radio_borde'            => array( 'variable' => '--sofia-radio-borde', 'categoria' => 'radius', 'etiqueta' => 'Radio de borde por defecto' ),
+		'sombra'                 => array( 'variable' => '--sofia-sombra', 'categoria' => 'shadow', 'etiqueta' => 'Sombra por defecto' ),
+		'espaciado_base'         => array( 'variable' => '--sofia-espaciado-base', 'categoria' => 'space', 'etiqueta' => 'Espaciado base entre secciones' ),
+		'ancho_minimo_pantalla'  => array( 'variable' => '--sofia-ancho-minimo-pantalla', 'categoria' => 'breakpoint', 'etiqueta' => 'Ancho mínimo de pantalla' ),
+		'ancho_maximo_pantalla'  => array( 'variable' => '--sofia-ancho-maximo-pantalla', 'categoria' => 'breakpoint', 'etiqueta' => 'Ancho máximo de pantalla' ),
 	);
 
 	/**
@@ -42,6 +77,9 @@ class Sofia_Estilo_Global {
 	 * (--sofia-fuente-display/--sofia-fuente-texto), que el CSS del tema
 	 * (style.css) puede usar como default de toda la tipografía del sitio,
 	 * sin que cada Componente tenga que declarar su propio font-family.
+	 * NO son tokens de CF (CF no expone font-family, solo tamaños de
+	 * texto) — siguen siendo una lista curada propia, sin cambios por esta
+	 * conversación.
 	 */
 	private const FUENTES_PERMITIDAS = array(
 		'display' => array( 'variable' => '--sofia-fuente-display', 'valor' => "'Fraunces', serif" ),
@@ -49,25 +87,27 @@ class Sofia_Estilo_Global {
 	);
 
 	/**
-	 * MEDIDAS_PERMITIDAS: whitelist de propiedades de tamaño/espaciado base
-	 * del sitio — mismo criterio que COLORES_PERMITIDOS, pero acá el valor
-	 * es siempre INPUT LIBRE (px/rem/%) o un token de Core Framework, nunca
-	 * una opción fija — se valida con el mismo patrón que
-	 * Sofia_Componente::PATRON_MEDIDA_CSS (Nivel 1/2) antes de emitirse.
+	 * roles_sitio(): expone ROLES_SITIO al frontend (PanelEstiloGlobal.jsx)
+	 * — el panel construye sus 13 controles a partir de esto en vez de
+	 * tenerlos hardcodeados, mismo criterio "PHP es la única fuente de
+	 * verdad de qué controles existen" que ya usa
+	 * Sofia_Componente_Factory::schema_de()/schema_estilo_ia_de() para
+	 * Nivel 2. Incluye BREAKPOINT_TOKEN_POR_ROL solo para los roles con
+	 * categoria "breakpoint" — el panel lo necesita para mostrar QUÉ
+	 * token real activaría el toggle (ver el comentario largo en
+	 * imprimir() sobre por qué breakpoint es un toggle, no un selector).
+	 *
+	 * @return array<string,array{variable:string,categoria:string,etiqueta:string,token_fijo?:string}>
 	 */
-	private const MEDIDAS_PERMITIDAS = array(
-		'tamano_base'    => '--sofia-tamano-base',
-		'espaciado_base' => '--sofia-espaciado-base',
-	);
-
-	/**
-	 * Mismo patrón exacto que Sofia_Componente::PATRON_MEDIDA_CSS — un
-	 * valor de medida (nunca un token de Core Framework, esos ya vienen
-	 * resueltos por resolver_valor() antes de llegar acá) tiene que ser un
-	 * número con unidad px/rem/% para poder emitirse, mismo criterio de
-	 * "nunca CSS arbitrario" que el resto del editor.
-	 */
-	private const PATRON_MEDIDA_CSS = '/^-?\d+(\.\d+)?(px|rem|%)$/';
+	public static function roles_sitio(): array {
+		$roles = self::ROLES_SITIO;
+		foreach ( $roles as $rol => &$definicion ) {
+			if ( 'breakpoint' === $definicion['categoria'] && isset( self::BREAKPOINT_TOKEN_POR_ROL[ $rol ] ) ) {
+				$definicion['token_fijo'] = self::BREAKPOINT_TOKEN_POR_ROL[ $rol ];
+			}
+		}
+		return $roles;
+	}
 
 	/**
 	 * Prefijo que distingue "este valor es una REFERENCIA a un token de
@@ -579,10 +619,30 @@ class Sofia_Estilo_Global {
 	}
 
 	/**
+	 * BREAKPOINT_TOKEN_POR_ROL: el ÚNICO nombre de token real de CF que
+	 * corresponde a cada rol "breakpoint" — a diferencia del resto de
+	 * categorías (5-6 opciones en una escala), CF solo define UN token
+	 * fijo para esto (confirmado leyendo el CSS real: "min-screen-width",
+	 * "max-screen-width", sin variantes). El rol guardado en el JSON es
+	 * solo "activo" (string no vacío) o ausente — nunca el nombre del
+	 * token, que siempre es este fijo — ver imprimir().
+	 */
+	private const BREAKPOINT_TOKEN_POR_ROL = array(
+		'ancho_minimo_pantalla' => 'min-screen-width',
+		'ancho_maximo_pantalla' => 'max-screen-width',
+	);
+
+	/**
 	 * Imprime <style>:root{...}</style> con las custom properties
 	 * configuradas — string vacío (nada impreso) si el sitio no tiene
 	 * estilo global guardado, mismo criterio de "no romper nada" que
 	 * Sofia_Componente::atributo_estilo().
+	 *
+	 * Shape del JSON simplificado a un solo grupo plano
+	 * {roles: {rol: valor}} — ver el comentario largo en ROLES_SITIO
+	 * sobre por qué se abandonó {colores, tipografia, medidas} (3 grupos
+	 * que ya no reflejaban nada real una vez que todo pasó a ser "un
+	 * token de CF asignado a un rol").
 	 */
 	public static function imprimir(): void {
 		$estilo = Sofia_Cliente_GoPress::obtener_estilo_global();
@@ -591,14 +651,43 @@ class Sofia_Estilo_Global {
 		}
 
 		$declaraciones = array();
+		$roles         = is_array( $estilo['roles'] ?? null ) ? $estilo['roles'] : array();
+		$nombres_cf    = null; // cargado perezoso solo si hace falta validar un breakpoint, ver abajo.
 
-		$colores = is_array( $estilo['colores'] ?? null ) ? $estilo['colores'] : array();
-		foreach ( self::COLORES_PERMITIDOS as $clave => $variable_css ) {
-			if ( empty( $colores[ $clave ] ) || ! is_string( $colores[ $clave ] ) ) {
+		foreach ( self::ROLES_SITIO as $rol => $definicion ) {
+			$valor_guardado = $roles[ $rol ] ?? null;
+			if ( empty( $valor_guardado ) || ! is_string( $valor_guardado ) ) {
 				continue;
 			}
-			$valor            = self::resolver_valor( $colores[ $clave ] );
-			$declaraciones[] = $variable_css . ':' . ( str_starts_with( $valor, 'var(' ) ? $valor : esc_attr( $valor ) );
+
+			if ( 'breakpoint' === $definicion['categoria'] ) {
+				// "activo" (cualquier string no vacío) → el token FIJO de
+				// ese rol, pero SOLO si de verdad existe en el CF real de
+				// este sitio — "que sí lo detecte Sofia Studio", pedido
+				// explícito del usuario: nunca emitir var(--min-screen-width)
+				// a ciegas si el plugin no lo define (una config de CF
+				// distinta podría no tenerlo).
+				if ( null === $nombres_cf ) {
+					$nombres_cf = self::variables_core_framework();
+				}
+				$token_real = self::BREAKPOINT_TOKEN_POR_ROL[ $rol ] ?? null;
+				if ( null !== $token_real && in_array( $token_real, $nombres_cf, true ) ) {
+					$declaraciones[] = $definicion['variable'] . ':var(--' . $token_real . ')';
+				}
+				continue;
+			}
+
+			// Resto de categorías (color/texto/radius/shadow/space): SIEMPRE
+			// un token de CF ("cf:{nombre}") — a diferencia del sistema
+			// viejo, ya no se acepta un valor libre a mano acá (ese era
+			// justo el "sistema paralelo" que esta conversación eliminó).
+			// Un valor guardado que no es token con nombre (dato viejo de
+			// antes de este cambio, o corrupto) se ignora en silencio,
+			// mismo criterio defensivo que el resto del editor.
+			if ( ! self::es_token_con_nombre( $valor_guardado ) ) {
+				continue;
+			}
+			$declaraciones[] = $definicion['variable'] . ':' . self::resolver_valor( $valor_guardado );
 		}
 
 		$tipografia = is_array( $estilo['tipografia'] ?? null ) ? $estilo['tipografia'] : array();
@@ -608,27 +697,6 @@ class Sofia_Estilo_Global {
 			}
 			$fuente          = self::FUENTES_PERMITIDAS[ $tipografia[ $rol ] ];
 			$declaraciones[] = $fuente['variable'] . ':' . $fuente['valor'];
-		}
-
-		$medidas = is_array( $estilo['medidas'] ?? null ) ? $estilo['medidas'] : array();
-		foreach ( self::MEDIDAS_PERMITIDAS as $clave => $variable_css ) {
-			if ( empty( $medidas[ $clave ] ) || ! is_string( $medidas[ $clave ] ) ) {
-				continue;
-			}
-			$valor = self::resolver_valor( $medidas[ $clave ] );
-			if ( str_starts_with( $valor, 'var(' ) ) {
-				// Token de Core Framework — ya viene resuelto por
-				// resolver_valor(), nunca se valida como medida CSS (el
-				// contenido real vive del lado de Core Framework, no acá).
-				$declaraciones[] = $variable_css . ':' . $valor;
-				continue;
-			}
-			// Input libre (px/rem/%) — mismo criterio de whitelist que
-			// Sofia_Componente::PATRON_MEDIDA_CSS: un valor que no matchea
-			// se ignora en silencio, nunca CSS arbitrario.
-			if ( preg_match( self::PATRON_MEDIDA_CSS, $valor ) ) {
-				$declaraciones[] = $variable_css . ':' . esc_attr( $valor );
-			}
 		}
 
 		if ( empty( $declaraciones ) ) {
