@@ -793,30 +793,28 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
-/* Muestra de escala (espaciado/radio/sombra): una cajita neutra que aplica
-   la propiedad CSS REAL de ese token — un rectángulo con el radio/sombra
-   real, o una barra cuyo ANCHO crece con el espaciado real — así el
-   usuario ve el efecto, no adivina qué significa "Amplio" en abstracto. */
+/* Muestra de escala (espaciado/radio/sombra): una cajita neutra donde el
+   componente aplica el border-radius/box-shadow/width REAL inline (ver
+   CampoTokenVisual.jsx) — nunca "var(--token)" en CSS estático, esa
+   variable no existe en el documento de wp-admin (mismo bug real ya
+   corregido una vez para el swatch de color). */
 .sofia-token-visual__muestra {
   display: block;
   width: 22px;
   height: 22px;
   background: var(--gp-panel-3, #2a2a2a);
   border: 1px solid var(--gp-panel-border);
-}
-
-.sofia-token-visual__muestra--radius {
-  border-radius: var(--sofia-token-visual-valor);
-}
-
-.sofia-token-visual__muestra--shadow {
-  box-shadow: var(--sofia-token-visual-valor);
+  flex-shrink: 0;
 }
 
 /* space: la única categoría donde el TAMAÑO de la muestra (no un efecto
-   visual sutil) comunica la escala — una barra que crece en ancho. */
+   visual sutil) comunica la escala — una barra que crece en ancho. El
+   valor real de Core Framework usa clamp()+vw (ej. "clamp(1rem,calc(1.81vw
+   + 0.89rem),2.47rem)", ver la memoria de producto) — puede superar los
+   22px de alto/ancho base en pantallas grandes, así que altura fija +
+   max-width evita que la fila de opciones crezca de forma impredecible
+   mientras el ancho SÍ varía visiblemente entre Mínimo y Máximo. */
 .sofia-token-visual__muestra--space {
-  width: var(--sofia-token-visual-valor);
   height: 8px;
   min-width: 8px;
   max-width: 40px;
@@ -865,13 +863,22 @@ body {
   border-color: var(--gp-accent);
 }
 
+/* Base neutra + el estiloPreview inline de SelectorTokenAvanzado.jsx
+   sobreescribe la propiedad real: background (color, con border-radius
+   circular vía modificador de abajo), border-radius (radius), box-shadow
+   (shadow), o width (space) — mismo criterio que
+   .sofia-token-visual__muestra del selector básico. */
 .sofia-selector-token-avanzado__swatch-chico {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  background: var(--gp-panel-3, #2a2a2a);
   border: 1px solid rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
+}
+
+.sofia-selector-token-avanzado__swatch-chico--color {
+  border-radius: 50%;
 }
 
 .sofia-selector-token-avanzado__menu {

@@ -186,8 +186,57 @@ class Sofia_Estilo_Global {
 				$valores[ $nombre ] = trim( $match[2] );
 			}
 		}
+
+		// Resolver referencias var(--otro-nombre) DENTRO de un valor —
+		// bug real encontrado probando en vivo: shadow-l/m/s/xl/xs se
+		// declaran como "0 3px 12px var(--shadow-primary)" (una sombra
+		// completa que REFERENCIA otra variable para el color) — sin
+		// resolver esa referencia, el valor "crudo" que se manda al
+		// selector visual seguía conteniendo un var() sin resolver, y
+		// box-shadow no se veía distinto entre "Sutil" y "Fuerte" por el
+		// mismo motivo original (esa variable tampoco existe en
+		// wp-admin). Se resuelve ACÁ, una sola vez, para que CUALQUIER
+		// consumidor (catálogo visual, selector avanzado) reciba
+		// siempre valores ya completos, nunca con un var() colgante.
+		foreach ( $valores as $nombre => $valor ) {
+			$valores[ $nombre ] = self::resolver_referencias_var( $valor, $valores );
+		}
+
 		ksort( $valores );
 		return $valores;
+	}
+
+	/**
+	 * resolver_referencias_var( $valor, $todos_los_valores ): reemplaza
+	 * CADA "var(--nombre)" (u opcional "var(--nombre, fallback)") dentro
+	 * de $valor por el valor REAL de esa variable en $todos_los_valores —
+	 * recursivo (una variable puede referenciar otra que a su vez
+	 * referencia otra), con un límite de 5 niveles de profundidad como
+	 * protección contra una referencia circular en el CSS real del plugin
+	 * (nunca vista en la práctica, pero un bucle infinito sería peor que
+	 * dejar un var() sin resolver en el caso límite). Una referencia a un
+	 * nombre DESCONOCIDO (no está en $todos_los_valores) se deja tal cual
+	 * — nunca se inventa un valor, mejor un var() colgante ocasional que
+	 * silencioso texto incorrecto.
+	 */
+	private static function resolver_referencias_var( string $valor, array $todos_los_valores, int $profundidad = 0 ): string {
+		if ( $profundidad >= 5 || false === strpos( $valor, 'var(--' ) ) {
+			return $valor;
+		}
+
+		$resuelto = preg_replace_callback(
+			'/var\(\s*--([a-zA-Z0-9_-]+)\s*(?:,\s*([^)]+))?\)/',
+			function ( $match ) use ( $todos_los_valores, $profundidad ) {
+				$nombre_referenciado = $match[1];
+				if ( isset( $todos_los_valores[ $nombre_referenciado ] ) ) {
+					return self::resolver_referencias_var( $todos_los_valores[ $nombre_referenciado ], $todos_los_valores, $profundidad + 1 );
+				}
+				return $match[0]; // nombre desconocido — se deja tal cual, nunca se inventa un valor.
+			},
+			$valor
+		);
+
+		return null === $resuelto ? $valor : $resuelto; // preg_replace_callback devuelve null solo ante un error de regex real.
 	}
 
 	/**
@@ -442,6 +491,19 @@ class Sofia_Estilo_Global {
 		$valores   = self::variables_core_framework_con_valor();
 		$catalogo  = array();
 
+		// Categorías con preview real — bug real corregido tras probar en
+		// vivo: originalmente SOLO "color" mandaba preview, radius/shadow/
+		// space quedaban sin nada y el frontend armaba
+		// "var(--{token})" a mano (ver el CSS de admin-app/src/style.css,
+		// .sofia-token-visual__muestra) — mismo bug que ya tuvimos con
+		// color: esa variable nunca existe en el documento de wp-admin
+		// (Core Framework solo se enlaza al frontend público, ver
+		// enlazar_css_core_framework()), así que TODAS las muestras se
+		// veían idénticas (radio "Circular" igual a "Recto", etc.). Ahora
+		// las 4 categorías con escala real mandan su valor CRUDO ya
+		// resuelto — el mismo criterio que color, aplicado también acá.
+		$categorias_con_preview = array( 'color', 'radius', 'shadow', 'space' );
+
 		foreach ( $agrupadas as $categoria => $nombres ) {
 			$catalogo[ $categoria ] = array();
 			foreach ( $nombres as $nombre ) {
@@ -450,7 +512,7 @@ class Sofia_Estilo_Global {
 					continue; // sin traducción conocida — queda solo en modo avanzado (texto libre).
 				}
 				$entrada = array( 'token' => $nombre, 'etiqueta' => $etiqueta );
-				if ( 'color' === $categoria && isset( $valores[ $nombre ] ) ) {
+				if ( in_array( $categoria, $categorias_con_preview, true ) && isset( $valores[ $nombre ] ) ) {
 					$entrada['preview'] = $valores[ $nombre ];
 				}
 				$catalogo[ $categoria ][] = $entrada;

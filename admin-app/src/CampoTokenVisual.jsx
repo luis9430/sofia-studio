@@ -2,6 +2,13 @@ import { useEffect, useState } from "preact/hooks";
 import { CampoConToken, PREFIJO_TOKEN_CORE_FRAMEWORK } from "./CampoConToken.jsx";
 import { SelectorTokenAvanzado } from "./SelectorTokenAvanzado.jsx";
 
+// CATEGORIAS_CON_PREVIEW: mismas 4 que
+// Sofia_Estilo_Global::catalogo_tokens_visual() manda con "preview" real
+// (ver el comentario largo ahí) — "texto"/"otras" no tienen un valor
+// "pintable" como propiedad CSS de una sola línea, así que su modo
+// avanzado sigue siendo el <input>+datalist simple de CampoConToken.jsx.
+const CATEGORIAS_CON_PREVIEW = ["color", "radius", "shadow", "space"];
+
 /**
  * CampoTokenVisual — selector VISUAL de tokens de Core Framework, con
  * etiqueta humana + preview (swatch de color / muestra de espaciado-radio-
@@ -66,17 +73,21 @@ export function CampoTokenVisual({ categoria = "color", valor, onCambiar, restUr
   if (!catalogo || opciones.length === 0 || modoAvanzado) {
     return (
       <div className="sofia-token-visual">
-        {categoria === "color" && esToken ? (
+        {CATEGORIAS_CON_PREVIEW.includes(categoria) && esToken ? (
           // SelectorTokenAvanzado (no el <input list=...> de
-          // CampoConToken) — swatch real por cada una de las 154
+          // CampoConToken) — preview real por cada una de las 154
           // variables, ver el comentario largo del componente. Solo
           // reemplaza el INPUT del modo token; el botón "CF" sigue siendo
           // el de CampoConToken de siempre (mismo componente, mismo
           // toggle) para no duplicar esa lógica — se renderiza acá aparte
           // porque CampoConToken no acepta inyectar un input custom en su
-          // lugar del <input list=...>.
+          // lugar del <input list=...>. Extendido a radius/shadow/space
+          // (no solo color) tras probar en vivo: el modo avanzado de esas
+          // 3 categorías seguía siendo el datalist "a granel" original —
+          // mismo bug, mismo fix.
           <div className="sofia-campo-token__fila">
             <SelectorTokenAvanzado
+              categoria={categoria}
               valor={tokenActual}
               onCambiar={(nombreToken) => onCambiar(PREFIJO_TOKEN_CORE_FRAMEWORK + nombreToken)}
               restUrl={restUrl}
@@ -120,14 +131,32 @@ export function CampoTokenVisual({ categoria = "color", valor, onCambiar, restUr
             title={opcion.etiqueta}
             onClick={() => onCambiar(tokenActual === opcion.token ? "" : PREFIJO_TOKEN_CORE_FRAMEWORK + opcion.token)}
           >
-            {/* El preview ES el control — un swatch de color real, o (para
-                espaciado/radio/sombra) una muestra visual con la propiedad
-                real aplicada vía CSS var(), nunca solo texto. "Lo que se
-                puede preview estaría bien" — pedido explícito del usuario. */}
-            {opcion.preview ? (
+            {/* El preview ES el control — nunca solo texto. "color" pinta
+                un swatch circular con el color real; radius/shadow/space
+                aplican el VALOR CRUDO real (ver
+                Sofia_Estilo_Global::catalogo_tokens_visual()) a la
+                propiedad CSS que corresponde — border-radius/box-shadow/
+                width — nunca "var(--token)" a mano: esa variable no
+                existe en el documento de wp-admin (bug real ya corregido
+                una vez para color, replicado acá porque el mismo
+                problema afectaba a estas 3 categorías también). Sin
+                preview (categoría desconocida) cae a un cuadrado neutro
+                sin efecto, mejor que romper el layout. */}
+            {categoria === "color" && opcion.preview ? (
               <span className="sofia-token-visual__swatch" style={{ background: opcion.preview }} />
             ) : (
-              <span className={`sofia-token-visual__muestra sofia-token-visual__muestra--${categoria}`} style={{ "--sofia-token-visual-valor": `var(--${opcion.token})` }} />
+              <span
+                className={`sofia-token-visual__muestra sofia-token-visual__muestra--${categoria}`}
+                style={
+                  categoria === "radius"
+                    ? { borderRadius: opcion.preview }
+                    : categoria === "shadow"
+                      ? { boxShadow: opcion.preview }
+                      : categoria === "space"
+                        ? { width: opcion.preview }
+                        : undefined
+                }
+              />
             )}
             <span className="sofia-token-visual__etiqueta">{opcion.etiqueta}</span>
           </button>
