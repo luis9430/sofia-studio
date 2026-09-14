@@ -737,6 +737,107 @@ body {
   justify-content: space-between;
 }
 
+/* CampoTokenVisual.jsx — selector visual de tokens de Core Framework con
+   etiqueta humana + preview real (ver el comentario largo en el
+   componente). Cada opción es un botón con su preview (swatch de color, o
+   una muestra con la propiedad CSS real aplicada) + etiqueta corta debajo
+   — nunca solo texto, "lo que se puede preview" fue pedido explícito del
+   usuario. */
+.sofia-token-visual__opciones {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sofia-token-visual__opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 56px;
+}
+
+.sofia-token-visual__opcion:hover {
+  border-color: var(--gp-accent);
+}
+
+.sofia-token-visual__opcion--activa {
+  background: var(--gp-accent-soft);
+  border-color: var(--gp-accent);
+}
+
+.sofia-token-visual__etiqueta {
+  font-size: 10.5px;
+  color: var(--gp-panel-text-dim);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.sofia-token-visual__opcion--activa .sofia-token-visual__etiqueta {
+  color: var(--gp-accent-text);
+}
+
+/* Swatch de color: círculo lleno con el color real (var(--primary), etc.)
+   — la categoría "color" es la única con preview de VALOR real, no de
+   ESCALA (ver --sofia-token-visual-valor abajo). */
+.sofia-token-visual__swatch {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Muestra de escala (espaciado/radio/sombra): una cajita neutra que aplica
+   la propiedad CSS REAL de ese token — un rectángulo con el radio/sombra
+   real, o una barra cuyo ANCHO crece con el espaciado real — así el
+   usuario ve el efecto, no adivina qué significa "Amplio" en abstracto. */
+.sofia-token-visual__muestra {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: var(--gp-panel-3, #2a2a2a);
+  border: 1px solid var(--gp-panel-border);
+}
+
+.sofia-token-visual__muestra--radius {
+  border-radius: var(--sofia-token-visual-valor);
+}
+
+.sofia-token-visual__muestra--shadow {
+  box-shadow: var(--sofia-token-visual-valor);
+}
+
+/* space: la única categoría donde el TAMAÑO de la muestra (no un efecto
+   visual sutil) comunica la escala — una barra que crece en ancho. */
+.sofia-token-visual__muestra--space {
+  width: var(--sofia-token-visual-valor);
+  height: 8px;
+  min-width: 8px;
+  max-width: 40px;
+  border-radius: 2px;
+}
+
+.sofia-token-visual__modo {
+  margin-top: 6px;
+  background: none;
+  border: none;
+  color: var(--gp-panel-text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.sofia-token-visual__modo:hover {
+  color: var(--gp-panel-text);
+}
+
 .sofia-drawer-estilo__toggle {
   padding: 6px 12px;
   border: 1px solid var(--gp-panel-border);

@@ -226,6 +226,168 @@ class Sofia_Estilo_Global {
 	}
 
 	/**
+	 * ETIQUETAS_ESCALA: traduce el SUFIJO de escala de un token
+	 * (space-xs/s/m/l/xl, radius-xs/s/m/l/xl/full, shadow-xs/s/m/l/xl) a
+	 * lenguaje humano — decisión de arquitectura tomada con el usuario
+	 * ("lenguaje y lo que se puede preview estaría bien", ver la
+	 * conversación en la memoria de producto): con 154 variables reales
+	 * (confirmado leyendo el CSS exportado de Core Framework), un nombre
+	 * técnico como "space-m" o "radius-xl" no le dice nada a un usuario
+	 * que solo quiere "un poco más de aire" — necesita una etiqueta, no
+	 * memorizar el catálogo. "xs/s/m/l/xl" NO se traduce literal a
+	 * "muy chico/chico/mediano/grande/muy grande" (sonaría a talles de
+	 * ropa) — se usa vocabulario de diseño real, mismo que el usuario
+	 * pidió explícitamente ("Compacto / Base / Amplio").
+	 *
+	 * Cada categoría tiene su propio set de etiquetas (nunca "Compacto"
+	 * para una sombra) porque "poca sombra" y "poco espaciado" no son la
+	 * misma idea aunque ambos sean una escala xs..xl — mismo criterio que
+	 * ya separaba "categoria" en variables_core_framework_por_categoria().
+	 */
+	private const ETIQUETAS_ESCALA = array(
+		'space'  => array(
+			'xs' => 'Mínimo',
+			's'  => 'Compacto',
+			'm'  => 'Base',
+			'l'  => 'Amplio',
+			'xl' => 'Máximo',
+		),
+		'radius' => array(
+			'xs'   => 'Recto',
+			's'    => 'Sutil',
+			'm'    => 'Base',
+			'l'    => 'Redondeado',
+			'xl'   => 'Muy redondeado',
+			'full' => 'Circular',
+		),
+		'shadow' => array(
+			'xs' => 'Ninguna',
+			's'  => 'Sutil',
+			'm'  => 'Base',
+			'l'  => 'Marcada',
+			'xl' => 'Fuerte',
+		),
+	);
+
+	/**
+	 * ETIQUETAS_COLOR: nombre humano de cada color BASE (sin sufijo de
+	 * tono/opacidad, ver etiqueta_de_color() abajo) — a diferencia de las
+	 * escalas de arriba, un color no necesita traducción de "tamaño", el
+	 * propio nombre + su swatch visual (ver catalogo_tokens_visual()) ya
+	 * comunican qué es. Solo se listan los 6 colores reales confirmados en
+	 * el CSS exportado (primary/secondary/tertiary/success/error, más
+	 * bg-body/bg-surface/border-primary semánticos) — cualquier otro color
+	 * que el CSS real tenga pero no esté acá cae a "otras" (mismo criterio
+	 * de "nunca se descarta, solo queda sin categorizar" que
+	 * categoria_de_variable()).
+	 */
+	private const ETIQUETAS_COLOR = array(
+		'primary'       => 'Primario',
+		'secondary'     => 'Secundario',
+		'tertiary'      => 'Terciario',
+		'success'       => 'Éxito',
+		'error'         => 'Error',
+		'bg-body'       => 'Fondo',
+		'bg-surface'    => 'Fondo (superficie)',
+		'border-primary' => 'Borde',
+	);
+
+	/**
+	 * etiqueta_de( $categoria, $nombre ): traduce UN nombre técnico
+	 * (ej. "space-l", "primary-40") a su etiqueta humana — usa
+	 * ETIQUETAS_ESCALA para space/radius/shadow (matchea el sufijo tras
+	 * el último "-") y ETIQUETAS_COLOR para color (matchea el nombre BASE,
+	 * ignorando sufijos de tono "-40"/opacidad "-d-1"/etc, ver el
+	 * comentario largo abajo). Devuelve null si no hay traducción
+	 * conocida — el catálogo visual SOLO expone tokens con etiqueta (ver
+	 * catalogo_tokens_visual()), cualquier variable sin traducir queda
+	 * disponible únicamente en el modo "avanzado" (texto libre,
+	 * CampoConToken.jsx sin cambios), nunca se le miente al usuario con
+	 * una etiqueta inventada.
+	 */
+	private static function etiqueta_de( string $categoria, string $nombre ): ?string {
+		if ( 'color' === $categoria ) {
+			return self::etiqueta_de_color( $nombre );
+		}
+		if ( ! isset( self::ETIQUETAS_ESCALA[ $categoria ] ) ) {
+			return null;
+		}
+		$sufijo = substr( $nombre, strrpos( $nombre, '-' ) + 1 );
+		return self::ETIQUETAS_ESCALA[ $categoria ][ $sufijo ] ?? null;
+	}
+
+	/**
+	 * etiqueta_de_color( $nombre ): el CSS real de Core Framework no
+	 * exporta SOLO "primary" — exporta la familia completa ("primary",
+	 * "primary-5".."primary-90" de opacidad, "primary-d-1".."d-4" oscuros,
+	 * "primary-l-1".."l-4" claros — confirmado contando 154 variables
+	 * reales contra ~6 colores base, la mayoría son variantes de tono).
+	 * El catálogo VISUAL (para el usuario elegir con etiqueta+swatch) solo
+	 * expone el color BASE de cada familia — mostrar 10+ variantes de
+	 * "Primario" con nombres tipo "Primario 40% opacidad" sería exactamente
+	 * la sobrecarga que esta pieza busca evitar. Las variantes de tono
+	 * siguen existiendo y siguen siendo válidas como valor "cf:primary-40"
+	 * a mano en el modo avanzado — no se pierden, solo no aparecen en el
+	 * selector visual básico.
+	 */
+	private static function etiqueta_de_color( string $nombre ): ?string {
+		return self::ETIQUETAS_COLOR[ $nombre ] ?? null;
+	}
+
+	/**
+	 * catalogo_tokens_visual(): catálogo de tokens de Core Framework
+	 * AGRUPADO por categoría y con ETIQUETA HUMANA — la pieza que permite
+	 * un selector visual real (ver CampoTokenVisual.jsx, admin-app) en vez
+	 * del <input> de texto libre con autocompletado que CampoConToken.jsx
+	 * ya ofrecía. Decisión de arquitectura de esta conversación (ver la
+	 * memoria de producto): Core Framework en sí es un sistema de diseño
+	 * sólido (154 tokens, escalas coherentes, responsive fluido real vía
+	 * clamp()) — el problema nunca fue el plugin, fue que Sofia Studio lo
+	 * exponía como texto libre sin ningún criterio de "esto se ve así" ni
+	 * traducción a lenguaje humano.
+	 *
+	 * Solo incluye tokens con ETIQUETA CONOCIDA (ver etiqueta_de()) — a
+	 * diferencia de variables_core_framework_por_categoria() (usada por el
+	 * modo avanzado de CampoConToken.jsx, que sigue mostrando las 154
+	 * variables sin filtrar como sugerencias de texto libre), este
+	 * catálogo es deliberadamente MÁS CHICO: 5-6 pasos por escala + los
+	 * colores base, nunca las 154 variantes completas — ver el
+	 * comentario largo en etiqueta_de_color().
+	 *
+	 * $preview (solo categoría "color"): el valor CSS real
+	 * ("var(--primary)") para que el selector pinte un swatch de verdad,
+	 * no solo el nombre — mismo criterio "lo que se puede preview" pedido
+	 * explícitamente por el usuario.
+	 *
+	 * @return array<string,array<int,array{token:string,etiqueta:string,preview?:string}>>
+	 *         {categoria => [{token, etiqueta, preview?}]} — mismas 6
+	 *         categorías que variables_core_framework_por_categoria()
+	 *         ("otras" siempre presente, aunque vacía: esa categoría no
+	 *         tiene traducción posible por definición).
+	 */
+	public static function catalogo_tokens_visual(): array {
+		$agrupadas = self::variables_core_framework_por_categoria();
+		$catalogo  = array();
+
+		foreach ( $agrupadas as $categoria => $nombres ) {
+			$catalogo[ $categoria ] = array();
+			foreach ( $nombres as $nombre ) {
+				$etiqueta = self::etiqueta_de( $categoria, $nombre );
+				if ( null === $etiqueta ) {
+					continue; // sin traducción conocida — queda solo en modo avanzado (texto libre).
+				}
+				$entrada = array( 'token' => $nombre, 'etiqueta' => $etiqueta );
+				if ( 'color' === $categoria ) {
+					$entrada['preview'] = 'var(--' . $nombre . ')';
+				}
+				$catalogo[ $categoria ][] = $entrada;
+			}
+		}
+
+		return $catalogo;
+	}
+
+	/**
 	 * Enlaza el CSS YA GENERADO por Core Framework (un archivo físico en
 	 * wp-content/uploads/core-framework/css/core_framework.css, ver
 	 * \CoreFramework\StylesheetStorage::get_url()/get_version()) — SIN

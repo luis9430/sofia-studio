@@ -1,4 +1,4 @@
-import { CampoConToken } from "./CampoConToken.jsx";
+import { CampoTokenVisual } from "./CampoTokenVisual.jsx";
 
 /**
  * CampoDesdeSchema — un control de Nivel 2 (estilo de bloque) renderizado a
@@ -15,16 +15,20 @@ import { CampoConToken } from "./CampoConToken.jsx";
  * - "select": <select> de opciones fijas ({opciones:[{valor,etiqueta}]}).
  * - "botones_numero": fila de botones exclusivos de un número
  *   ({opciones:["2","3","4"]}), ej. Columnas/Columnas de grilla.
- * - "color_token" / "medida_token": CampoConToken.jsx tal cual
- *   ({categoria, con_unidad, placeholder}) — "color_token" fija
- *   tipo="color" categoria="color"; "medida_token" usa lo que declare el
- *   schema (radius/shadow/space/etc.).
+ * - "color_token" / "medida_token": CampoTokenVisual.jsx — selector VISUAL
+ *   con etiqueta humana + preview (Espaciado: Compacto/Base/Amplio, no un
+ *   input de texto con 154 nombres técnicos como sugerencia) sobre el
+ *   catálogo de Sofia_Estilo_Global::catalogo_tokens_visual(); cae a
+ *   CampoConToken.jsx (texto libre + autocompletado) en modo "Avanzado" —
+ *   ver el comentario largo en CampoTokenVisual.jsx. "color_token" fija
+ *   categoria="color"; "medida_token" usa lo que declare el schema
+ *   (radius/shadow/space/etc.).
  * - "toggle": botón on/off — a diferencia de Nivel 1 (Negrita/Sombra de
  *   texto, que activan un valor pre-armado propio de cada campo), acá
  *   activa/desactiva simplemente "true"/"" (ningún Componente de Nivel 2
  *   necesitó hoy un valor pre-armado distinto).
  */
-export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar }) {
+export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar, restUrl, nonce }) {
   const { tipo, etiqueta, ayuda, opciones } = definicion;
 
   return (
@@ -48,17 +52,16 @@ export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar }) {
       )}
 
       {tipo === "color_token" && (
-        <CampoConToken tipo="color" categoria="color" valor={valor} onCambiar={onCambiar} />
+        <CampoTokenVisual categoria="color" valor={valor} onCambiar={onCambiar} restUrl={restUrl} nonce={nonce} />
       )}
 
       {tipo === "medida_token" && (
-        <CampoConToken
-          tipo="text"
+        <CampoTokenVisual
           categoria={definicion.categoria || "otras"}
-          conUnidad={definicion.con_unidad !== false}
-          placeholderNormal={definicion.placeholder}
           valor={valor}
           onCambiar={onCambiar}
+          restUrl={restUrl}
+          nonce={nonce}
         />
       )}
 
@@ -91,7 +94,7 @@ export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar }) {
  * CampoDesdeSchema por entrada — lo que DrawerEstilo.jsx monta entero para
  * nivel="bloque" en vez del bloque de JSX fijo que tenía antes.
  */
-export function CamposDesdeSchema({ schema, estilo, actualizar }) {
+export function CamposDesdeSchema({ schema, estilo, actualizar, restUrl, nonce }) {
   return Object.entries(schema).map(([nombre, definicion]) => (
     <CampoDesdeSchema
       key={nombre}
@@ -99,6 +102,8 @@ export function CamposDesdeSchema({ schema, estilo, actualizar }) {
       definicion={definicion}
       valor={estilo[nombre]}
       onCambiar={(valorNuevo) => actualizar({ [nombre]: valorNuevo })}
+      restUrl={restUrl}
+      nonce={nonce}
     />
   ));
 }

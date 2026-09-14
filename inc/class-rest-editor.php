@@ -131,6 +131,16 @@ class Sofia_REST_Editor {
 				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
 			)
 		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/core-framework/tokens-visual',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'tokens_core_framework_visual' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
 	}
 
 	/**
@@ -1054,6 +1064,24 @@ class Sofia_REST_Editor {
 	 */
 	public static function variables_core_framework( WP_REST_Request $request ) {
 		return rest_ensure_response( Sofia_Estilo_Global::variables_core_framework_por_categoria() );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/core-framework/tokens-visual — catálogo de
+	 * tokens CON ETIQUETA HUMANA + preview (ver
+	 * Sofia_Estilo_Global::catalogo_tokens_visual()), consumido por
+	 * CampoTokenVisual.jsx (admin-app) para el selector visual — decisión
+	 * de arquitectura de esta conversación (ver la memoria de producto):
+	 * "Espaciado: Compacto/Base/Amplio", no un <input> de texto libre con
+	 * 154 nombres técnicos como sugerencia. Endpoint SEPARADO de
+	 * /core-framework/variables (que sigue sirviendo al modo "avanzado" de
+	 * CampoConToken.jsx sin cambios) — mismo criterio de "básico vs
+	 * avanzado" que el resto de esta pieza: el catálogo visual es
+	 * deliberadamente MÁS CHICO (5-6 pasos por escala, colores BASE sin
+	 * variantes de tono) que el catálogo completo de 154 variables.
+	 */
+	public static function tokens_core_framework_visual( WP_REST_Request $request ) {
+		return rest_ensure_response( Sofia_Estilo_Global::catalogo_tokens_visual() );
 	}
 }
 

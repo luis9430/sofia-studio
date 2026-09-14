@@ -444,7 +444,7 @@ export function DrawerEstilo({
             )}
 
             {nivel === "bloque" && schemaBloque && (
-              <CamposDesdeSchema schema={schemaBloque} estilo={estilo} actualizar={actualizar} />
+              <CamposDesdeSchema schema={schemaBloque} estilo={estilo} actualizar={actualizar} restUrl={restUrl} nonce={nonce} />
             )}
 
             {nivel === "bloque" && !schemaBloque && (
