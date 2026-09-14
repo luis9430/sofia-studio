@@ -440,7 +440,9 @@
 			return;
 		}
 		if (datos.tipo === "sofia:eliminar-bloque") {
-			alEliminarBloque(datos.indice);
+			// datos.id (no datos.indice) — ver el comentario largo en
+			// alEliminarBloque() sobre el cambio de contrato de Fase 3.
+			alEliminarBloque(datos.id);
 			return;
 		}
 		if (datos.tipo === "sofia:eliminar-item-lista") {
@@ -448,7 +450,7 @@
 			return;
 		}
 		if (datos.tipo === "sofia:insertar-bloque-html") {
-			alInsertarBloqueHTML(datos.html, datos.posicion);
+			alInsertarBloqueHTML(datos.html, datos.posicion, datos.containerId);
 			return;
 		}
 		if (datos.tipo === "sofia:reemplazar-bloque-html") {
@@ -518,21 +520,15 @@
 		// contiene el ID (ej. "a3f92c1b.titulo"), nunca el tipo.
 		var tipo = seccion.getAttribute("data-sofia-bloque-tipo") || "";
 		var rect = seccion.getBoundingClientRect();
-		// indice = posición entre las <section> de nivel superior de
-		// ".sofia-pagina" — identificador estable para "eliminar ESTE
-		// bloque". :scope > section (no contenedor.children): desde
-		// activarLineasInsertar(), .sofia-pagina mezcla <section> con
-		// .sofia-linea-insertar como hermanos — children daría un índice
-		// desalineado con el que espera alEliminarBloque().
-		var contenedor = document.querySelector(".sofia-pagina");
-		var indice = contenedor
-			? Array.prototype.indexOf.call(contenedor.querySelectorAll(":scope > section"), seccion)
-			: -1;
+		// contenedorGridDe (Fase 3): indice YA NO asume siempre nivel
+		// superior — ver el comentario largo ahí. El id/tipo del bloque
+		// resaltado en sí no cambian, solo de dónde sale "indice".
+		var grid = contenedorGridDe(seccion);
 		window.parent.postMessage(
 			{
 				tipo: "sofia:bloque-resaltado",
 				nombre: nombresBloque[tipo] || tipo,
-				indice: indice,
+				indice: grid.indice,
 				rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
 			},
 			"*"
@@ -554,12 +550,18 @@
 		if (!seccion) return;
 		evento.preventDefault();
 
-		var contenedor = document.querySelector(".sofia-pagina");
-		// :scope > section (no contenedor.children) — ver el mismo
-		// comentario en alMoverMouse.
-		var indice = contenedor
-			? Array.prototype.indexOf.call(contenedor.querySelectorAll(":scope > section"), seccion)
-			: -1;
+		// contenedorGridDe (Fase 3) — el índice y el containerId ahora son
+		// relativos al grid REAL que contiene a esta sección (nivel
+		// superior o el .sofia-container que la envuelve), ver el
+		// comentario largo en esa función. Sin esto, click derecho sobre
+		// un hijo de un container mandaba un índice contado sobre
+		// .sofia-pagina (que ni siquiera tiene a ese hijo como hijo
+		// directo) — eliminar/reordenar ese bloque desde el menú
+		// contextual hubiera actuado sobre el bloque EQUIVOCADO de nivel
+		// superior, en la misma posición numérica por coincidencia.
+		var grid = contenedorGridDe(seccion);
+		var indice = grid.indice;
+		var containerId = grid.containerId;
 
 		// Si el click fue DENTRO de un item de lista repetible (ej. un
 		// "Beneficio" concreto de la Franja), el menú ofrece "Eliminar
@@ -594,6 +596,7 @@
 			{
 				tipo: "sofia:menu-contextual-bloque",
 				indice: indice,
+				containerId: containerId,
 				id: seccion.getAttribute("data-sofia-bloque-id") || "",
 				tipoBloque: seccion.getAttribute("data-sofia-bloque-tipo") || "",
 				estiloBloque: estiloBloqueActualDe(seccion),
@@ -690,15 +693,32 @@
 	// agregarBloque() en App.jsx) — reemplaza el reload completo de página
 	// que usaba antes: bug de UX real señalado por el usuario ("es una
 	// experiencia algo molesta"), perdía scroll/estado del canvas por
-	// agregar UNA sección. $posicion es el mismo índice que ya decidió
-	// App.jsx (0 = antes de todos, length = al final).
+	// agregar UNA sección. $posicion es el índice DENTRO del contenedor
+	// destino (nivel superior o un container puntual, ver $containerId).
 	//
 	// template.content (no innerHTML de un <div>) — un <template> no
 	// ejecuta scripts ni produce efectos secundarios al parsear, y
 	// firstElementChild da directo el nodo <section> real sin envolverlo
-	// en nada.
-	function alInsertarBloqueHTML(html, posicion) {
-		var contenedor = document.querySelector(".sofia-pagina");
+	// en nada. Todo Componente del catálogo (Container incluido, desde
+	// Fase 3 — ver el comentario largo en class-container.php sobre el
+	// wrapper <section> exterior) renderiza su raíz como <section>, así
+	// que este chequeo sigue siendo válido sin distinguir "es container o
+	// no": para efectos de INSERCIÓN, un Container es una sección más.
+	//
+	// $containerId (nuevo en Fase 3): id del .sofia-container destino, o
+	// null/ausente para nivel superior (".sofia-pagina" directo) — mismo
+	// contrato que agrega App.jsx al mensaje "sofia:insertar-bloque-html"
+	// (ver agregarBloque() ahí). Cuando hay containerId, la sección nueva
+	// se inserta DENTRO del <div class="sofia-container"> de esa sección
+	// (nunca directo en .sofia-pagina) y se registra contra la instancia
+	// Muuri de ESE container (ver activarReordenarDentroDeContainers),
+	// nunca contra gridNivelSuperior — insertar un ítem en el grid
+	// equivocado dejaría a Muuri con un estado interno inconsistente con
+	// el DOM real.
+	function alInsertarBloqueHTML(html, posicion, containerId) {
+		var contenedor = containerId
+			? contenedorDeHijos(document.querySelector('[data-sofia-bloque-id="' + containerId + '"]'))
+			: document.querySelector(".sofia-pagina");
 		if (!contenedor) return;
 
 		var plantilla = document.createElement("template");
@@ -713,31 +733,55 @@
 		agregarHandleASeccion(seccionNueva);
 		activarCamposEditables(seccionNueva);
 
-		// Sin esto, la sección nueva nunca queda observada — ver el
-		// comentario largo junto a la declaración de
-		// observerAlturaSecciones (arriba, cerca de gridNivelSuperior).
-		if (observerAlturaSecciones) {
-			observerAlturaSecciones.observe(seccionNueva);
-		}
+		if (containerId) {
+			// Dentro de un container: el grid dueño de este espacio es la
+			// instancia de activarReordenarDentroDeContainers() para ESE
+			// .sofia-container puntual, no gridNivelSuperior — ver el
+			// comentario largo ahí sobre por qué cada container tiene su
+			// propia instancia Muuri independiente.
+			var instancia = instanciasContainers.get(contenedor);
+			if (instancia) {
+				instancia.add(seccionNueva, { index: posicion });
+			}
+		} else {
+			// Sin esto, la sección nueva nunca queda observada — ver el
+			// comentario largo junto a la declaración de
+			// observerAlturaSecciones (arriba, cerca de gridNivelSuperior).
+			// Solo aplica a nivel superior: observerAlturaSecciones está
+			// atado 1:1 a gridNivelSuperior, un ítem dentro de un container
+			// no necesita este mecanismo porque ese container (si está a
+			// su vez a nivel superior) YA está observado como sección
+			// propia, y su altura real (incluyendo hijos) es la que
+			// gridNivelSuperior necesita, no la de cada hijo individual.
+			if (observerAlturaSecciones) {
+				observerAlturaSecciones.observe(seccionNueva);
+			}
 
-		if (gridNivelSuperior) {
-			congelarOffsetXDe(seccionNueva); // ANTES de add() — ver el comentario largo en congelarOffsetXDe().
-			// add() con el índice real: Muuri necesita saber DÓNDE en su
-			// propio orden interno va el ítem nuevo, no solo agregarlo al
-			// final — sin esto, el layout visual coincidiría con el DOM
-			// pero el orden que reporta leerBloquesDeNivelSuperior() (que
-			// lee el DOM, no Muuri) quedaría bien igual; se pasa el índice
-			// de todos modos por claridad y por si Muuri lo necesita para
-			// animar la inserción en la posición correcta.
-			gridNivelSuperior.add(seccionNueva, { index: posicion });
+			if (gridNivelSuperior) {
+				congelarOffsetXDe(seccionNueva); // ANTES de add() — ver el comentario largo en congelarOffsetXDe().
+				// add() con el índice real: Muuri necesita saber DÓNDE en su
+				// propio orden interno va el ítem nuevo, no solo agregarlo al
+				// final — sin esto, el layout visual coincidiría con el DOM
+				// pero el orden que reporta leerBloquesDeNivelSuperior() (que
+				// lee el DOM, no Muuri) quedaría bien igual; se pasa el índice
+				// de todos modos por claridad y por si Muuri lo necesita para
+				// animar la inserción en la posición correcta.
+				gridNivelSuperior.add(seccionNueva, { index: posicion });
+			}
 		}
 
 		// La Franja de beneficios/Testimonios/FAQ tienen su propia lista
 		// interna — activarReordenarListas() ya sabe ignorar contenedores
 		// que ya tienen instancia (instanciasListas.has), así que llamarlo
 		// de nuevo sobre TODO el documento es seguro y más simple que
-		// filtrar manualmente solo la sección nueva.
+		// filtrar manualmente solo la sección nueva. Mismo criterio para
+		// activarReordenarDentroDeContainers() — si la sección nueva ES un
+		// Container (vacío, recién insertado), necesita su propia
+		// instancia Muuri para poder recibir hijos después; si no es
+		// container, no encuentra ningún ".sofia-container" nuevo y no
+		// hace nada.
 		activarReordenarListas();
+		activarReordenarDentroDeContainers();
 
 		actualizarZIndexSecciones(contenedor);
 		activarLineasInsertar();
@@ -759,6 +803,16 @@
 	// que también la borra del DOM) y recién ahí inserta la nueva en el
 	// MISMO índice — reusa alInsertarBloqueHTML en vez de duplicar la
 	// lógica de "parsear + insertar + activar campos + agregar a Muuri".
+	// LIMITACIÓN CONOCIDA (Fase 3, fuera del alcance declarado de esta
+	// fase — ver la memoria de producto): esta función sigue asumiendo
+	// SIEMPRE nivel superior (":scope > section" de ".sofia-pagina"), a
+	// diferencia de alEliminarBloque/alHacerClickDerecho/alMoverMouse que
+	// ya usan contenedorGridDe(). Cambiar la condición de Visibilidad
+	// (único caller, ver cambiarCondicionDrawer en App.jsx) de un bloque
+	// DENTRO de un container hoy no hace nada (indice queda en -1, return
+	// temprano silencioso) — el bloque anidado en sí funciona bien para
+	// todo lo demás (insertar/eliminar/reordenar), Visibilidad sobre un
+	// bloque anidado específicamente queda pendiente de una fase futura.
 	function alReemplazarBloqueHTML(id, html) {
 		var seccionVieja = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
 		if (!seccionVieja || !gridNivelSuperior) return;
@@ -802,25 +856,53 @@
 	// comando del menú contextual, solo persiste la lista de bloques que
 	// recibe. Llamado desde el padre vía postMessage tras elegir "Eliminar
 	// bloque" en el menú.
-	function alEliminarBloque(indice) {
-		var contenedor = document.querySelector(".sofia-pagina");
-		if (!contenedor || !gridNivelSuperior) return;
+	// alEliminarBloque(id) — Fase 3 cambia el contrato de "indice" (posición
+	// PLANA a nivel superior) a "id" (ID de instancia del bloque, ver
+	// Sofia_Componente::atributos_seccion()): un índice plano dejó de ser
+	// suficiente en cuanto un bloque puede vivir DENTRO de un container —
+	// "eliminar el bloque en posición 2" es ambiguo sin saber además EN
+	// QUÉ GRID (nivel superior o cuál container); identificar por ID
+	// evita ese problema de raíz Y es más simple: mismo criterio que ya
+	// usa el resto del sistema para identificar un bloque sin ambigüedad
+	// (ver el comentario largo de Sofia_Componente::$id), en vez de sumar
+	// un segundo parámetro "containerId" a la par de "indice" que
+	// duplicaría lo que el ID ya resuelve solo.
+	function alEliminarBloque(id) {
+		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
+		if (!seccion) return;
 
-		// remove() de Muuri toma INSTANCIAS de Item (getItems(indice)), no
+		// contenedorGridDe decide si esto es un bloque de nivel superior
+		// (gridNivelSuperior) o un hijo de un container puntual (su propia
+		// instancia en instanciasContainers) — remove() tiene que pedirse
+		// SIEMPRE a la instancia Muuri DUEÑA real del ítem, nunca a
+		// gridNivelSuperior a secas: pedirle a un grid que remueva un ítem
+		// que no es suyo deja tanto al DOM como al estado interno de Muuri
+		// inconsistentes (getItems() de un grid ajeno no encuentra nada,
+		// pero tampoco avisa del error).
+		var grid = contenedorGridDe(seccion);
+		var instanciaGrid = grid.containerId ? instanciasContainers.get(grid.contenedor) : gridNivelSuperior;
+		if (!instanciaGrid) return;
+
+		// remove() de Muuri toma INSTANCIAS de Item (getItems(seccion)), no
 		// el elemento DOM crudo — usar seccion.remove() a mano dejaría al
 		// grid con una referencia interna a un item ya destruido, rompiendo
 		// su estado. removeElements:true además borra el <section> del DOM
-		// por nosotros.
-		var items = gridNivelSuperior.getItems(indice);
+		// por nosotros. getItems(seccion) (el elemento, no un índice) —
+		// más directo que recalcular el índice que ya usamos para
+		// encontrar el grid dueño.
+		var items = instanciaGrid.getItems(seccion);
 		if (!items.length) return;
-		gridNivelSuperior.remove(items, { removeElements: true });
+		instanciaGrid.remove(items, { removeElements: true });
 
 		seccionResaltada = null;
 		window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
-		actualizarZIndexSecciones(contenedor); // menos secciones ahora, recalcula el z-index de cada una.
+		actualizarZIndexSecciones(grid.contenedor); // menos secciones ahora, recalcula el z-index de cada una.
 		activarLineasInsertar(); // reconstruye posiciones tras el borrado.
 		window.parent.postMessage(
-			{ tipo: "sofia:estructura-reordenada", bloques: leerBloquesDeNivelSuperior(contenedor) },
+			{
+				tipo: "sofia:estructura-reordenada",
+				bloques: leerBloquesDeNivelSuperior(document.querySelector(".sofia-pagina")),
+			},
 			"*"
 		);
 	}
@@ -1072,22 +1154,127 @@
 		}
 	}
 
-	// Lee {id, tipo} de cada <section> de nivel superior desde sus propios
-	// data-sofia-bloque-id/data-sofia-bloque-tipo (ver
+	// contenedorDeHijos: dado el <section> de un bloque, devuelve el
+	// .sofia-container DIRECTO adentro (o null si este bloque no es un
+	// container, o lo es pero está vacío) — un solo lugar que sabe cómo
+	// bajar un nivel en el árbol, reusado por leerEstructura (lectura) y
+	// por activarReordenarDentroDeContainers/activarLineasInsertar
+	// (escritura/UI). ":scope > .sofia-container" (no
+	// section.querySelector(".sofia-container") a secas) — un Container
+	// anidado DENTRO de otro Container también tiene un
+	// ".sofia-container" en algún descendiente más profundo (el de sus
+	// propios hijos), ":scope >" evita agarrar ese de más abajo por
+	// error; ver el comentario largo en class-container.php sobre por
+	// qué el <div class="sofia-container"> vive envuelto en un <section>
+	// propio en vez de que la <section> misma lleve esa clase.
+	function contenedorDeHijos(seccion) {
+		return seccion.querySelector(":scope > .sofia-container");
+	}
+
+	// contenedorGridDe: dada CUALQUIER <section> de bloque (nivel superior
+	// O hija de un container), devuelve {contenedor, containerId, indice}
+	// — el grid REAL que la gestiona y su posición DENTRO de ese grid.
+	// Reusado por alMoverMouse/alHacerClickDerecho (Fase 3): antes de esta
+	// fase, ambas funciones asumían SIEMPRE ".sofia-pagina" como
+	// contenedor — correcto mientras todo bloque vivía a nivel superior,
+	// pero un bloque hijo de un container tiene su propio índice DENTRO
+	// del .sofia-container que lo contiene, nunca dentro de .sofia-pagina
+	// (que ni siquiera lo tiene como hijo directo). closest(".sofia-container")
+	// sobre el PADRE de la sección (nunca sobre la sección misma — una
+	// sección que ES un container no debe confundirse con estar DENTRO de
+	// uno) decide cuál de los dos casos aplica.
+	function contenedorGridDe(seccion) {
+		var padreContainer = seccion.parentElement ? seccion.parentElement.closest(".sofia-container") : null;
+		if (padreContainer) {
+			var seccionContainer = padreContainer.closest("section");
+			return {
+				contenedor: padreContainer,
+				containerId: seccionContainer ? seccionContainer.getAttribute("data-sofia-bloque-id") : null,
+				indice: Array.prototype.indexOf.call(padreContainer.querySelectorAll(":scope > section"), seccion),
+			};
+		}
+		var contenedor = document.querySelector(".sofia-pagina");
+		return {
+			contenedor: contenedor,
+			containerId: null,
+			// :scope > section (no contenedor.children) — desde
+			// activarLineasInsertar(), .sofia-pagina mezcla <section> con
+			// .sofia-linea-insertar como hermanos — children daría un
+			// índice desalineado con el que espera el resto del código.
+			indice: contenedor ? Array.prototype.indexOf.call(contenedor.querySelectorAll(":scope > section"), seccion) : -1,
+		};
+	}
+
+	// Lee {id, tipo, hijos?} de cada <section> de nivel superior (y, si es
+	// un container, de sus hijos directos, RECURSIVO — un container puede
+	// contener otro container) desde data-sofia-bloque-id/-tipo (ver
 	// Sofia_Componente::atributos_seccion()) — reconstruye la estructura
-	// completa tras un reordenamiento o una eliminación. Manda el ID YA
-	// EXISTENTE de cada bloque (nunca uno nuevo): sin esto, el servidor
-	// recibiría bloques "sin ID" en cada reordenamiento y les asignaría
-	// IDs NUEVOS cada vez, perdiendo la asociación con el contenido ya
-	// guardado de cada instancia.
-	function leerBloquesDeNivelSuperior(contenedor) {
+	// completa tras un reordenamiento o una eliminación, en cualquier
+	// profundidad. Mismo shape {id,tipo,hijos} que BloqueEstructuraPlantilla
+	// del lado Go (ver internal/store/plantilla_pagina.go) — "hijos" SOLO
+	// se agrega a un bloque cuando de verdad tiene al menos uno, para no
+	// romper el shape plano {id,tipo} que el resto del código (y GoPress)
+	// espera de un bloque simple.
+	//
+	// Manda el ID YA EXISTENTE de cada bloque (nunca uno nuevo): sin esto,
+	// el servidor recibiría bloques "sin ID" en cada reordenamiento y les
+	// asignaría IDs NUEVOS cada vez, perdiendo la asociación con el
+	// contenido ya guardado de cada instancia — mismo criterio en
+	// cualquier profundidad del árbol, no solo nivel superior.
+	function leerBloquesDesde(secciones) {
 		return Array.prototype.map
-			.call(contenedor.querySelectorAll(":scope > section"), function (seccion) {
+			.call(secciones, function (seccion) {
 				var id = seccion.getAttribute("data-sofia-bloque-id");
 				var tipo = seccion.getAttribute("data-sofia-bloque-tipo");
-				return id && tipo ? { id: id, tipo: tipo } : null;
+				if (!id || !tipo) return null;
+
+				var bloque = { id: id, tipo: tipo };
+				var contenedorHijos = contenedorDeHijos(seccion);
+				if (contenedorHijos) {
+					var hijos = leerBloquesDesde(contenedorHijos.querySelectorAll(":scope > section"));
+					if (hijos.length) bloque.hijos = hijos;
+				}
+				return bloque;
 			})
 			.filter(Boolean);
+	}
+
+	function leerBloquesDeNivelSuperior(contenedor) {
+		return leerBloquesDesde(contenedor.querySelectorAll(":scope > section"));
+	}
+
+	// crearLineaInsertar: fábrica de UNA línea "+" — extraída para
+	// reusarse tanto a nivel superior como DENTRO de cada .sofia-container
+	// (Fase 3). $containerId viaja en el mensaje "sofia:abrir-insertar-bloque"
+	// (null/undefined = nivel superior, mismo criterio que el resto del
+	// contrato de esta fase — ver leerBloquesDesde/alInsertarBloqueHTML) —
+	// cambio de CONTRATO sobre la versión anterior del mensaje (que solo
+	// mandaba "posicion" a secas), por eso App.jsx también necesitó
+	// actualizarse para leer este campo nuevo.
+	function crearLineaInsertar(posicion, ubicacion, containerId) {
+		var linea = document.createElement("div");
+		linea.className = "sofia-linea-insertar sofia-linea-insertar--" + ubicacion; // "arriba" | "abajo" | "vacio"
+		var boton = document.createElement("button");
+		boton.type = "button";
+		boton.className = "sofia-linea-insertar__boton";
+		boton.setAttribute("title", "Insertar bloque aquí");
+		boton.textContent = "+";
+		boton.addEventListener("click", function (evento) {
+			evento.preventDefault();
+			var rect = boton.getBoundingClientRect();
+			window.parent.postMessage(
+				{
+					tipo: "sofia:abrir-insertar-bloque",
+					posicion: posicion,
+					containerId: containerId || null,
+					x: rect.left + rect.width / 2,
+					y: rect.top,
+				},
+				"*"
+			);
+		});
+		linea.appendChild(boton);
+		return linea;
 	}
 
 	// Líneas de inserción entre bloques — mismo patrón del mockup de diseño
@@ -1112,6 +1299,43 @@
 	// Fix real: la línea vive DENTRO de cada <section> (position:absolute,
 	// ver CSS), nunca como hermana suelta — .sofia-pagina vuelve a tener
 	// SOLO <section> como hijos directos, Sortable indexa correctamente.
+	//
+	// Fase 3 extiende esto para vivir TAMBIÉN dentro de cada
+	// .sofia-container — mismo criterio de "línea DENTRO de la sección
+	// que gestiona el grid correspondiente, nunca hermana suelta del
+	// grid": acá el grid es la instancia de Muuri del container (ver
+	// activarReordenarDentroDeContainers), así que las líneas de un
+	// container van DENTRO de cada <section> hija de ESE
+	// .sofia-container, exactamente el mismo patrón que a nivel superior,
+	// solo que agregarLineasEnGrid() ahora es una función reusada dos
+	// veces en vez de código inline.
+	function agregarLineasEnGrid(contenedorGrid, containerId) {
+		var secciones = contenedorGrid.querySelectorAll(":scope > section");
+
+		if (!secciones.length) {
+			// Container vacío: una sola línea "+" ocupando todo el espacio
+			// disponible (el propio .sofia-container, con min-height:40px
+			// vía CSS para que haya algo clickeable incluso sin ningún
+			// hijo) — mismo botón "+", distinta clase de ubicación
+			// ("vacio") para que el CSS lo estire en vez de pegarlo al
+			// borde superior/inferior de una sección como "arriba"/"abajo".
+			contenedorGrid.appendChild(crearLineaInsertar(0, "vacio", containerId));
+			return;
+		}
+
+		secciones.forEach(function (seccion, indice) {
+			// "arriba" en cada sección cubre "insertar antes de esta" —
+			// la primera sección además necesita la línea de "arriba"
+			// visible (ninguna otra sección la tapa desde encima).
+			seccion.appendChild(crearLineaInsertar(indice, "arriba", containerId));
+			if (indice === secciones.length - 1) {
+				// "abajo" SOLO en la última sección — el resto ya cubre
+				// "después de mí" con el "arriba" de la sección siguiente.
+				seccion.appendChild(crearLineaInsertar(secciones.length, "abajo", containerId));
+			}
+		});
+	}
+
 	function activarLineasInsertar() {
 		var contenedor = document.querySelector(".sofia-pagina");
 		if (!contenedor) return;
@@ -1119,47 +1343,26 @@
 		// Reconstruye TODAS las líneas desde cero cada vez que se llama —
 		// más simple que actualizar posiciones a mano tras un
 		// reordenamiento/agregado, y esta función es barata (unos pocos
-		// elementos DOM por página).
-		contenedor.querySelectorAll(".sofia-linea-insertar").forEach(function (linea) {
+		// elementos DOM por página). document (no solo $contenedor): las
+		// líneas dentro de un .sofia-container también deben limpiarse
+		// acá, sino se duplicarían en cada llamada posterior.
+		document.querySelectorAll(".sofia-linea-insertar").forEach(function (linea) {
 			linea.remove();
 		});
 
-		function crearLinea(posicion, ubicacion) {
-			var linea = document.createElement("div");
-			linea.className = "sofia-linea-insertar sofia-linea-insertar--" + ubicacion; // "arriba" | "abajo"
-			var boton = document.createElement("button");
-			boton.type = "button";
-			boton.className = "sofia-linea-insertar__boton";
-			boton.setAttribute("title", "Insertar bloque aquí");
-			boton.textContent = "+";
-			boton.addEventListener("click", function (evento) {
-				evento.preventDefault();
-				var rect = boton.getBoundingClientRect();
-				window.parent.postMessage(
-					{
-						tipo: "sofia:abrir-insertar-bloque",
-						posicion: posicion,
-						x: rect.left + rect.width / 2,
-						y: rect.top,
-					},
-					"*"
-				);
-			});
-			linea.appendChild(boton);
-			return linea;
-		}
+		agregarLineasEnGrid(contenedor, null);
 
-		var secciones = contenedor.querySelectorAll(":scope > section");
-		secciones.forEach(function (seccion, indice) {
-			// "arriba" en cada sección cubre "insertar antes de esta" —
-			// la primera sección además necesita la línea de "arriba"
-			// visible (ninguna otra sección la tapa desde encima).
-			seccion.appendChild(crearLinea(indice, "arriba"));
-			if (indice === secciones.length - 1) {
-				// "abajo" SOLO en la última sección — el resto ya cubre
-				// "después de mí" con el "arriba" de la sección siguiente.
-				seccion.appendChild(crearLinea(secciones.length, "abajo"));
-			}
+		// Un .sofia-container puede estar anidado dentro de otro — recorre
+		// TODOS los que existan en el documento, cada uno con sus propias
+		// líneas relativas a SU PROPIO contenido, identificado por el ID
+		// del bloque Container que lo envuelve (ver el comentario largo en
+		// class-container.php sobre por qué el ID vive en la <section>
+		// exterior, no en el propio .sofia-container).
+		document.querySelectorAll(".sofia-container").forEach(function (contenedorHijos) {
+			var seccionContainer = contenedorHijos.closest("section");
+			var containerId = seccionContainer ? seccionContainer.getAttribute("data-sofia-bloque-id") : null;
+			if (!containerId) return;
+			agregarLineasEnGrid(contenedorHijos, containerId);
 		});
 
 		// Bug real encontrado en la práctica: agregar las líneas cambia la
@@ -1170,10 +1373,16 @@
 		// según la altura VIEJA, más chica — el último bloque terminaba
 		// superpuesto sobre el anterior en vez de ir debajo.
 		// refreshItems() releé las dimensiones reales, layout() reubica
-		// todos los items con esos valores actualizados.
+		// todos los items con esos valores actualizados. Mismo refresco
+		// para CADA instancia de container, no solo gridNivelSuperior —
+		// mismo motivo, una línea nueva también cambia la altura de la
+		// sección que la contiene dentro de un container.
 		if (gridNivelSuperior) {
 			gridNivelSuperior.refreshItems().layout();
 		}
+		instanciasContainers.forEach(function (instancia) {
+			instancia.refreshItems().layout();
+		});
 	}
 
 	// instanciasListas: registro de las instancias Sortable de CADA lista
@@ -1275,6 +1484,102 @@
 		});
 	}
 
+	// instanciasContainers: registro de las instancias Muuri de CADA
+	// .sofia-container presente en la página (Fase 3, "primitivas de
+	// layout") — mismo patrón que instanciasListas (Nivel 2, sub-items),
+	// pero para bloques-componente completos en vez de items de una lista
+	// de datos. Indexado por el <div class="sofia-container"> mismo (el
+	// contenedor de HIJOS, no la <section> exterior que lo envuelve — ver
+	// class-container.php), consistente con instanciasListas (que también
+	// indexa por el contenedor de items, no por el bloque padre).
+	//
+	// UNA instancia Muuri INDEPENDIENTE por container, sin "group"
+	// compartido con gridNivelSuperior ni entre containers hermanos —
+	// decisión de diseño explícita (ver el plan de esta fase): mover un
+	// bloque ENTRE niveles (nivel superior ↔ dentro de un container, o
+	// entre dos containers distintos) está FUERA DE ALCANCE. Sin un
+	// "group.name" compartido, Muuri confina cada drag a su propio grid
+	// automáticamente — mismo mecanismo que ya confirmó
+	// activarReordenarListas() para listas de datos, acá aplicado a
+	// bloques-componente.
+	var instanciasContainers = new Map();
+
+	// activarReordenarDentroDeContainers (Fase 3) — instancia Muuri
+	// acotada a cada .sofia-container, items:"section" (a diferencia de
+	// activarReordenarListas, que usa "[data-sofia-item]": acá los hijos
+	// son BLOQUES-COMPONENTE completos, cada uno su propia <section> con
+	// atributos_seccion() — mismo criterio de "sección completa" que
+	// gridNivelSuperior, solo que acotado a un contenedor anidado en vez
+	// de .sofia-pagina). Reusa agregarHandleASeccion (mismo handle visual
+	// que un bloque de nivel superior — el usuario ya conoce qué significa
+	// ese ícono) en vez de inventar un handle propio para bloques
+	// anidados.
+	function activarReordenarDentroDeContainers() {
+		if (typeof Muuri === "undefined") return;
+
+		document.querySelectorAll(".sofia-container").forEach(function (contenedorHijos) {
+			if (instanciasContainers.has(contenedorHijos)) return; // ya tiene instancia, evita doble-inicialización.
+
+			contenedorHijos.querySelectorAll(":scope > section").forEach(agregarHandleASeccion);
+			actualizarZIndexSecciones(contenedorHijos);
+			congelarOffsetXInicial(contenedorHijos);
+
+			var instancia = new Muuri(contenedorHijos, {
+				items: "section",
+				dragEnabled: true,
+				dragHandle: ".sofia-handle-arrastre",
+				dragStartPredicate: noArrastrarConBotonDerecho,
+				dragSortHeuristics: { sortInterval: 100, minDragDistance: 10 },
+				dragSortPredicate: { threshold: 50, action: "move" },
+				// Sin layout custom (a diferencia de gridNivelSuperior) —
+				// "Alineación del bloque" (self-left/-center/-right) dentro
+				// de un container es un caso de borde deliberadamente fuera
+				// de alcance de esta fase: el layout default de Muuri (una
+				// columna, x:0) alcanza para validar el mecanismo de
+				// anidamiento en sí, mismo criterio de alcance acotado que
+				// ya usó Fase 1/2 para Container.
+			});
+
+			instancia.on("dragEnd", function () {
+				instancia.synchronize();
+				actualizarZIndexSecciones(contenedorHijos);
+				activarLineasInsertar();
+				// Estructura COMPLETA recursiva (no solo la de este
+				// container) — mismo mensaje que ya persiste
+				// gridNivelSuperior/instanciasListas, App.jsx no necesita
+				// saber que este cambio vino de un container anidado en vez
+				// de nivel superior, solo persiste el árbol que recibe.
+				window.parent.postMessage(
+					{
+						tipo: "sofia:estructura-reordenada",
+						bloques: leerBloquesDeNivelSuperior(document.querySelector(".sofia-pagina")),
+					},
+					"*"
+				);
+			});
+
+			instanciasContainers.set(contenedorHijos, instancia);
+
+			// Mismo fix de ResizeObserver que activarReordenar()/
+			// activarReordenarListas(): un cambio de altura DENTRO de un
+			// hijo (ej. texto que crece a 2 líneas) necesita refrescar TRES
+			// grids potencialmente afectados — el propio container, y
+			// gridNivelSuperior (la <section> exterior del container
+			// también puede haber cambiado de altura).
+			if (typeof ResizeObserver !== "undefined") {
+				var observerAlturaHijos = new ResizeObserver(function () {
+					instancia.refreshItems().layout();
+					if (gridNivelSuperior) {
+						gridNivelSuperior.refreshItems().layout();
+					}
+				});
+				contenedorHijos.querySelectorAll(":scope > section").forEach(function (seccion) {
+					observerAlturaHijos.observe(seccion);
+				});
+			}
+		});
+	}
+
 	// Activa contenteditable/wp.media() sobre los [data-sofia-campo] bajo
 	// $raiz — extraído de una llamada inline en DOMContentLoaded para
 	// poder reusarlo sobre un item nuevo clonado (ver alAgregarItemALista),
@@ -1328,6 +1633,7 @@
 		window.addEventListener("message", alRecibirMensajeDelPadre);
 		activarReordenar();
 		activarReordenarListas();
+		activarReordenarDentroDeContainers();
 		activarLineasInsertar();
 	});
 })();

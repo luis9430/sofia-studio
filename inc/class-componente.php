@@ -135,6 +135,25 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * Hijos YA resueltos de este Componente — accessor público (mismo
+	 * criterio que props()/id()) agregado en Fase 3 ("primitivas de
+	 * layout") para que Sofia_REST_Editor::obtener_html_de_bloque() pueda
+	 * buscar un bloque por ID RECURSIVAMENTE, no solo entre los
+	 * Componentes de nivel superior de Sofia_Pagina::componentes() — sin
+	 * esto, pedir el HTML de un bloque recién insertado DENTRO de un
+	 * Container (ver agregarBloque() en App.jsx, que depende de este
+	 * endpoint para toda inserción, container o no) devolvía 404: el
+	 * bloque existe en el árbol, pero nunca en esa lista plana de nivel
+	 * superior. Vacío para el 99% de los Componentes, igual que $hijos en
+	 * sí — ver el comentario largo ahí.
+	 *
+	 * @return Sofia_Componente[]
+	 */
+	public function hijos(): array {
+		return $this->hijos;
+	}
+
+	/**
 	 * Slugs de librerías JS que este Componente necesita en el frente
 	 * público (ej. array('gsap'), array('preact')) — Sofia_Tema::encolar_dependencias()
 	 * recorre TODOS los Componentes de la página, junta y deduplica esto

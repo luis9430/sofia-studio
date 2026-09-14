@@ -55,8 +55,18 @@ class Sofia_Componente_Factory {
 	 * catálogo — agregar un Componente nuevo es agregarlo acá (y a
 	 * crear(), y su require_once en functions.php); catalogo() la
 	 * recorre para no duplicar la lista de tipos en dos lugares.
+	 *
+	 * 'container' se agrega acá en Fase 3 ("primitivas de layout" — ver la
+	 * memoria de producto): Fase 1/2 lo dejaron deliberadamente AFUERA
+	 * (ver el comentario largo en class-container.php) porque el
+	 * mecanismo de anidamiento (drag-and-drop, líneas de inserción dentro
+	 * de un container) todavía no existía del lado del editor visual —
+	 * agregarlo antes hubiera ofrecido "+ Agregar bloque → Container" sin
+	 * ninguna forma real de poner algo adentro salvo armando el JSON a
+	 * mano. Con editor-iframe.js/App.jsx ya soportando anidamiento, este
+	 * es el único cambio que faltaba del lado PHP.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por
@@ -97,11 +107,13 @@ class Sofia_Componente_Factory {
 	 * Componente aparecen después de los genéricos en el drawer — ver Fase
 	 * 2 del plan de "primitivas de layout" (memoria de producto).
 	 *
-	 * Deliberadamente NO pasa por TIPOS_REGISTRADOS/catalogo() — un tipo
-	 * como "container" (fuera del catálogo insertable hasta Fase 3, ver
-	 * class-container.php) igual necesita poder pedir su schema, porque
-	 * ya puede existir en una página armada a mano vía la API de
-	 * plantillas de GoPress.
+	 * Deliberadamente NO pasa por TIPOS_REGISTRADOS/catalogo() — pedir un
+	 * schema no depende de que el tipo esté en el catálogo insertable
+	 * (hoy "container" también está, ver TIPOS_REGISTRADOS, pero esto
+	 * sigue haciendo falta para cualquier tipo futuro con el mismo
+	 * problema): una página puede tener un bloque de un tipo que ya no
+	 * está en el catálogo actual (removido, o de una versión más nueva
+	 * del tema) y aun así necesitar poder pedir su schema.
 	 *
 	 * @return array<string,array<string,mixed>>|null null si $tipo no
 	 *         corresponde a ningún Componente real (mismo criterio que

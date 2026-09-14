@@ -298,6 +298,32 @@ class Sofia_Modo_Editor {
 			[data-sofia-item] {
 				position: absolute; width: calc((100% / var(--sofia-columnas, 3)) - 20px); box-sizing: border-box;
 			}
+
+			/* .sofia-container/.sofia-container > section — mismo requisito
+			   de Muuri que .sofia-pagina/section arriba (Fase 3, "primitivas
+			   de layout": activarReordenarDentroDeContainers() en
+			   editor-iframe.js), aplicado ahora también DENTRO de un
+			   Container: cada hijo de un Container es él mismo una <section>
+			   completa (Hero/CTA/etc., o incluso OTRO Container anidado — ver
+			   class-container.php), que necesita position:absolute para que
+			   Muuri la controle vía transform, exactamente igual que a nivel
+			   superior. position:relative en el propio .sofia-container (no
+			   position:static heredado) es lo que le da a sus hijos absolutos
+			   un ancestro posicionado del que colgar, y overflow:visible para
+			   no recortar el handle de arrastre de ningún hijo, mismo
+			   comentario que ".sofia-pagina > section" arriba. Sin
+			   margin-left/handle propio a nivel de ESTE contenedor (a
+			   diferencia de .sofia-pagina, que reserva 60px para el handle de
+			   nivel superior) — el handle de cada hijo sigue viviendo DENTRO
+			   de su propia <section> (agregarHandleASeccion se aplica igual
+			   acá, ver activarReordenarDentroDeContainers), position:absolute
+			   con left negativo relativo a ESA sección, no al container. */
+			.sofia-container {
+				position: relative; overflow: visible; min-height: 40px;
+			}
+			.sofia-container > section {
+				position: absolute; width: 100%; box-sizing: border-box; overflow: visible;
+			}
 			/* Handle de un ITEM dentro de una lista repetible (ej. un
 			   "Beneficio" de la Franja) — mismo criterio que el handle de
 			   bloque de arriba, pero más chico y posicionado dentro del
@@ -440,6 +466,22 @@ class Sofia_Modo_Editor {
 			}
 			.sofia-linea-insertar--arriba { top: -8px; }
 			.sofia-linea-insertar--abajo { bottom: -8px; }
+			/* --vacio (Fase 3): línea única dentro de un .sofia-container SIN
+			   hijos — a diferencia de arriba/abajo (una raya angosta pegada
+			   al borde de una <section> real), acá no hay ninguna sección de
+			   la que colgar, así que esta variante ocupa TODO el alto del
+			   .sofia-container vacío (min-height:40px, ver la regla de
+			   .sofia-container más arriba) — el botón "+" queda centrado en
+			   ese espacio en vez de pegado a un borde. Visible SIEMPRE (no
+			   solo al hover, a diferencia de arriba/abajo): un container
+			   vacío no tiene ningún otro contenido/affordance visual, sin
+			   esto sería un rectángulo en blanco sin pista de que ahí se
+			   puede insertar algo. */
+			.sofia-linea-insertar--vacio {
+				position: absolute; inset: 0; height: auto;
+				border: 1.5px dashed #d97a4d33; border-radius: 4px;
+			}
+			.sofia-linea-insertar--vacio .sofia-linea-insertar__boton { opacity: 1; }
 			.sofia-linea-insertar::before {
 				content: ""; position: absolute; left: 0; right: 0; top: 50%;
 				height: 1px; background: transparent; transition: background 0.15s ease-out;

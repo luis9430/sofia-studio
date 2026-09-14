@@ -16,12 +16,17 @@
  * eso ya funciona gratis vía atributos_seccion()/Nivel 2, heredado tal
  * cual de cualquier otro Componente del catálogo.
  *
- * Deliberadamente NO está en Sofia_Componente_Factory::TIPOS_REGISTRADOS
- * — no aparece todavía en el catálogo "+ Agregar bloque" del editor
- * visual (eso es Fase 3, cuando el drag-and-drop para anidar bloques
- * exista). Por ahora solo se puede instanciar armando el JSON de
- * Estructura a mano (vía la API de plantillas/páginas de GoPress), que es
- * exactamente el alcance declarado de Fase 1.
+ * Fase 3 (editor visual — ver Sofia_Componente_Factory::TIPOS_REGISTRADOS,
+ * editor-iframe.js y App.jsx) agregó el mecanismo real de anidamiento
+ * manual en el editor: instancias Muuri acotadas a cada
+ * ".sofia-container" (activarReordenarDentroDeContainers), líneas "+" de
+ * inserción también dentro de un container, e inserción/eliminación en
+ * profundidad del lado de App.jsx. Este archivo (render()) no necesitó
+ * ningún cambio para eso — ya renderizaba sus hijos correctamente desde
+ * Fase 1, el trabajo de Fase 3 fue enteramente en cómo el editor visual
+ * arma/lee el árbol {id,tipo,hijos}, salvo por UN detalle: cuando un
+ * Container se inserta a NIVEL SUPERIOR (no dentro de otro container), ver
+ * el comentario sobre el wrapper <section> más abajo en render().
  */
 class Sofia_Componente_Container extends Sofia_Componente {
 
@@ -29,12 +34,61 @@ class Sofia_Componente_Container extends Sofia_Componente {
 		return __( 'Container', 'sofia-studio' );
 	}
 
+	/**
+	 * render(): DOS elementos anidados, no uno — decisión de Fase 3 para
+	 * resolver un choque real entre dos invariantes que ya existían antes
+	 * de esta fase y que no se podían romper:
+	 *
+	 * 1. atributos_seccion()/data-sofia-bloque-id/-tipo SIEMPRE van en el
+	 *    elemento que editor-iframe.js trata como "la sección completa
+	 *    de este bloque" — todo el JS (mouseover, contextmenu, Muuri)
+	 *    busca esto con closest("section")/[data-sofia-bloque-id], nunca
+	 *    con closest("div.sofia-container").
+	 * 2. gridNivelSuperior (Muuri de nivel superior) usa items:"section"
+	 *    aplicado con matches() a cada HIJO DIRECTO de .sofia-pagina (ver
+	 *    el comentario largo en activarReordenar(), editor-iframe.js) —
+	 *    un <div class="sofia-container"> ahí NUNCA matchea, Muuri lo
+	 *    ignoraría por completo como ítem reordenable/insertable.
+	 *
+	 * Todo Componente del catálogo (Hero, CTA, etc.) resuelve esto
+	 * gratis porque su ÚNICO elemento raíz ya es un <section> con
+	 * atributos_seccion() encima — Container es el primero cuya raíz
+	 * "natural" es un <div> (necesita seguir siendo <div> para que
+	 * display:flex/grid + gap de Fase 2 tengan un contenedor real sin
+	 * pelearse con el position:absolute que el editor le impone a la
+	 * <section>, ver class-modo-editor.php). La solución más chica que
+	 * no exige tocar ni el editor ni el CSS existente: envolver ese
+	 * <div class="sofia-container"> (SIN atributos_seccion(), sin id/tipo)
+	 * dentro de un <section> exterior que SÍ los lleva — así:
+	 *   - A nivel superior: la <section> exterior es el ítem de
+	 *     gridNivelSuperior, indistinguible de un Hero/CTA para ese grid.
+	 *   - Dentro de OTRO Container: la <section> exterior es el hijo
+	 *     directo que activarReordenarDentroDeContainers() espera (mismo
+	 *     "items:section" aplicado a hijos de .sofia-container) — un
+	 *     Container anidado dentro de otro Container sigue calzando con
+	 *     el mismo criterio "los hijos son <section> completas" que
+	 *     cualquier otro Componente.
+	 *   - detección de anidamiento (leerBloquesDeNivelSuperior recursiva)
+	 *     sigue reconociendo a ESTE bloque como container buscando
+	 *     ":scope > .sofia-container" DENTRO de la <section>, en vez de
+	 *     asumir que la propia <section> tiene la clase — ver el
+	 *     comentario largo en editor-iframe.js sobre por qué.
+	 *
+	 * El div.sofia-container interno conserva su propio class="sofia-container"
+	 * (sin los data-sofia-bloque-*, que ahora viven en la <section> de
+	 * afuera) — el CSS de Fase 2 (display/direccion/gap, cuando se
+	 * implemente su efecto visual) sigue pudiendo targetear
+	 * ".sofia-container" tal cual, sin saber ni importarle que ahora está
+	 * un nivel más adentro.
+	 */
 	public function render(): string {
-		$html = '<div ' . $this->atributos_seccion( 'sofia-container' ) . '>';
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-container-exterior' ) . '>';
+		$html .= '<div class="sofia-container">';
 		foreach ( $this->hijos as $hijo ) {
 			$html .= $hijo->render();
 		}
 		$html .= '</div>';
+		$html .= '</section>';
 		return $html;
 	}
 

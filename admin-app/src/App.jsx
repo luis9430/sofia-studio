@@ -13,6 +13,58 @@ import { ListaVariablesCoreFramework } from "./CampoConToken.jsx";
 // seguridad, no el mecanismo principal de limitar llamadas.
 const RETRASO_GUARDADO_MS = 400;
 
+// insertarEnArbol/todosLosIds (Nivel 3, "primitivas de layout"): mismo
+// principio recursivo que Sofia_Pagina::resolver_bloques() del lado PHP
+// (ver class-pagina.php) aplicado acá para MUTAR el árbol {id,tipo,hijos}
+// en vez de solo leerlo — agregarBloque() ya no puede asumir un array
+// plano de nivel superior (slice/spread directo) desde que un bloque
+// puede insertarse DENTRO de un Container. Funciones puras module-level
+// (no dependen de nada de App) porque no necesitan ningún estado del
+// componente, mismo criterio que cualquier otro helper de este archivo.
+
+// insertarEnArbol: devuelve una COPIA de $estructura con $bloqueNuevo
+// insertado en $posicion — a nivel superior si $containerId es
+// null/undefined, o dentro de "hijos" del nodo cuyo id === $containerId
+// (buscado recursivamente, un container puede estar anidado a cualquier
+// profundidad). Nunca muta el array/objetos originales (spread en cada
+// nivel) — mismo criterio de inmutabilidad que ya usaba el código plano
+// anterior (estructuraActual.slice/spread), necesario para que Preact
+// detecte el cambio si este array llegara a guardarse en estado (hoy no,
+// pero evita una trampa futura).
+function insertarEnArbol(estructura, bloqueNuevo, posicion, containerId) {
+  if (!containerId) {
+    return [...estructura.slice(0, posicion), bloqueNuevo, ...estructura.slice(posicion)];
+  }
+  return estructura.map((bloque) => {
+    if (bloque.id === containerId) {
+      const hijos = bloque.hijos || [];
+      return { ...bloque, hijos: [...hijos.slice(0, posicion), bloqueNuevo, ...hijos.slice(posicion)] };
+    }
+    if (bloque.hijos && bloque.hijos.length) {
+      return { ...bloque, hijos: insertarEnArbol(bloque.hijos, bloqueNuevo, posicion, containerId) };
+    }
+    return bloque;
+  });
+}
+
+// todosLosIds: junta el id de CADA bloque de $estructura, en cualquier
+// profundidad — usado para el diff "cuál id es nuevo" (ver agregarBloque):
+// un bloque agregado DENTRO de un container solo aparece en $hijos de ese
+// container, nunca en la lista plana de nivel superior, así que
+// estructura.map(b => b.id) (el cálculo plano de antes de esta fase) NUNCA
+// lo hubiera encontrado como "nuevo" — el flujo de agregar-vía-drawer se
+// rompía en silencio para ese caso específico (el guardado de estructura
+// sí funcionaba, pero el HTML del bloque nunca llegaba a insertarse en el
+// iframe).
+function todosLosIds(estructura) {
+  const ids = [];
+  for (const bloque of estructura) {
+    if (bloque.id) ids.push(bloque.id);
+    if (bloque.hijos && bloque.hijos.length) ids.push(...todosLosIds(bloque.hijos));
+  }
+  return ids;
+}
+
 /**
  * App es el panel completo del editor in-place: un iframe full-bleed (ocupa
  * toda la pantalla disponible, sin bordes ni chrome de WordPress visible —
@@ -170,6 +222,13 @@ export function App({ config }) {
       if (datos.tipo === "sofia:menu-contextual-bloque") {
         setMenuContextual({
           indice: datos.indice,
+          // containerId (Nivel 3, "primitivas de layout"): id del
+          // .sofia-container que contiene a este bloque, o null si es de
+          // nivel superior — ver contenedorGridDe() en editor-iframe.js.
+          // Ya no se usa para eliminar (eliminarBloque() pasó a
+          // identificar por `id`, ver más abajo), pero sigue viajando por
+          // si un comando futuro del menú (clonar, mover) lo necesita.
+          containerId: datos.containerId,
           id: datos.id,
           tipoBloque: datos.tipoBloque,
           estiloBloque: datos.estiloBloque,
@@ -180,7 +239,10 @@ export function App({ config }) {
         return;
       }
       if (datos.tipo === "sofia:abrir-insertar-bloque") {
-        setMenuAgregarEnPosicion({ posicion: datos.posicion, x: datos.x, y: datos.y });
+        // containerId (Nivel 3): null/ausente = nivel superior, mismo
+        // contrato que agregarBloque()/alInsertarBloqueHTML() en
+        // editor-iframe.js — ver el comentario largo ahí.
+        setMenuAgregarEnPosicion({ posicion: datos.posicion, containerId: datos.containerId || null, x: datos.x, y: datos.y });
         return;
       }
       if (datos.tipo === "sofia:estructura-reordenada") {
@@ -367,12 +429,22 @@ export function App({ config }) {
   // sección del DOM (ver alEliminarBloque en editor-iframe.js) y reporta
   // la estructura resultante vía "sofia:estructura-reordenada", que ya
   // persiste arriba.
+  //
+  // Identifica por `id` (no por `indice`) desde Fase 3 — un índice plano
+  // dejó de alcanzar en cuanto un bloque puede vivir DENTRO de un
+  // container: "eliminar la posición 2" es ambiguo sin saber además en
+  // qué grid (nivel superior o cuál container). El ID de instancia ya
+  // identifica al bloque sin ambigüedad en TODO el resto del sistema
+  // (mismo criterio que guardar_campo/guardar_estructura del lado PHP),
+  // así que reusarlo acá evita sumar un segundo parámetro `containerId`
+  // que solo duplicaría lo que el ID ya resuelve solo — ver el mismo
+  // cambio de contrato en alEliminarBloque(), editor-iframe.js.
   function eliminarBloque() {
-    const indice = menuContextual?.indice;
+    const id = menuContextual?.id;
     setMenuContextual(null);
     setBloqueResaltado(null);
-    if (indice === undefined || indice === null) return;
-    iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:eliminar-bloque", indice }, "*");
+    if (!id) return;
+    iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:eliminar-bloque", id }, "*");
   }
 
   // Eliminar UN item de una lista repetible (ej. un "Beneficio" de la
@@ -408,17 +480,30 @@ export function App({ config }) {
   // Un bloque nuevo no trae "id" hasta que GoPress se lo asigna al guardar
   // la estructura (ver store.GenerarIDBloque/rellenarIDsFaltantes, lado
   // Go) — hay que releer la página y comparar contra la estructura ANTERIOR
-  // para identificar cuál id es el nuevo (el que no estaba antes).
+  // para identificar cuál id es el nuevo (el que no estaba antes). Desde
+  // Fase 3, esa comparación es recursiva (ver todosLosIds arriba): el id
+  // nuevo puede aparecer DENTRO de "hijos" de un container, no solo a
+  // nivel superior.
   //
-  // $posicion: índice donde insertar dentro de la estructura (0 = antes
-  // de todos, estructura.length = al final) — undefined/null preserva el
-  // comportamiento original ("+ Agregar bloque" de la barra superior,
-  // siempre al final). Con posicion explícita, el mismo mecanismo sirve
-  // para "insertar ENTRE dos bloques" (líneas dentro del iframe, ver
-  // activarLineasInsertar() en editor-iframe.js) — pedido explícito del
-  // usuario tras ver el mockup original, que ya tenía este patrón
-  // (.insertar-linea entre cada par de bloques).
-  async function agregarBloque(tipo, posicion) {
+  // $posicion: índice donde insertar DENTRO del contenedor destino (0 =
+  // antes de todos, length de ese contenedor = al final) — undefined/null
+  // preserva el comportamiento original ("+ Agregar bloque" de la barra
+  // superior, siempre al final DE NIVEL SUPERIOR). Con posicion explícita,
+  // el mismo mecanismo sirve para "insertar ENTRE dos bloques" (líneas
+  // dentro del iframe, ver activarLineasInsertar() en editor-iframe.js) —
+  // pedido explícito del usuario tras ver el mockup original, que ya tenía
+  // este patrón (.insertar-linea entre cada par de bloques).
+  //
+  // $containerId (nuevo en Fase 3): id del .sofia-container destino, o
+  // null/undefined para nivel superior — mismo contrato que agrega
+  // editor-iframe.js al mensaje "sofia:abrir-insertar-bloque" (ver el
+  // handler de ese mensaje arriba, que lo guarda en
+  // menuAgregarEnPosicion.containerId). Cuando hay containerId, la
+  // construcción de estructuraNueva YA NO puede ser un slice/spread plano
+  // de nivel superior (ver insertarEnArbol arriba) — necesita navegar el
+  // árbol hasta encontrar el nodo container correcto, en cualquier
+  // profundidad.
+  async function agregarBloque(tipo, posicion, containerId) {
     setMenuAgregarAbierto(false);
     setMenuAgregarEnPosicion(null);
     setEstado("guardando");
@@ -427,9 +512,17 @@ export function App({ config }) {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
       const estructuraActual = actual.estructura || [];
-      const idsAntes = new Set(estructuraActual.map((b) => b.id));
+      const idsAntes = new Set(todosLosIds(estructuraActual));
+      // indice: SOLO tiene sentido "longitud del contenedor destino" como
+      // default de "al final" cuando ese destino es nivel superior — con
+      // containerId, "al final de TODO nivel superior" no significa nada
+      // para un hijo, así que sin posicion explícita ahí simplemente
+      // inserta en 0 (un caso que hoy no ocurre en la práctica: toda
+      // inserción dentro de un container llega con posicion explícita
+      // desde una línea "+", nunca desde el botón fijo de la barra
+      // superior, que siempre agrega a nivel superior).
       const indice = posicion === undefined || posicion === null ? estructuraActual.length : posicion;
-      const estructuraNueva = [...estructuraActual.slice(0, indice), { tipo }, ...estructuraActual.slice(indice)];
+      const estructuraNueva = insertarEnArbol(estructuraActual, { tipo }, indice, containerId);
       const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/estructura`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
@@ -441,8 +534,9 @@ export function App({ config }) {
       const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
-      const bloqueNuevo = (pagina.estructura || []).find((b) => !idsAntes.has(b.id));
-      if (!bloqueNuevo) {
+      const idsDespues = todosLosIds(pagina.estructura || []);
+      const idNuevo = idsDespues.find((id) => !idsAntes.has(id));
+      if (!idNuevo) {
         // No debería pasar (el guardado ya confirmó éxito), pero si por
         // algún motivo no se puede identificar el bloque nuevo, un reload
         // sigue siendo el fallback seguro — mejor una recarga ocasional
@@ -451,7 +545,7 @@ export function App({ config }) {
         return;
       }
 
-      const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${bloqueNuevo.id}`, {
+      const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${idNuevo}`, {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
       if (!html.ok) {
@@ -460,7 +554,7 @@ export function App({ config }) {
       }
 
       iframeRef.current.contentWindow.postMessage(
-        { tipo: "sofia:insertar-bloque-html", html: html.html, posicion: indice },
+        { tipo: "sofia:insertar-bloque-html", html: html.html, posicion: indice, containerId: containerId || null },
         "*"
       );
     } catch {
@@ -573,7 +667,7 @@ export function App({ config }) {
                 catalogo={catalogoBloques}
                 posicion={menuAgregarEnPosicion}
                 titulo="Insertar bloque aquí"
-                onElegir={(tipo) => agregarBloque(tipo, menuAgregarEnPosicion.posicion)}
+                onElegir={(tipo) => agregarBloque(tipo, menuAgregarEnPosicion.posicion, menuAgregarEnPosicion.containerId)}
                 onCerrar={() => setMenuAgregarEnPosicion(null)}
               />
             )}

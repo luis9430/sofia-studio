@@ -220,13 +220,38 @@ class Sofia_REST_Editor {
 		}
 
 		$sofia_pagina = new Sofia_Pagina( $pagina['estructura'], $pagina['contenido'] );
-		foreach ( $sofia_pagina->componentes() as $componente ) {
-			if ( $id === $componente->id() ) {
-				return rest_ensure_response( array( 'ok' => true, 'html' => $componente->render() ) );
-			}
+		// buscar_componente_por_id() recursivo (no un foreach plano sobre
+		// componentes()) — agregado en Fase 3: componentes() solo devuelve
+		// los Sofia_Componente de NIVEL SUPERIOR, un bloque insertado
+		// DENTRO de un Container vive únicamente en $hijos de ese
+		// Container (ver Sofia_Componente::hijos()), nunca en esta lista
+		// plana. Sin la recursión, insertar/actualizar cualquier bloque
+		// anidado devolvía 404 acá — silencioso hasta que se lo mira de
+		// cerca, porque el guardado de estructura (guardar_estructura())
+		// sí lo persiste bien, solo este endpoint de HTML puntual no lo
+		// encontraba.
+		$componente = self::buscar_componente_por_id( $sofia_pagina->componentes(), $id );
+		if ( null !== $componente ) {
+			return rest_ensure_response( array( 'ok' => true, 'html' => $componente->render() ) );
 		}
 
 		return new WP_Error( 'sofia_bloque_no_encontrado', 'Ese bloque no existe en la estructura de la página.', array( 'status' => 404 ) );
+	}
+
+	/**
+	 * @param Sofia_Componente[] $componentes
+	 */
+	private static function buscar_componente_por_id( array $componentes, string $id ): ?Sofia_Componente {
+		foreach ( $componentes as $componente ) {
+			if ( $id === $componente->id() ) {
+				return $componente;
+			}
+			$encontrado = self::buscar_componente_por_id( $componente->hijos(), $id );
+			if ( null !== $encontrado ) {
+				return $encontrado;
+			}
+		}
+		return null;
 	}
 
 	public static function obtener_pagina( WP_REST_Request $request ) {
