@@ -40,6 +40,10 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Texto_Libre( $tipo, $id, $props, $hijos );
 			case 'container':
 				return new Sofia_Componente_Container( $tipo, $id, $props, $hijos );
+			case 'image':
+				return new Sofia_Componente_Image( $tipo, $id, $props, $hijos );
+			case 'button':
+				return new Sofia_Componente_Button( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -65,8 +69,16 @@ class Sofia_Componente_Factory {
 	 * ninguna forma real de poner algo adentro salvo armando el JSON a
 	 * mano. Con editor-iframe.js/App.jsx ya soportando anidamiento, este
 	 * es el único cambio que faltaba del lado PHP.
+	 *
+	 * 'image'/'button' se agregan en Fase 0 (mismo plan — "vocabulario de
+	 * primitivas"): junto con 'container' (Fase 1/3) y 'texto_libre' (ya
+	 * existente, reusado tal cual como la primitiva "Text" — un solo
+	 * campo editable, sin título ni estructura extra, mismo rol) completan
+	 * el set mínimo de 5 piezas combinables (Section/Container/Text/Image/
+	 * Button) que el plan define como alternativa a seguir sumando
+	 * Componentes temáticos fijos.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por

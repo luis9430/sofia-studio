@@ -21,6 +21,8 @@ require_once __DIR__ . '/inc/componentes/class-faq.php';
 require_once __DIR__ . '/inc/componentes/class-cta.php';
 require_once __DIR__ . '/inc/componentes/class-texto-libre.php';
 require_once __DIR__ . '/inc/componentes/class-container.php';
+require_once __DIR__ . '/inc/componentes/class-image.php';
+require_once __DIR__ . '/inc/componentes/class-button.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en
