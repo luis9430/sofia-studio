@@ -312,38 +312,52 @@ export function App({ config }) {
 
   // aplicarArbolGeneradoPorIA (Fase 4, ver PanelGenerarIA.jsx): "Aplicar a
   // la página" del panel de IA — el árbol YA viene reparado/confirmado por
-  // el usuario después de ver el preview, así que esto es solo persistirlo
-  // + refrescar. Reusa guardarEstructura() tal cual (el MISMO PUT
-  // sofia/v1/paginas/{slug}/estructura que ya usa cualquier reordenamiento/
-  // agregado manual, ver el comentario largo de guardarEstructura arriba) en
-  // vez de duplicar la llamada fetch — pedido explícito del plan ("reusa el
-  // endpoint ya existente"). A diferencia de un agregarBloque() puntual
-  // (que inserta HTML de UN bloque sin recargar todo el iframe), acá el
-  // árbol generado puede reemplazar/agregar varios bloques a la vez —
-  // recargar el iframe completo es más simple y suficientemente bueno para
-  // esta primera pasada del mecanismo (mismo criterio de alcance acotado
-  // documentado en PanelGenerarIA.jsx), en vez de tener que calcular un
-  // diff fino de qué bloques son nuevos como si fuera un agregarBloque().
-  //
-  // El árbol generado por IA REEMPLAZA la estructura completa de la
-  // página (no se agrega al final) — el usuario describe "lo que quiere
-  // en la página" en el prompt, no "un bloque más para agregar al final";
-  // agregar en vez de reemplazar dejaría bloques placeholder viejos (ej.
-  // el Hero por defecto de una página recién creada) mezclados con los
-  // nuevos sin que el usuario lo haya pedido.
+  // el usuario después de ver el preview. AGREGA el árbol generado al
+  // FINAL de la estructura ya existente (nunca la reemplaza) — mismo
+  // comportamiento que "+ Agregar bloque" manual (ver agregarBloque() más
+  // abajo). Bug real corregido tras probar en vivo: la primera versión de
+  // esta función reemplazaba la estructura completa, razonando que "el
+  // usuario describe lo que quiere EN la página, no un bloque más" — en la
+  // práctica eso significó que pedir "agregá una sección de beneficios"
+  // borró TODO el contenido real de una página en producción (navbar,
+  // Hero con imagen, todo) para dejar solo la sección nueva. Nadie espera
+  // que "agregar" borre lo demás; recargar el iframe completo tras guardar
+  // sigue siendo más simple que un diff fino, mismo criterio de alcance
+  // acotado que el resto de esta fase.
   async function aplicarArbolGeneradoPorIA(arbolGenerado) {
     setEstado("guardando");
-    const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/estructura`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
-      body: JSON.stringify({ estructura: arbolGenerado }),
-    });
-    if (!respuesta.ok) {
+    try {
+      // Bug real reportado por el usuario probando en vivo: esta función
+      // ANTES mandaba arbolGenerado tal cual como la estructura COMPLETA
+      // de la página — reemplazando (borrando) todo lo que ya hubiera
+      // (Hero, navbar, contenido real de un sitio en producción) solo
+      // porque el usuario pidió "agregá una sección de beneficios". Nadie
+      // espera que "agregar" borre el resto — mismo comportamiento que
+      // "+ Agregar bloque" manual (agregarBloque() más abajo), que
+      // siempre suma sin tocar lo existente. Por eso acá también hace
+      // falta leer la estructura ACTUAL primero (mismo patrón que
+      // agregarBloque()) y concatenar, nunca reemplazar directo.
+      const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => r.json());
+      const estructuraActual = Array.isArray(pagina.estructura) ? pagina.estructura : [];
+      const estructuraFinal = [...estructuraActual, ...arbolGenerado];
+
+      const respuesta = await fetch(`${config.restUrl}paginas/${config.slug}/estructura`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
+        body: JSON.stringify({ estructura: estructuraFinal }),
+      });
+      if (!respuesta.ok) {
+        setEstado("error");
+        throw new Error("No se pudo guardar la estructura generada por IA.");
+      }
+      setEstado("guardado");
+      iframeRef.current?.contentWindow.location.reload();
+    } catch (error) {
       setEstado("error");
-      throw new Error("No se pudo guardar la estructura generada por IA.");
+      throw error;
     }
-    setEstado("guardado");
-    iframeRef.current?.contentWindow.location.reload();
   }
 
   // El propio iframe ejecuta document.execCommand sobre su selección real

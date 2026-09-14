@@ -21,12 +21,13 @@ import { useState } from "preact/hooks";
  *     de seguridad del plan ("el LLM nunca escribe código que se ejecuta").
  *     Se llama automáticamente apenas llega el árbol reparado del paso 1,
  *     así el usuario ve el resultado sin un click extra.
- *  3. "Aplicar a la página" reusa el mismo guardarEstructura() que YA
- *     existe en App.jsx (el mismo PUT sofia/v1/paginas/{slug}/estructura
- *     que usa cualquier otro cambio de Nivel 2) — nunca un endpoint nuevo,
- *     tal como pide el plan. onAplicado() (pasado por App.jsx) hace el
- *     guardado real + recarga del iframe; este panel solo le entrega el
- *     árbol ya confirmado por el usuario.
+ *  3. "Agregar a la página" llama onAplicar (aplicarArbolGeneradoPorIA en
+ *     App.jsx), que AGREGA el árbol al final de la estructura existente
+ *     (nunca la reemplaza — bug real corregido, ver el comentario largo
+ *     ahí) reusando el mismo PUT sofia/v1/paginas/{slug}/estructura que
+ *     cualquier otro cambio de Nivel 2, nunca un endpoint nuevo, tal como
+ *     pide el plan. Este panel solo le entrega el árbol ya confirmado por
+ *     el usuario, App.jsx hace el guardado real + recarga del iframe.
  *
  * Preview vía <iframe srcdoc="..."> en vez de un <div
  * dangerouslySetInnerHTML>: decisión documentada acá porque el plan pedía
@@ -193,7 +194,7 @@ export function PanelGenerarIA({ config, onCerrar, onAplicar }) {
               />
               <div className="sofia-panel-ia__confirmar">
                 <button type="button" className="sofia-panel-ia__aplicar" onClick={aplicar} disabled={estado === "aplicando"}>
-                  {estado === "aplicando" ? "Aplicando…" : "Aplicar a la página"}
+                  {estado === "aplicando" ? "Agregando…" : "Agregar a la página"}
                 </button>
                 <button type="button" className="sofia-panel-ia__cancelar" onClick={onCerrar}>
                   Cancelar

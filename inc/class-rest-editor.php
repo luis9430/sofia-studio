@@ -750,6 +750,24 @@ class Sofia_REST_Editor {
 			$ids_ya_usados[ $id ] = true;
 
 			$props_crudas = is_array( $nodo['props'] ?? null ) ? $nodo['props'] : array();
+			// Tolerancia real encontrada probando en vivo: el LLM a veces
+			// pone "_estilo_bloque" como clave HERMANA de "props" a nivel
+			// de nodo ({id,tipo,props:{...},_estilo_bloque:{...}}) en vez
+			// de anidado DENTRO de props como pide la regla 2 del prompt
+			// (ver construirSystemPromptGenerarArbolIA en GoPress) —
+			// modelos más chicos/baratos (ej. mistral-small, el default de
+			// este generador) no siempre respetan el formato exacto
+			// pedido. Sin esto, ese estilo se perdía en silencio (peor
+			// aún: si el nodo raíz también tenía "_estilo_bloque" así,
+			// terminaba mezclado con las props de CONTENIDO y
+			// reparar_props_contenido_ia lo rechazaba como "campo que no
+			// existe" — el bug real reportado por el usuario, ver
+			// franja_beneficios en el screenshot). Acá se lo migra DENTRO
+			// de props antes de reparar, así ambas formas (correcta o
+			// mal anidada) llegan igual a reparar_props_contenido_ia().
+			if ( ! isset( $props_crudas['_estilo_bloque'] ) && is_array( $nodo['_estilo_bloque'] ?? null ) ) {
+				$props_crudas['_estilo_bloque'] = $nodo['_estilo_bloque'];
+			}
 			$props_reparadas = self::reparar_props_contenido_ia( $tipo, $props_crudas, $avisos );
 
 			$nodo_reparado = array(
