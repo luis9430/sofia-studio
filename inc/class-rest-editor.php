@@ -598,8 +598,15 @@ class Sofia_REST_Editor {
 		}
 
 		$catalogo = Sofia_Componente_Factory::catalogo_para_ia();
+		// obtener_estilo_global() (Nivel 3): "capa 2" de la conversación de
+		// arquitectura sobre creatividad del generador (ver la memoria de
+		// producto) — sin esto la IA diseñaba a ciegas sin saber la
+		// paleta/tipografía real del sitio. Array vacío si el sitio no
+		// tiene estilo global configurado, nunca un error (mismo criterio
+		// que el resto de usos de este método).
+		$estilo_global = Sofia_Cliente_GoPress::obtener_estilo_global();
 
-		$resultado = Sofia_Cliente_GoPress::generar_arbol_ia( $prompt, $catalogo );
+		$resultado = Sofia_Cliente_GoPress::generar_arbol_ia( $prompt, $catalogo, $estilo_global );
 		if ( null === $resultado ) {
 			return new WP_Error( 'sofia_ia_fallo', 'No se pudo generar el árbol — GoPress no respondió o OpenRouter no está configurado.', array( 'status' => 502 ) );
 		}
@@ -673,6 +680,15 @@ class Sofia_REST_Editor {
 	 *    clave inventada de más (ej. el LLM agrega "subtitulo" a un Hero
 	 *    que solo declara "titulo"/"imagen") no amerita perder el resto del
 	 *    contenido real que sí generó bien.
+	 * 4. "props._estilo_bloque" (capa 1 de composición por IA, ver
+	 *    reparar_estilo_bloque_ia()) es un caso ESPECIAL dentro de props:
+	 *    no es contenido, es el subconjunto acotado de estilo de Nivel 2
+	 *    (Sofia_Componente_Factory::schema_estilo_ia_de($tipo) —
+	 *    ancho/alineación + lo que declare schema_propio() del tipo, ej.
+	 *    dirección/gap de Container) que la IA puede proponer para que el
+	 *    bloque tenga composición real, no solo contenido crudo sin
+	 *    layout. Mismo criterio de poda por clave que la regla 3, pero
+	 *    contra ESE schema en vez del de contenido.
 	 *
 	 * @param array<int,array<string,mixed>> $nodos
 	 * @return array{0:array<int,array<string,mixed>>,1:string[]} [árbol
@@ -758,19 +774,62 @@ class Sofia_REST_Editor {
 	 * este $tipo — ver la regla 3 del comentario largo en
 	 * validar_y_reparar_arbol_ia(). Un $tipo sin schema de contenido
 	 * (Container, o un tipo que aún no lo declaró) descarta TODAS las
-	 * props — no hay ninguna clave válida a la que aferrarse.
+	 * props de CONTENIDO — no hay ninguna clave válida a la que
+	 * aferrarse (pero SÍ puede tener "_estilo_bloque" válida, ver abajo).
+	 *
+	 * "_estilo_bloque" (con guion bajo inicial, reservado — ver
+	 * Sofia_Componente::atributo_estilo_bloque()) es el caso especial que
+	 * habilita la "capa 1" de composición por IA (ver la memoria de
+	 * producto, conversación de arquitectura sobre creatividad del
+	 * generador): en vez de una clave de CONTENIDO más, es un array
+	 * anidado con sus PROPIAS claves de estilo, reparado por separado
+	 * contra Sofia_Componente_Factory::schema_estilo_ia_de($tipo) — nunca
+	 * confundir con las demás claves de $props_crudas, que van contra
+	 * schema_contenido_de(). Sin este caso especial, un Container (que no
+	 * tiene NINGÚN schema de contenido) descartaría TODA prop que la IA
+	 * le pusiera, incluida su dirección/gap — justo el vocabulario de
+	 * composición que más falta hace ahí.
 	 *
 	 * No valida el VALOR de cada prop (ej. que "imagen" sea de verdad una
-	 * URL) — eso queda para el render real (Sofia_Componente::render() ya
-	 * escapa todo con esc_url/esc_html/wp_kses, ver class-componente.php),
-	 * mismo criterio de "cada capa valida lo que le corresponde" que el
-	 * resto del sistema.
+	 * URL, o que "ancho" sea una opción real del <select>) — eso queda
+	 * para el render real (Sofia_Componente::render()/
+	 * clases_utilitarias_bloque() ya validan value contra su propia
+	 * whitelist, ver class-componente.php), mismo criterio de "cada capa
+	 * valida lo que le corresponde" que el resto del sistema: un valor de
+	 * estilo inventado simplemente no genera ninguna clase/declaración
+	 * CSS, no rompe el render.
 	 *
 	 * @param array<string,mixed> $props_crudas
 	 * @param string[]            $avisos
 	 * @return array<string,mixed>
 	 */
 	private static function reparar_props_contenido_ia( string $tipo, array $props_crudas, array &$avisos ): array {
+		$estilo_crudo = is_array( $props_crudas['_estilo_bloque'] ?? null ) ? $props_crudas['_estilo_bloque'] : array();
+		unset( $props_crudas['_estilo_bloque'] );
+
+		$props_validas = self::reparar_props_contenido_de_tipo_ia( $tipo, $props_crudas, $avisos );
+
+		if ( ! empty( $estilo_crudo ) ) {
+			$estilo_valido = self::reparar_estilo_bloque_ia( $tipo, $estilo_crudo, $avisos );
+			if ( ! empty( $estilo_valido ) ) {
+				$props_validas['_estilo_bloque'] = $estilo_valido;
+			}
+		}
+
+		return $props_validas;
+	}
+
+	/**
+	 * Mitad de reparar_props_contenido_ia() que se ocupa de las props de
+	 * CONTENIDO (todo lo que no sea "_estilo_bloque") — extraído a su
+	 * propio método cuando se agregó el caso especial de estilo, para que
+	 * ninguno de los dos quede mezclado con lógica del otro.
+	 *
+	 * @param array<string,mixed> $props_crudas
+	 * @param string[]            $avisos
+	 * @return array<string,mixed>
+	 */
+	private static function reparar_props_contenido_de_tipo_ia( string $tipo, array $props_crudas, array &$avisos ): array {
 		$schema_contenido = Sofia_Componente_Factory::schema_contenido_de( $tipo );
 		if ( ! is_array( $schema_contenido ) || empty( $schema_contenido ) ) {
 			if ( ! empty( $props_crudas ) ) {
@@ -788,6 +847,41 @@ class Sofia_REST_Editor {
 			$props_validas[ $clave ] = $valor;
 		}
 		return $props_validas;
+	}
+
+	/**
+	 * Repara "_estilo_bloque" contra
+	 * Sofia_Componente_Factory::schema_estilo_ia_de($tipo) — mismo
+	 * criterio de "clave no declarada se descarta" que
+	 * reparar_props_contenido_de_tipo_ia(), pero contra el schema de
+	 * ESTILO acotado (ancho/alineación + lo que declare schema_propio()
+	 * del tipo, ver el comentario largo en schema_estilo_ia_de()) en vez
+	 * del de contenido. Un tipo sin schema de estilo IA (no debería pasar
+	 * nunca — todo tipo real tiene al menos "ancho"/"alineacion_bloque"
+	 * del genérico) descarta todo, mismo criterio defensivo.
+	 *
+	 * @param array<string,mixed> $estilo_crudo
+	 * @param string[]            $avisos
+	 * @return array<string,mixed>
+	 */
+	private static function reparar_estilo_bloque_ia( string $tipo, array $estilo_crudo, array &$avisos ): array {
+		$schema_estilo = Sofia_Componente_Factory::schema_estilo_ia_de( $tipo );
+		if ( ! is_array( $schema_estilo ) || empty( $schema_estilo ) ) {
+			if ( ! empty( $estilo_crudo ) ) {
+				$avisos[] = sprintf( 'Un bloque tipo "%s" no tiene controles de estilo disponibles para la IA — se descartó el estilo propuesto.', $tipo );
+			}
+			return array();
+		}
+
+		$estilo_valido = array();
+		foreach ( $estilo_crudo as $clave => $valor ) {
+			if ( ! isset( $schema_estilo[ $clave ] ) ) {
+				$avisos[] = sprintf( 'Un bloque tipo "%s" tenía un control de estilo "%s" que no está disponible para la IA — se descartó.', $tipo, (string) $clave );
+				continue;
+			}
+			$estilo_valido[ $clave ] = $valor;
+		}
+		return $estilo_valido;
 	}
 
 	/**

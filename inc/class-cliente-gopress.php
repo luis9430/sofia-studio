@@ -249,7 +249,16 @@ class Sofia_Cliente_GoPress {
 	 * ver la memoria de producto de esta fase) usa para el mismo tipo de
 	 * llamada.
 	 *
+	 * $estilo_global (Nivel 3 — paleta/tipografía del SITIO, ver
+	 * obtener_estilo_global() arriba) viaja también en el body — "capa 2"
+	 * de la conversación de arquitectura sobre creatividad del generador
+	 * (ver la memoria de producto): sin esto, el LLM diseñaba a ciegas sin
+	 * saber los colores/fuentes reales del sitio. Puede ser array vacío
+	 * (sitio sin estilo global configurado) — GoPress simplemente omite
+	 * esa sección del prompt en ese caso, nunca es un error.
+	 *
 	 * @param array<int,array<string,mixed>> $catalogo
+	 * @param array<string,mixed>            $estilo_global
 	 * @return array{arbol:array<int,array<string,mixed>>,avisos:string[]}|null
 	 *         null si GoPress no está configurado, la request falla, o
 	 *         GoPress devuelve un error (OPENROUTER_API_KEY no configurada
@@ -259,7 +268,7 @@ class Sofia_Cliente_GoPress {
 	 *         necesita saber "funcionó o no" para decidir qué WP_Error
 	 *         devolver, ver Sofia_REST_Editor::ia_generar_arbol()).
 	 */
-	public static function generar_arbol_ia( string $prompt, array $catalogo ): ?array {
+	public static function generar_arbol_ia( string $prompt, array $catalogo, array $estilo_global = array() ): ?array {
 		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
 			return null;
 		}
@@ -283,8 +292,9 @@ class Sofia_Cliente_GoPress {
 				'headers' => array( 'Content-Type' => 'application/json' ),
 				'body'    => wp_json_encode(
 					array(
-						'prompt'   => $prompt,
-						'catalogo' => $catalogo,
+						'prompt'        => $prompt,
+						'catalogo'      => $catalogo,
+						'estilo_global' => $estilo_global,
 					)
 				),
 			)

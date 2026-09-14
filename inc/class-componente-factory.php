@@ -140,6 +140,65 @@ class Sofia_Componente_Factory {
 	}
 
 	/**
+	 * CLAVES_ESTILO_GENERICO_IA: subconjunto de
+	 * Sofia_Componente::schema_bloque_generico() (15 campos totales) que el
+	 * generador de árboles por IA puede llenar — "capa 1" de la
+	 * conversación de arquitectura sobre por qué la IA generaba diseños sin
+	 * criterio (ver la memoria de producto): sin ESTA lista, el LLM no
+	 * tenía ningún vocabulario para expresar composición (imagen al
+	 * costado vs. arriba, centrado vs. ancho completo), solo podía llenar
+	 * contenido — así que cualquier variación de layout era literalmente
+	 * imposible de generar, sin importar qué tan bueno fuera el prompt.
+	 *
+	 * Deliberadamente ACOTADO a "ancho"/"alineacion_bloque" en esta primera
+	 * pasada — decisión explícita con el usuario: layout esencial primero
+	 * (lo mínimo que ya habilita las variantes de composición reales que
+	 * motivaron esta conversación), color/sombra/radius/z-index/aspect-
+	 * ratio/etc. quedan para una vuelta posterior. Sumar los 15 campos de
+	 * una sola vez alarga el prompt y multiplica la superficie de error de
+	 * un modelo que todavía no probamos con NINGÚN campo de estilo — mejor
+	 * validar el mecanismo acotado primero (mismo criterio de alcance
+	 * incremental que ya usó todo el resto de este plan, Fase 1/2/3).
+	 */
+	private const CLAVES_ESTILO_GENERICO_IA = array( 'ancho', 'alineacion_bloque' );
+
+	/**
+	 * schema_estilo_ia_de( $tipo ): subconjunto de schema_de($tipo) que el
+	 * generador de IA puede llenar — CLAVES_ESTILO_GENERICO_IA (whitelist
+	 * fija, igual para cualquier tipo) MÁS el schema_propio() completo del
+	 * tipo (hoy solo Container: display/direccion/envolver/justificar/
+	 * alinear/columnas_grilla/gap — ya son pocos y TODOS relevantes a
+	 * composición, a diferencia del genérico de 15 campos, así que no hace
+	 * falta acotarlo también).
+	 *
+	 * Separado de schema_de() (que sigue devolviendo los 15+ campos
+	 * completos para el drawer manual, sin cambios) — mismo criterio que
+	 * ya separaba schema_de()/schema_contenido_de(): "qué puede editar un
+	 * humano en el drawer" y "qué puede generar la IA" son preguntas
+	 * relacionadas pero distintas, nunca el mismo array.
+	 *
+	 * @return array<string,array<string,mixed>>|null null si $tipo no
+	 *         corresponde a ningún Componente real, mismo criterio que
+	 *         schema_de().
+	 */
+	public static function schema_estilo_ia_de( string $tipo ): ?array {
+		$componente = self::crear( $tipo, 'schema' );
+		if ( null === $componente ) {
+			return null;
+		}
+
+		$generico_completo = Sofia_Componente::schema_bloque_generico();
+		$generico_acotado  = array();
+		foreach ( self::CLAVES_ESTILO_GENERICO_IA as $clave ) {
+			if ( isset( $generico_completo[ $clave ] ) ) {
+				$generico_acotado[ $clave ] = $generico_completo[ $clave ];
+			}
+		}
+
+		return array_merge( $generico_acotado, $componente::schema_propio() );
+	}
+
+	/**
 	 * schema_contenido_de( $tipo ): schema de CONTENIDO (Fase 4 — generador
 	 * de árboles por IA, ver Sofia_Componente::schema_contenido()) de un
 	 * tipo puntual — hermano de schema_de() (que es de ESTILO), nunca
@@ -200,7 +259,14 @@ class Sofia_Componente_Factory {
 			$catalogo[] = array(
 				'tipo'             => $tipo,
 				'nombre'           => $componente->nombre(),
-				'schema_estilo'    => array_merge( Sofia_Componente::schema_bloque_generico(), $componente::schema_propio() ),
+				// schema_estilo_ia_de() (no schema_de()/schema_bloque_generico()
+				// completo) — la IA solo puede llenar el subconjunto acotado
+				// de estilo (ver el comentario largo en
+				// schema_estilo_ia_de()), mandarle los 15 campos genéricos
+				// completos la confundiría ofreciéndole controles que
+				// reparar_props_contenido_ia() va a descartar de todas
+				// formas.
+				'schema_estilo'    => self::schema_estilo_ia_de( $tipo ),
 				'schema_contenido' => $componente::schema_contenido(),
 			);
 		}
