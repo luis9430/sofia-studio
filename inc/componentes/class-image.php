@@ -31,6 +31,18 @@ class Sofia_Componente_Image extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * claves_estilo_relevantes() (Nivel 2, revisión de arquitectura tras
+	 * fricción real de edición — ver la memoria de producto): PERFIL_IMAGEN
+	 * — posición/tamaño + relación de aspecto/object-fit (SÍ tienen efecto
+	 * real acá, hay una <img> real), sin fondo/borde/sombra/espaciado/
+	 * z-index de "caja de sección" (una Image no es una sección con
+	 * contenido interno, es la imagen misma).
+	 */
+	public static function claves_estilo_relevantes(): array {
+		return parent::PERFIL_IMAGEN;
+	}
+
 	public function render(): string {
 		// imagen_o_placeholder() (clase base): sin esto, un bloque Image
 		// recién agregado (sin valor todavía) no emitía ningún <img> — un

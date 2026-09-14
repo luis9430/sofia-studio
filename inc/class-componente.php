@@ -926,11 +926,15 @@ abstract class Sofia_Componente {
 	 * - "alineacion_iconos": fila de botones exclusivos con ícono en vez
 	 *   de texto ({opciones:[{valor,etiqueta,icono}]}).
 	 *
-	 * `final` — a diferencia de schema_propio() (pensado para que cada
-	 * Componente agregue LO SUYO), este set es el mismo para todo el
-	 * catálogo por decisión de diseño (Nivel 2 = estilo de caja genérico);
-	 * si un Componente necesitara ocultar/cambiar uno de estos 12, sería
-	 * señal de que ese control no debería ser genérico después de todo.
+	 * `final` — el CATÁLOGO completo de controles posibles es el mismo
+	 * para todo el sistema (nunca un Componente inventa un control
+	 * genérico nuevo, eso es tarea de schema_propio()). CUÁLES de estas
+	 * 15 claves se le muestran a un Componente puntual ya NO es "todas
+	 * siempre" (decisión original de Fase 2, revertida tras evidencia
+	 * real de fricción — ver claves_estilo_relevantes()/PERFIL_* más
+	 * abajo y la memoria de producto): eso lo filtra
+	 * Sofia_Componente_Factory::schema_de() usando
+	 * claves_estilo_relevantes(), nunca este método.
 	 *
 	 * @return array<string,array<string,mixed>>
 	 */
@@ -1080,6 +1084,97 @@ abstract class Sofia_Componente {
 				),
 			),
 		);
+	}
+
+	/**
+	 * PERFIL_SECCION / PERFIL_PRIMITIVA / PERFIL_LISTA: 3 subconjuntos
+	 * reusables de schema_bloque_generico() — decisión de arquitectura
+	 * tomada con el usuario tras evidencia real de fricción de edición
+	 * (ver la memoria de producto, conversación "no me gusta lo que se
+	 * está haciendo"): mostrar los 15 controles genéricos COMPLETOS a
+	 * cualquier tipo (el comportamiento original de Fase 2, ver el
+	 * comentario ahora desactualizado en schema_bloque_generico() de
+	 * arriba) resultó en un drawer "tipo Elementor de 200 opciones" para
+	 * un Button o una Image, donde Object-fit/Aspect-ratio/Columnas no
+	 * significan nada — el usuario tenía que scrollear controles
+	 * irrelevantes para llegar a los 2-3 que sí le servían.
+	 *
+	 * Un Componente nuevo (Card, Accordion, Carousel — el catálogo de
+	 * contenido/UI que el plan original ya identificaba como huecos
+	 * reales) NO necesita enumerar controles uno por uno: elige el
+	 * perfil que mejor describe QUÉ ES (una sección de contenido, una
+	 * primitiva visual simple, o algo con lista repetible interna) hacer
+	 * override de claves_estilo_relevantes() con UNA línea — ver el
+	 * comentario largo ahí.
+	 *
+	 * PERFIL_SECCION: cualquier bloque que es "una sección visual
+	 * completa" — posición/tamaño en la página + controles de CAJA
+	 * (fondo, borde, sombra, padding vertical, superposición). Es el
+	 * comportamiento ORIGINAL de Fase 2 (todos los genéricos), ahora
+	 * como un perfil explícito en vez del único comportamiento posible.
+	 */
+	protected const PERFIL_SECCION = array(
+		'ancho', 'max_width', 'alineacion_bloque', 'offset_x',
+		'color_fondo', 'color_borde', 'radius', 'sombra', 'espaciado_vertical', 'z_index',
+	);
+
+	/**
+	 * PERFIL_PRIMITIVA: bloques que son una pieza visual SIMPLE, sin caja
+	 * de sección propia (Image, Button, y a futuro Icon) — solo
+	 * posición/tamaño en la página. Sin fondo/borde/sombra/padding/
+	 * z-index propios: un botón no necesita su propio color de fondo de
+	 * SECCIÓN (eso ya lo resuelve el estilo de Nivel 1 del texto/enlace
+	 * en sí), mostrarle esos 6 controles era ruido puro.
+	 */
+	protected const PERFIL_PRIMITIVA = array( 'ancho', 'max_width', 'alineacion_bloque', 'offset_x' );
+
+	/**
+	 * PERFIL_LISTA: PERFIL_SECCION + los 3 controles que solo tienen
+	 * efecto real en un Componente con una lista de items propia
+	 * (Franja de beneficios, Testimonios, y a futuro Carousel) — columnas
+	 * de grid + alineación horizontal/vertical del contenido DENTRO de
+	 * cada columna. Confirmado por lectura del propio CSS (ver el
+	 * comentario largo de CLASES_UTILITARIAS_BLOQUE más arriba): estas 3
+	 * claves ya eran, desde antes de este cambio, "se muestran siempre
+	 * pero solo hacen algo visible en 2 tipos" — el perfil solo hace
+	 * explícito lo que ya era cierto en la práctica.
+	 */
+	protected const PERFIL_LISTA = array(
+		'ancho', 'max_width', 'alineacion_bloque', 'offset_x',
+		'color_fondo', 'color_borde', 'radius', 'sombra', 'espaciado_vertical', 'z_index',
+		'columnas', 'alineacion_contenido', 'alineacion_vertical_contenido',
+	);
+
+	/**
+	 * PERFIL_IMAGEN: PERFIL_PRIMITIVA + los 2 controles que solo tienen
+	 * sentido donde hay una <img>/<video> real de por medio (Image, y
+	 * Hero por tener su propia imagen) — relación de aspecto + ajuste
+	 * (object-fit).
+	 */
+	protected const PERFIL_IMAGEN = array( 'ancho', 'max_width', 'alineacion_bloque', 'offset_x', 'aspect_ratio', 'object_fit' );
+
+	/**
+	 * claves_estilo_relevantes(): QUÉ subconjunto de
+	 * schema_bloque_generico() (15 claves totales) le corresponde a ESTE
+	 * Componente — default PERFIL_SECCION (mismo comportamiento que
+	 * antes de este cambio, ningún Componente existente que no haga
+	 * override pierde ningún control que ya tuviera). Un Componente con
+	 * necesidades propias hace override eligiendo uno de los PERFIL_*
+	 * de arriba (o, en un caso realmente atípico, una lista de claves a
+	 * mano) — ver class-image.php/class-button.php para los primeros 2
+	 * casos reales.
+	 *
+	 * Consumido por Sofia_Componente_Factory::schema_de()/
+	 * schema_estilo_ia_de() para FILTRAR schema_bloque_generico() antes
+	 * de fusionar con schema_propio() — el genérico completo (con sus 15
+	 * claves) sigue siendo `final` y sin cambios, este método decide
+	 * cuáles de esas 15 se muestran, nunca inventa controles nuevos (eso
+	 * sigue siendo trabajo de schema_propio()).
+	 *
+	 * @return string[]
+	 */
+	public static function claves_estilo_relevantes(): array {
+		return self::PERFIL_SECCION;
 	}
 
 	/**

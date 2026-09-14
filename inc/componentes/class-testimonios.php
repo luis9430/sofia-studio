@@ -50,6 +50,17 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * claves_estilo_relevantes() (Nivel 2, revisión de arquitectura tras
+	 * fricción real de edición — ver la memoria de producto): PERFIL_LISTA
+	 * — tiene una lista de items propia, así que Columnas/Alineación del
+	 * contenido SÍ tienen efecto real acá (a diferencia de un Hero/CTA sin
+	 * grid interno).
+	 */
+	public static function claves_estilo_relevantes(): array {
+		return parent::PERFIL_LISTA;
+	}
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 

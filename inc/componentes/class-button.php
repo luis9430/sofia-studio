@@ -39,6 +39,18 @@ class Sofia_Componente_Button extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * claves_estilo_relevantes() (Nivel 2, revisión de arquitectura tras
+	 * fricción real de edición — ver la memoria de producto): Button es
+	 * una primitiva visual simple, sin caja de sección propia — ningún
+	 * fondo/borde/sombra/espaciado/z-index PROPIO tiene sentido para un
+	 * botón (eso lo maneja el estilo de Nivel 1 del texto/enlace en sí),
+	 * solo su posición/tamaño dentro de la página.
+	 */
+	public static function claves_estilo_relevantes(): array {
+		return parent::PERFIL_PRIMITIVA;
+	}
+
 	public function render(): string {
 		$texto  = $this->texto_enriquecido( $this->props['texto'] );
 		$enlace = esc_url( $this->props['enlace'] );

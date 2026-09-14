@@ -136,7 +136,32 @@ class Sofia_Componente_Factory {
 		if ( null === $componente ) {
 			return null;
 		}
-		return array_merge( Sofia_Componente::schema_bloque_generico(), $componente::schema_propio() );
+		return array_merge( self::generico_relevante_de( $componente ), $componente::schema_propio() );
+	}
+
+	/**
+	 * generico_relevante_de( $componente ): schema_bloque_generico()
+	 * FILTRADO a solo las claves que $componente::claves_estilo_relevantes()
+	 * declara como suyas — extraído como helper compartido porque
+	 * schema_de() (drawer manual) Y schema_estilo_ia_de() (generador de
+	 * IA) necesitan exactamente el mismo filtro, aplicado sobre bases
+	 * distintas (acá el genérico completo de 15 claves; en
+	 * schema_estilo_ia_de() ya viene pre-acotado por
+	 * CLAVES_ESTILO_GENERICO_IA antes de este filtro — ver ahí).
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private static function generico_relevante_de( Sofia_Componente $componente ): array {
+		$generico_completo = Sofia_Componente::schema_bloque_generico();
+		$claves_relevantes = $componente::claves_estilo_relevantes();
+
+		$relevante = array();
+		foreach ( $claves_relevantes as $clave ) {
+			if ( isset( $generico_completo[ $clave ] ) ) {
+				$relevante[ $clave ] = $generico_completo[ $clave ];
+			}
+		}
+		return $relevante;
 	}
 
 	/**
@@ -187,10 +212,23 @@ class Sofia_Componente_Factory {
 			return null;
 		}
 
-		$generico_completo = Sofia_Componente::schema_bloque_generico();
-		$generico_acotado  = array();
+		// Intersección de 2 filtros distintos: CLAVES_ESTILO_GENERICO_IA
+		// (qué puede tocar la IA, en general, de los genéricos — "layout
+		// esencial primero", ver el comentario largo arriba) Y
+		// claves_estilo_relevantes() del TIPO puntual (qué le corresponde
+		// a ESE tipo, ver Sofia_Componente::PERFIL_*/
+		// claves_estilo_relevantes()) — ambos filtros deben aprobar una
+		// clave para que la IA pueda usarla. En la práctica hoy no cambia
+		// nada (ancho/alineacion_bloque están en los 4 perfiles), pero es
+		// la combinación correcta: si el genérico-IA creciera a futuro con
+		// una clave de "caja" (ej. color_fondo), un Button (perfil
+		// primitiva, sin controles de caja) seguiría sin poder recibirla
+		// de la IA, igual que un humano no la ve en su drawer.
+		$claves_relevantes = $componente::claves_estilo_relevantes();
+		$generico_completo  = Sofia_Componente::schema_bloque_generico();
+		$generico_acotado   = array();
 		foreach ( self::CLAVES_ESTILO_GENERICO_IA as $clave ) {
-			if ( isset( $generico_completo[ $clave ] ) ) {
+			if ( in_array( $clave, $claves_relevantes, true ) && isset( $generico_completo[ $clave ] ) ) {
 				$generico_acotado[ $clave ] = $generico_completo[ $clave ];
 			}
 		}

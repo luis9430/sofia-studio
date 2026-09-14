@@ -31,6 +31,21 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * claves_estilo_relevantes() (Nivel 2, revisión de arquitectura tras
+	 * fricción real de edición — ver la memoria de producto): Hero es una
+	 * SECCIÓN completa (título + imagen, con su propio fondo/borde/
+	 * espaciado como cualquier sección) PERO además tiene una <img>
+	 * real adentro — ni PERFIL_SECCION solo (le faltaría object-fit/
+	 * aspect-ratio para la imagen) ni PERFIL_IMAGEN solo (le faltaría
+	 * color de fondo/espaciado de la sección) alcanzan por separado, así
+	 * que es la unión de ambos en vez de un 5to perfil dedicado para un
+	 * solo caso.
+	 */
+	public static function claves_estilo_relevantes(): array {
+		return array_unique( array_merge( parent::PERFIL_SECCION, array( 'aspect_ratio', 'object_fit' ) ) );
+	}
+
 	public function render(): string {
 		$titulo = $this->texto_enriquecido( $this->props['titulo'] );
 		// imagen_o_placeholder() (clase base): sin esto, un Hero recién
