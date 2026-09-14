@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { CampoConToken, PREFIJO_TOKEN_CORE_FRAMEWORK } from "./CampoConToken.jsx";
+import { SelectorTokenAvanzado } from "./SelectorTokenAvanzado.jsx";
 
 /**
  * CampoTokenVisual — selector VISUAL de tokens de Core Framework, con
@@ -65,7 +66,40 @@ export function CampoTokenVisual({ categoria = "color", valor, onCambiar, restUr
   if (!catalogo || opciones.length === 0 || modoAvanzado) {
     return (
       <div className="sofia-token-visual">
-        <CampoConToken tipo={categoria === "color" ? "color" : "text"} categoria={categoria} conUnidad={categoria !== "color"} valor={valor} onCambiar={onCambiar} />
+        {categoria === "color" && esToken ? (
+          // SelectorTokenAvanzado (no el <input list=...> de
+          // CampoConToken) — swatch real por cada una de las 154
+          // variables, ver el comentario largo del componente. Solo
+          // reemplaza el INPUT del modo token; el botón "CF" sigue siendo
+          // el de CampoConToken de siempre (mismo componente, mismo
+          // toggle) para no duplicar esa lógica — se renderiza acá aparte
+          // porque CampoConToken no acepta inyectar un input custom en su
+          // lugar del <input list=...>.
+          <div className="sofia-campo-token__fila">
+            <SelectorTokenAvanzado
+              valor={tokenActual}
+              onCambiar={(nombreToken) => onCambiar(PREFIJO_TOKEN_CORE_FRAMEWORK + nombreToken)}
+              restUrl={restUrl}
+              nonce={nonce}
+            />
+            <button
+              type="button"
+              className="sofia-campo-token__cf sofia-campo-token__cf--activo"
+              title="Usando un token de Core Framework — click para volver a un valor fijo"
+              onClick={() => onCambiar("")}
+            >
+              CF
+            </button>
+          </div>
+        ) : (
+          <CampoConToken
+            tipo={categoria === "color" ? "color" : "text"}
+            categoria={categoria}
+            conUnidad={categoria !== "color"}
+            valor={valor}
+            onCambiar={onCambiar}
+          />
+        )}
         {opciones.length > 0 && (
           <button type="button" className="sofia-token-visual__modo" onClick={() => setModoAvanzado(false)}>
             ← Volver al selector

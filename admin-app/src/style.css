@@ -838,6 +838,102 @@ body {
   color: var(--gp-panel-text);
 }
 
+/* SelectorTokenAvanzado.jsx — dropdown propio con swatch real por cada
+   una de las 154 variables (reemplaza el <datalist> nativo, que solo
+   podía mostrar texto — bug real reportado por el usuario: "a granel"). */
+.sofia-selector-token-avanzado {
+  position: relative;
+  flex: 1;
+}
+
+.sofia-selector-token-avanzado__gatillo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--gp-panel-border);
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.sofia-selector-token-avanzado__gatillo:hover {
+  border-color: var(--gp-accent);
+}
+
+.sofia-selector-token-avanzado__swatch-chico {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.sofia-selector-token-avanzado__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--gp-panel-2);
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.sofia-selector-token-avanzado__filtro {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid var(--gp-panel-border);
+  background: transparent;
+  color: var(--gp-panel-text);
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.sofia-selector-token-avanzado__lista {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sofia-selector-token-avanzado__fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sofia-selector-token-avanzado__fila:hover {
+  background: var(--gp-panel-3, rgba(255, 255, 255, 0.05));
+  color: var(--gp-panel-text);
+}
+
+.sofia-selector-token-avanzado__fila--activa {
+  background: var(--gp-accent-soft);
+  color: var(--gp-accent-text);
+}
+
+.sofia-selector-token-avanzado__vacio {
+  padding: 10px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--gp-panel-text-dim);
+}
+
 .sofia-drawer-estilo__toggle {
   padding: 6px 12px;
   border: 1px solid var(--gp-panel-border);

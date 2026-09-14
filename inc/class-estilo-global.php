@@ -133,6 +133,37 @@ class Sofia_Estilo_Global {
 	 *         no se pudo leer.
 	 */
 	public static function variables_core_framework(): array {
+		return array_keys( self::variables_core_framework_con_valor() );
+	}
+
+	/**
+	 * variables_core_framework_con_valor(): mismo archivo/parseo que
+	 * variables_core_framework(), pero devuelve {nombre => valor CRUDO tal
+	 * cual el CSS lo declara} — necesario para catalogo_tokens_visual()
+	 * (ver el comentario largo ahí): un swatch de color con
+	 * background:var(--primary) depende de que el navegador tenga el CSS
+	 * de Core Framework CARGADO en ese documento — bug real encontrado
+	 * probando en vivo: el panel del editor corre en wp-admin, y
+	 * enlazar_css_core_framework() solo se engancha a wp_enqueue_scripts
+	 * (frontend público, ver el hook al final del archivo) — en wp-admin
+	 * ese CSS nunca se carga, así que TODOS los swatches se veían iguales
+	 * (color heredado/default, ninguna var() resolvía a nada real). Con el
+	 * valor YA resuelto en PHP, el swatch pinta el color REAL sin depender
+	 * de la cascada del documento donde se muestra.
+	 *
+	 * Primera coincidencia de cada nombre (nunca la última) — confirmado
+	 * en el CSS real: --primary/--secondary/etc. solo se declaran UNA vez,
+	 * pero --shadow-primary aparece 2 veces (modo claro/oscuro del propio
+	 * plugin, selectores distintos) — la primera es la del selector base
+	 * (:root sin variante de tema), consistente con lo que el navegador
+	 * usaría por defecto sin ningún data-theme activo.
+	 *
+	 * @return array<string,string> {nombre sin "--" => valor crudo, ej.
+	 *         "hsla(238,100%,62%,1)" o "clamp(1rem,...)"} — vacío mismo
+	 *         criterio que variables_core_framework() (plugin inactivo o
+	 *         archivo no legible).
+	 */
+	private static function variables_core_framework_con_valor(): array {
 		if ( ! self::core_framework_activo() ) {
 			return array();
 		}
@@ -147,10 +178,16 @@ class Sofia_Estilo_Global {
 			return array();
 		}
 
-		preg_match_all( '/--([a-zA-Z0-9_-]+)\s*:/', $css, $coincidencias );
-		$nombres = array_unique( $coincidencias[1] ?? array() );
-		sort( $nombres );
-		return array_values( $nombres );
+		preg_match_all( '/--([a-zA-Z0-9_-]+)\s*:\s*([^;]+);/', $css, $coincidencias, PREG_SET_ORDER );
+		$valores = array();
+		foreach ( $coincidencias as $match ) {
+			$nombre = $match[1];
+			if ( ! isset( $valores[ $nombre ] ) ) { // primera coincidencia gana, ver el comentario largo arriba.
+				$valores[ $nombre ] = trim( $match[2] );
+			}
+		}
+		ksort( $valores );
+		return $valores;
 	}
 
 	/**
@@ -221,6 +258,33 @@ class Sofia_Estilo_Global {
 		$agrupadas = array( 'color' => array(), 'texto' => array(), 'radius' => array(), 'shadow' => array(), 'space' => array(), 'otras' => array() );
 		foreach ( self::variables_core_framework() as $nombre ) {
 			$agrupadas[ self::categoria_de_variable( $nombre ) ][] = $nombre;
+		}
+		return $agrupadas;
+	}
+
+	/**
+	 * variables_core_framework_por_categoria_con_valor(): mismo agrupado
+	 * que arriba, pero cada entrada es {nombre, valor} en vez de solo el
+	 * nombre — decisión de arquitectura tras probar en vivo: el modo
+	 * "Avanzado" de CampoTokenVisual.jsx usaba un <datalist> HTML nativo
+	 * (autocompletado de un <input>), que NO puede mostrar un swatch junto
+	 * a cada opción (limitación de la propia plataforma, no de este
+	 * código) — con 154 variables reales, una lista de solo nombres como
+	 * "tertiary-30" es, en palabras del usuario, "a granel": no se
+	 * entiende qué es sin verlo pintado. Este método alimenta un selector
+	 * Preact PROPIO (ver SelectorTokenAvanzado.jsx) que sí puede mostrar
+	 * el color real de CADA variable, variantes de tono incluidas — a
+	 * diferencia de catalogo_tokens_visual() (que deliberadamente excluye
+	 * esas variantes del modo básico), acá SÍ viajan las 154 completas,
+	 * es el modo avanzado.
+	 *
+	 * @return array<string,array<int,array{nombre:string,valor:string}>>
+	 */
+	public static function variables_core_framework_por_categoria_con_valor(): array {
+		$valores   = self::variables_core_framework_con_valor();
+		$agrupadas = array( 'color' => array(), 'texto' => array(), 'radius' => array(), 'shadow' => array(), 'space' => array(), 'otras' => array() );
+		foreach ( $valores as $nombre => $valor ) {
+			$agrupadas[ self::categoria_de_variable( $nombre ) ][] = array( 'nombre' => $nombre, 'valor' => $valor );
 		}
 		return $agrupadas;
 	}
@@ -354,10 +418,18 @@ class Sofia_Estilo_Global {
 	 * colores base, nunca las 154 variantes completas — ver el
 	 * comentario largo en etiqueta_de_color().
 	 *
-	 * $preview (solo categoría "color"): el valor CSS real
-	 * ("var(--primary)") para que el selector pinte un swatch de verdad,
-	 * no solo el nombre — mismo criterio "lo que se puede preview" pedido
-	 * explícitamente por el usuario.
+	 * $preview (solo categoría "color"): el VALOR CRUDO real del token
+	 * (ej. "hsla(238,100%,62%,1)"), leído directo del CSS de Core
+	 * Framework — NUNCA "var(--primary)". Bug real encontrado probando en
+	 * vivo: el panel del editor corre en wp-admin, donde el CSS de Core
+	 * Framework no está cargado (enlazar_css_core_framework() solo se
+	 * engancha al frontend público) — con "var(--primary)" como
+	 * background, TODOS los swatches se veían idénticos (la variable no
+	 * resolvía a nada en ese documento). Con el valor ya resuelto en PHP
+	 * (ver variables_core_framework_con_valor()), el swatch pinta el color
+	 * real sin depender de qué CSS esté cargado donde se muestra — mismo
+	 * criterio "lo que se puede preview" pedido explícitamente por el
+	 * usuario, ahora cumplido de verdad.
 	 *
 	 * @return array<string,array<int,array{token:string,etiqueta:string,preview?:string}>>
 	 *         {categoria => [{token, etiqueta, preview?}]} — mismas 6
@@ -367,6 +439,7 @@ class Sofia_Estilo_Global {
 	 */
 	public static function catalogo_tokens_visual(): array {
 		$agrupadas = self::variables_core_framework_por_categoria();
+		$valores   = self::variables_core_framework_con_valor();
 		$catalogo  = array();
 
 		foreach ( $agrupadas as $categoria => $nombres ) {
@@ -377,8 +450,8 @@ class Sofia_Estilo_Global {
 					continue; // sin traducción conocida — queda solo en modo avanzado (texto libre).
 				}
 				$entrada = array( 'token' => $nombre, 'etiqueta' => $etiqueta );
-				if ( 'color' === $categoria ) {
-					$entrada['preview'] = 'var(--' . $nombre . ')';
+				if ( 'color' === $categoria && isset( $valores[ $nombre ] ) ) {
+					$entrada['preview'] = $valores[ $nombre ];
 				}
 				$catalogo[ $categoria ][] = $entrada;
 			}

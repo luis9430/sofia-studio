@@ -141,6 +141,16 @@ class Sofia_REST_Editor {
 				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
 			)
 		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/core-framework/variables-con-valor',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'variables_core_framework_con_valor' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
 	}
 
 	/**
@@ -1082,6 +1092,21 @@ class Sofia_REST_Editor {
 	 */
 	public static function tokens_core_framework_visual( WP_REST_Request $request ) {
 		return rest_ensure_response( Sofia_Estilo_Global::catalogo_tokens_visual() );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/core-framework/variables-con-valor — las 154
+	 * variables reales AGRUPADAS por categoría, cada una con su VALOR
+	 * crudo (ver Sofia_Estilo_Global::variables_core_framework_por_categoria_con_valor())
+	 * — alimenta el selector "Avanzado" propio (SelectorTokenAvanzado.jsx),
+	 * que reemplaza el <datalist> nativo (sin soporte real de preview) por
+	 * un dropdown Preact que sí muestra un swatch por variante. Bug real
+	 * corregido tras probar en vivo: el usuario reportó que el modo
+	 * avanzado (antes datalist con solo nombres) era "a granel" — no se
+	 * entendía qué era "tertiary-30" sin verlo pintado.
+	 */
+	public static function variables_core_framework_con_valor( WP_REST_Request $request ) {
+		return rest_ensure_response( Sofia_Estilo_Global::variables_core_framework_por_categoria_con_valor() );
 	}
 }
 
