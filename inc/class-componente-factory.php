@@ -87,4 +87,31 @@ class Sofia_Componente_Factory {
 		}
 		return $catalogo;
 	}
+
+	/**
+	 * schema_de( $tipo ): schema de Nivel 2 (estilo de bloque) fusionado
+	 * — genérico (Sofia_Componente::schema_bloque_generico(), igual para
+	 * todo el catálogo) + propio del Componente (schema_propio(), vacío
+	 * salvo que la subclase haga override, ver Sofia_Componente_Container).
+	 * Propio SIEMPRE al final, así los controles específicos de un
+	 * Componente aparecen después de los genéricos en el drawer — ver Fase
+	 * 2 del plan de "primitivas de layout" (memoria de producto).
+	 *
+	 * Deliberadamente NO pasa por TIPOS_REGISTRADOS/catalogo() — un tipo
+	 * como "container" (fuera del catálogo insertable hasta Fase 3, ver
+	 * class-container.php) igual necesita poder pedir su schema, porque
+	 * ya puede existir en una página armada a mano vía la API de
+	 * plantillas de GoPress.
+	 *
+	 * @return array<string,array<string,mixed>>|null null si $tipo no
+	 *         corresponde a ningún Componente real (mismo criterio que
+	 *         crear() devolviendo null).
+	 */
+	public static function schema_de( string $tipo ): ?array {
+		$componente = self::crear( $tipo, 'schema' );
+		if ( null === $componente ) {
+			return null;
+		}
+		return array_merge( Sofia_Componente::schema_bloque_generico(), $componente::schema_propio() );
+	}
 }

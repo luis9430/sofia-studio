@@ -1,5 +1,6 @@
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { CampoConToken } from "./CampoConToken.jsx";
+import { CamposDesdeSchema } from "./CampoDesdeSchema.jsx";
 
 /**
  * Drawer de estilo — panel lateral con pestañas (Estilo | Visibilidad |
@@ -19,28 +20,33 @@ import { CampoConToken } from "./CampoConToken.jsx";
  * Un mismo componente sirve para 2 niveles de estilo, según la prop
  * `nivel`: "campo" (default, Nivel 1 — SOLO texto/contenido puntual de UN
  * elemento: alineación/tipografía/color/sombra de texto, abierto con el
- * botón ✏️ de BotonEditarCampo) y "bloque" (Nivel 2 — todo lo de
- * CAJA/contenedor: columnas de grid, fondo, borde, radius, sombra,
- * espaciado vertical, ancho/ancho máximo/aspect-ratio/object-fit/z-index,
- * de la <section> completa, abierto desde "Estilo del bloque" en el menú
- * contextual, ver App.jsx). Regla de qué va en cada nivel confirmada con el
- * usuario tras auditar el catálogo completo de Core Framework:
- * "color_fondo"/"margen"/"relleno" vivían mal ubicados en Nivel 1 (son
- * propiedades de la CAJA del campo, no de su texto) y se
- * movieron a Nivel 2. Mismas pestañas/cabecera/arrastre para los 2,
- * solo cambia qué controles se listan en el cuerpo — evita duplicar toda
- * la mecánica de drawer (arrastre, overlay, pestañas) en un componente
- * aparte para un caso que en el fondo es "el mismo panel con otro grupo de
- * controles".
+ * botón ✏️ de BotonEditarCampo, controles hardcodeados acá tal cual) y
+ * "bloque" (Nivel 2 — todo lo de CAJA/contenedor: columnas de grid, fondo,
+ * borde, radius, sombra, espaciado vertical, ancho/ancho
+ * máximo/aspect-ratio/object-fit/z-index, de la <section> completa, abierto
+ * desde "Estilo del bloque" en el menú contextual, ver App.jsx). Regla de
+ * qué va en cada nivel confirmada con el usuario tras auditar el catálogo
+ * completo de Core Framework: "color_fondo"/"margen"/"relleno" vivían mal
+ * ubicados en Nivel 1 (son propiedades de la CAJA del campo, no de su
+ * texto) y se movieron a Nivel 2. Mismas pestañas/cabecera/arrastre para
+ * los 2, solo cambia qué controles se listan en el cuerpo — evita duplicar
+ * toda la mecánica de drawer (arrastre, overlay, pestañas) en un
+ * componente aparte para un caso que en el fondo es "el mismo panel con
+ * otro grupo de controles".
  *
- * Nivel 2 mezcla 2 mecanismos DISTINTOS de Core Framework, nunca
- * confundirlos: CampoConToken (fondo/borde/radius/sombra) edita un VALOR
- * de estilo que puede ser fijo o un token "cf:{nombre}" resuelto a
- * var(--nombre); Ancho máximo/Ancho/Aspect ratio/Object-fit/Z-index son
- * <select> de una lista fija porque cada opción ES una utility class ya
- * completa (ej. "aspect-16-9") que Sofia_Componente::clases_utilitarias_
- * bloque() agrega al classList de la <section> — no hay ningún valor que
- * tokenizar ahí, por eso nunca llevan el botón CF.
+ * Nivel 2 YA NO tiene sus controles hardcodeados acá — se piden vía
+ * GET sofia/v1/catalogo-bloques/{tipoBloque}/schema (ver
+ * Sofia_Componente::schema_bloque_generico()/schema_propio() del lado PHP)
+ * y se renderizan con CampoDesdeSchema.jsx, así un Componente con
+ * necesidades propias (ej. Container: dirección/gap/grilla) agrega
+ * controles sin tocar este archivo — ver Fase 2 del plan de "primitivas de
+ * layout" (memoria de producto). El PHP sigue mezclando los mismos 2
+ * mecanismos de Core Framework que antes vivían acá como JSX, ahora como
+ * `tipo` de entrada de schema: "color_token"/"medida_token" (CampoConToken,
+ * VALOR que puede ser fijo o token "cf:{nombre}") vs. "select" (opciones
+ * fijas, cada una YA es una utility class completa, ej. "aspect-16-9", que
+ * Sofia_Componente::clases_utilitarias_bloque() agrega al classList de la
+ * <section> — nunca llevan botón CF, no hay nada que tokenizar).
  *
  * Vive FUERA del documento del iframe, nunca toca su DOM directo — manda
  * "sofia:aplicar-estilo"/"sofia:aplicar-formato" y deja que sea el propio
@@ -80,106 +86,6 @@ const FUENTES = [
   { valor: "", etiqueta: "Por defecto" },
   { valor: "display", etiqueta: "Display (Fraunces)" },
   { valor: "texto", etiqueta: "Texto (Inter)" },
-];
-
-// COLUMNAS: mismas 3 opciones que Sofia_Componente::COLUMNAS_PERMITIDAS del
-// lado PHP — un grid solo tiene sentido en un rango chico (2 a 4).
-const COLUMNAS = ["2", "3", "4"];
-
-// UTILITY CLASSES DE CORE FRAMEWORK (Nivel 2) — a diferencia de
-// CampoConToken (un VALOR de estilo, con opción de token "cf:..."), estas
-// opciones son <select> de una lista fija: cada una ES una utility class ya
-// completa de Core Framework (ver Sofia_Componente::CLASES_UTILITARIAS_BLOQUE,
-// mismas claves/valores espejados acá) — no hay "valor libre" posible, ni
-// tiene sentido un botón CF (no hay nada que tokenizar, ya es una clase).
-const ANCHOS_MAXIMOS = [
-  { valor: "", etiqueta: "Sin límite" },
-  { valor: "site", etiqueta: "Ancho del sitio" },
-  { valor: "100", etiqueta: "100rem" },
-  { valor: "90", etiqueta: "90rem" },
-  { valor: "80", etiqueta: "80rem" },
-  { valor: "70", etiqueta: "70rem" },
-  { valor: "60", etiqueta: "60rem" },
-  { valor: "50", etiqueta: "50rem" },
-  { valor: "40", etiqueta: "40rem" },
-  { valor: "30", etiqueta: "30rem" },
-  { valor: "20", etiqueta: "20rem" },
-  { valor: "10", etiqueta: "10rem" },
-];
-
-const ANCHOS = [
-  { valor: "", etiqueta: "Por defecto" },
-  { valor: "full", etiqueta: "100%" },
-  { valor: "90", etiqueta: "90%" },
-  { valor: "80", etiqueta: "80%" },
-  { valor: "70", etiqueta: "70%" },
-  { valor: "60", etiqueta: "60%" },
-  { valor: "50", etiqueta: "50%" },
-  { valor: "40", etiqueta: "40%" },
-  { valor: "30", etiqueta: "30%" },
-  { valor: "20", etiqueta: "20%" },
-  { valor: "10", etiqueta: "10%" },
-  { valor: "auto", etiqueta: "Automático" },
-];
-
-const ASPECT_RATIOS = [
-  { valor: "", etiqueta: "Ninguna" },
-  { valor: "1", etiqueta: "1:1 (cuadrado)" },
-  { valor: "16-9", etiqueta: "16:9" },
-  { valor: "9-16", etiqueta: "9:16" },
-  { valor: "4-3", etiqueta: "4:3" },
-  { valor: "3-4", etiqueta: "3:4" },
-  { valor: "3-2", etiqueta: "3:2" },
-  { valor: "2-3", etiqueta: "2:3" },
-];
-
-const OBJECT_FITS = [
-  { valor: "", etiqueta: "Por defecto" },
-  { valor: "cover", etiqueta: "Cubrir (recorta)" },
-  { valor: "contain", etiqueta: "Contener (sin recortar)" },
-  { valor: "fill", etiqueta: "Estirar" },
-];
-
-const Z_INDICES = [
-  { valor: "", etiqueta: "Por defecto" },
-  { valor: "-1", etiqueta: "-1 (detrás)" },
-  { valor: "0", etiqueta: "0" },
-  { valor: "1", etiqueta: "1" },
-  { valor: "10", etiqueta: "10" },
-  { valor: "100", etiqueta: "100" },
-  { valor: "1000", etiqueta: "1000" },
-  { valor: "10000", etiqueta: "10000 (siempre encima)" },
-];
-
-// ALINEACIONES_BLOQUE: mismas 3 opciones que
-// Sofia_Componente::CLASES_UTILITARIAS_BLOQUE["alineacion_bloque"] del
-// lado PHP (self-left/-center/-right, utility classes REALES de Core
-// Framework) — solo tiene efecto visible cuando el bloque además tiene un
-// Ancho/Ancho máximo menor al 100%, mismo criterio que la ayuda de
-// Object-fit de abajo.
-const ALINEACIONES_BLOQUE = [
-  { valor: "", etiqueta: "Por defecto (izquierda)" },
-  { valor: "center", etiqueta: "Centrado" },
-  { valor: "right", etiqueta: "Derecha" },
-];
-
-// ALINEACIONES_CONTENIDO/ALINEACIONES_VERTICALES_CONTENIDO: mismas claves
-// que Sofia_Componente::CLASES_UTILITARIAS_BLOQUE["alineacion_contenido"/
-// "alineacion_vertical_contenido"] del lado PHP (items-left/-center/-right,
-// items-top/-middle/-bottom) — a diferencia de "Alineación del bloque"
-// (mueve el BLOQUE ENTERO en la página), estas alinean el CONTENIDO
-// interno (texto/items) DENTRO del bloque — solo tienen efecto visible en
-// Componentes con una grilla propia (Franja de beneficios/Testimonios).
-const ALINEACIONES_CONTENIDO = [
-  { valor: "", etiqueta: "Por defecto (izquierda)" },
-  { valor: "center", etiqueta: "Centrado" },
-  { valor: "right", etiqueta: "Derecha" },
-];
-
-const ALINEACIONES_VERTICALES_CONTENIDO = [
-  { valor: "", etiqueta: "Por defecto (arriba)" },
-  { valor: "middle", etiqueta: "Al medio" },
-  { valor: "bottom", etiqueta: "Abajo" },
 ];
 
 // VARIABLES_CONDICION: mismas claves que
@@ -298,6 +204,7 @@ function EditorCondicion({ reglas, onCambiar }) {
 
 export function DrawerEstilo({
   campo,
+  tipoBloque,
   estilo,
   nivel = "campo",
   condicion,
@@ -306,11 +213,40 @@ export function DrawerEstilo({
   onAplicarFormato,
   onCerrar,
   tabInicial = "estilo",
+  restUrl,
+  nonce,
 }) {
   const [tab, setTab] = useState(tabInicial);
   const [offsetArrastre, setOffsetArrastre] = useState({ x: 0, y: 0 });
   const [arrastrando, setArrastrando] = useState(false);
   const arrastreRef = useRef(null); // { inicioX, inicioY, offsetInicial } mientras el mouse está presionado.
+  // schemaBloque: schema de Nivel 2 pedido a GoPress/WP vía
+  // GET sofia/v1/catalogo-bloques/{tipoBloque}/schema — null mientras
+  // carga o si nivel !== "bloque" (Nivel 1 no lo necesita). Se vuelve a
+  // pedir si tipoBloque cambia (el usuario cierra el drawer y abre el de
+  // OTRO bloque de distinto tipo sin desmontar del todo el árbol, aunque
+  // en la práctica App.jsx sí lo desmonta al cerrar — de todas formas
+  // correcto tenerlo como dependencia).
+  const [schemaBloque, setSchemaBloque] = useState(null);
+
+  useEffect(() => {
+    if (nivel !== "bloque" || !tipoBloque || !restUrl) {
+      setSchemaBloque(null);
+      return;
+    }
+    let cancelado = false;
+    fetch(`${restUrl}catalogo-bloques/${tipoBloque}/schema`, { headers: { "X-WP-Nonce": nonce } })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((datos) => {
+        if (!cancelado) setSchemaBloque(datos);
+      })
+      .catch(() => {
+        if (!cancelado) setSchemaBloque(null);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [nivel, tipoBloque, restUrl, nonce]);
 
   if (!campo) return null;
 
@@ -507,213 +443,12 @@ export function DrawerEstilo({
               </>
             )}
 
-            {nivel === "bloque" && (
-              <>
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Columnas</span>
-                  <div className="sofia-drawer-estilo__tamanos">
-                    {COLUMNAS.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        className={`sofia-drawer-estilo__tamano ${estilo.columnas === n ? "sofia-drawer-estilo__tamano--activo" : ""}`}
-                        onClick={() => actualizar({ columnas: estilo.columnas === n ? "" : n })}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            {nivel === "bloque" && schemaBloque && (
+              <CamposDesdeSchema schema={schemaBloque} estilo={estilo} actualizar={actualizar} />
+            )}
 
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Color de fondo de la sección</span>
-                  <CampoConToken
-                    tipo="color"
-                    valor={estilo.color_fondo}
-                    onCambiar={(valor) => actualizar({ color_fondo: valor })}
-                  />
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Color de borde</span>
-                  <CampoConToken
-                    tipo="color"
-                    valor={estilo.color_borde}
-                    onCambiar={(valor) => actualizar({ color_borde: valor })}
-                  />
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Radio de borde</span>
-                  <CampoConToken
-                    tipo="text"
-                    categoria="radius"
-                    conUnidad
-                    valor={estilo.radius}
-                    onCambiar={(valor) => actualizar({ radius: valor })}
-                  />
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Sombra</span>
-                  <CampoConToken
-                    tipo="text"
-                    categoria="shadow"
-                    placeholderNormal="ej. 0 2px 6px rgba(0,0,0,.15)"
-                    valor={estilo.sombra}
-                    onCambiar={(valor) => actualizar({ sombra: valor })}
-                  />
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Espaciado vertical (arriba y abajo)</span>
-                  <CampoConToken
-                    tipo="text"
-                    categoria="space"
-                    conUnidad
-                    valor={estilo.espaciado_vertical}
-                    onCambiar={(valor) => actualizar({ espaciado_vertical: valor })}
-                  />
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Ancho máximo</span>
-                  <select
-                    value={estilo.max_width || ""}
-                    onChange={(evento) => actualizar({ max_width: evento.currentTarget.value })}
-                  >
-                    {ANCHOS_MAXIMOS.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Ancho</span>
-                  <select value={estilo.ancho || ""} onChange={(evento) => actualizar({ ancho: evento.currentTarget.value })}>
-                    {ANCHOS.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Alineación del bloque</span>
-                  <p className="sofia-drawer-estilo__ayuda-condicion">
-                    Solo tiene efecto visible si además elegiste un Ancho o Ancho máximo menor al 100% — un bloque de
-                    ancho completo no tiene espacio de sobra para desplazarse.
-                  </p>
-                  <select
-                    value={estilo.alineacion_bloque || ""}
-                    onChange={(evento) => actualizar({ alineacion_bloque: evento.currentTarget.value })}
-                  >
-                    {ALINEACIONES_BLOQUE.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Desplazamiento horizontal</span>
-                  <p className="sofia-drawer-estilo__ayuda-condicion">
-                    Se suma a la Alineación del bloque de arriba — ej. "Centrado" + 20px queda centrado y corrido 20px
-                    más a la derecha desde ese centro.
-                  </p>
-                  <CampoConToken
-                    tipo="text"
-                    categoria="space"
-                    conUnidad
-                    valor={estilo.offset_x}
-                    onCambiar={(valor) => actualizar({ offset_x: valor })}
-                  />
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Alineación del contenido</span>
-                  <p className="sofia-drawer-estilo__ayuda-condicion">
-                    Solo tiene efecto visible en bloques con una lista de items (ej. Franja de beneficios,
-                    Testimonios) — alinea el texto DENTRO de cada columna, a diferencia de "Alineación del bloque" que
-                    mueve el bloque entero en la página.
-                  </p>
-                  <select
-                    value={estilo.alineacion_contenido || ""}
-                    onChange={(evento) => actualizar({ alineacion_contenido: evento.currentTarget.value })}
-                  >
-                    {ALINEACIONES_CONTENIDO.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Alineación vertical del contenido</span>
-                  <p className="sofia-drawer-estilo__ayuda-condicion">
-                    Útil cuando los items tienen alturas distintas (ej. un título más largo que otro) — mismo alcance
-                    que la Alineación del contenido de arriba.
-                  </p>
-                  <select
-                    value={estilo.alineacion_vertical_contenido || ""}
-                    onChange={(evento) => actualizar({ alineacion_vertical_contenido: evento.currentTarget.value })}
-                  >
-                    {ALINEACIONES_VERTICALES_CONTENIDO.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Relación de aspecto</span>
-                  <select
-                    value={estilo.aspect_ratio || ""}
-                    onChange={(evento) => actualizar({ aspect_ratio: evento.currentTarget.value })}
-                  >
-                    {ASPECT_RATIOS.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Ajuste de imagen/video (object-fit)</span>
-                  <p className="sofia-drawer-estilo__ayuda-condicion">
-                    Solo tiene efecto si este bloque es o contiene una &lt;img&gt;/&lt;video&gt; directa — no aplica a
-                    un color/imagen de fondo (background-image usa otra propiedad, no object-fit).
-                  </p>
-                  <select
-                    value={estilo.object_fit || ""}
-                    onChange={(evento) => actualizar({ object_fit: evento.currentTarget.value })}
-                  >
-                    {OBJECT_FITS.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sofia-drawer-estilo__grupo">
-                  <span className="sofia-drawer-estilo__etiqueta">Z-index (superposición)</span>
-                  <select value={estilo.z_index || ""} onChange={(evento) => actualizar({ z_index: evento.currentTarget.value })}>
-                    {Z_INDICES.map((op) => (
-                      <option key={op.valor || "ninguno"} value={op.valor}>
-                        {op.etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
+            {nivel === "bloque" && !schemaBloque && (
+              <p className="sofia-drawer-estilo__ayuda-condicion">Cargando controles del bloque…</p>
             )}
           </div>
         )}

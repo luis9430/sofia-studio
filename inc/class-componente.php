@@ -847,4 +847,200 @@ abstract class Sofia_Componente {
 	protected function texto_enriquecido( string $valor ): string {
 		return wp_kses( $valor, self::ETIQUETAS_FORMATO_PERMITIDAS );
 	}
+
+	/**
+	 * schema_bloque_generico(): los 12 controles de Nivel 2 (estilo de
+	 * BLOQUE — caja/contenedor completo) que hoy son IGUALES para
+	 * cualquier Componente del catálogo, mismos campos que
+	 * DrawerEstilo.jsx ya venía renderizando a mano (hardcodeados en JSX,
+	 * ver ANCHOS/ALINEACIONES_BLOQUE/etc. ahí). Fuente de verdad única de
+	 * "qué controles tiene el drawer de bloque" — pasa a vivir acá (PHP)
+	 * en vez de en dos lugares (las validaciones de
+	 * atributo_estilo_bloque()/clases_utilitarias_bloque() arriba, y las
+	 * constantes de JSX) — ver Sofia Studio: plan de "primitivas de
+	 * layout" (Fase 2, schema tipado de campos), memoria de producto.
+	 *
+	 * Cada entrada: {tipo, ...datos propios del tipo de control}. Tipos
+	 * reales usados hoy (ver CampoDesdeSchema.jsx, admin-app):
+	 * - "botones_numero": fila de botones exclusivos ({opciones:[...]}).
+	 * - "color_token" / "medida_token": CampoConToken.jsx tal cual
+	 *   ({categoria, conUnidad, placeholder}).
+	 * - "select": <select> de opciones fijas ({opciones:[{valor,etiqueta}]}).
+	 * - "alineacion_iconos": fila de botones exclusivos con ícono en vez
+	 *   de texto ({opciones:[{valor,etiqueta,icono}]}).
+	 *
+	 * `final` — a diferencia de schema_propio() (pensado para que cada
+	 * Componente agregue LO SUYO), este set es el mismo para todo el
+	 * catálogo por decisión de diseño (Nivel 2 = estilo de caja genérico);
+	 * si un Componente necesitara ocultar/cambiar uno de estos 12, sería
+	 * señal de que ese control no debería ser genérico después de todo.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	final public static function schema_bloque_generico(): array {
+		return array(
+			'columnas'                     => array(
+				'tipo'      => 'botones_numero',
+				'etiqueta'  => __( 'Columnas', 'sofia-studio' ),
+				'opciones'  => self::COLUMNAS_PERMITIDAS,
+			),
+			'color_fondo'                  => array(
+				'tipo'     => 'color_token',
+				'etiqueta' => __( 'Color de fondo de la sección', 'sofia-studio' ),
+			),
+			'color_borde'                  => array(
+				'tipo'     => 'color_token',
+				'etiqueta' => __( 'Color de borde', 'sofia-studio' ),
+			),
+			'radius'                       => array(
+				'tipo'       => 'medida_token',
+				'etiqueta'   => __( 'Radio de borde', 'sofia-studio' ),
+				'categoria'  => 'radius',
+			),
+			'sombra'                       => array(
+				'tipo'              => 'medida_token',
+				'etiqueta'          => __( 'Sombra', 'sofia-studio' ),
+				'categoria'         => 'shadow',
+				'con_unidad'        => false,
+				'placeholder'       => 'ej. 0 2px 6px rgba(0,0,0,.15)',
+			),
+			'espaciado_vertical'           => array(
+				'tipo'       => 'medida_token',
+				'etiqueta'   => __( 'Espaciado vertical (arriba y abajo)', 'sofia-studio' ),
+				'categoria'  => 'space',
+				'con_unidad' => true,
+			),
+			'max_width'                    => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Ancho máximo', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Sin límite', 'sofia-studio' ) ),
+					array( 'valor' => 'site', 'etiqueta' => __( 'Ancho del sitio', 'sofia-studio' ) ),
+					array( 'valor' => '100', 'etiqueta' => '100rem' ),
+					array( 'valor' => '90', 'etiqueta' => '90rem' ),
+					array( 'valor' => '80', 'etiqueta' => '80rem' ),
+					array( 'valor' => '70', 'etiqueta' => '70rem' ),
+					array( 'valor' => '60', 'etiqueta' => '60rem' ),
+					array( 'valor' => '50', 'etiqueta' => '50rem' ),
+					array( 'valor' => '40', 'etiqueta' => '40rem' ),
+					array( 'valor' => '30', 'etiqueta' => '30rem' ),
+					array( 'valor' => '20', 'etiqueta' => '20rem' ),
+					array( 'valor' => '10', 'etiqueta' => '10rem' ),
+				),
+			),
+			'ancho'                         => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Ancho', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Por defecto', 'sofia-studio' ) ),
+					array( 'valor' => 'full', 'etiqueta' => '100%' ),
+					array( 'valor' => '90', 'etiqueta' => '90%' ),
+					array( 'valor' => '80', 'etiqueta' => '80%' ),
+					array( 'valor' => '70', 'etiqueta' => '70%' ),
+					array( 'valor' => '60', 'etiqueta' => '60%' ),
+					array( 'valor' => '50', 'etiqueta' => '50%' ),
+					array( 'valor' => '40', 'etiqueta' => '40%' ),
+					array( 'valor' => '30', 'etiqueta' => '30%' ),
+					array( 'valor' => '20', 'etiqueta' => '20%' ),
+					array( 'valor' => '10', 'etiqueta' => '10%' ),
+					array( 'valor' => 'auto', 'etiqueta' => __( 'Automático', 'sofia-studio' ) ),
+				),
+			),
+			'alineacion_bloque'             => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Alineación del bloque', 'sofia-studio' ),
+				'ayuda'    => __( 'Solo tiene efecto visible si además elegiste un Ancho o Ancho máximo menor al 100% — un bloque de ancho completo no tiene espacio de sobra para desplazarse.', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Por defecto (izquierda)', 'sofia-studio' ) ),
+					array( 'valor' => 'center', 'etiqueta' => __( 'Centrado', 'sofia-studio' ) ),
+					array( 'valor' => 'right', 'etiqueta' => __( 'Derecha', 'sofia-studio' ) ),
+				),
+			),
+			'offset_x'                      => array(
+				'tipo'       => 'medida_token',
+				'etiqueta'   => __( 'Desplazamiento horizontal', 'sofia-studio' ),
+				'ayuda'      => __( 'Se suma a la Alineación del bloque de arriba — ej. "Centrado" + 20px queda centrado y corrido 20px más a la derecha desde ese centro.', 'sofia-studio' ),
+				'categoria'  => 'space',
+				'con_unidad' => true,
+			),
+			'alineacion_contenido'          => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Alineación del contenido', 'sofia-studio' ),
+				'ayuda'    => __( 'Solo tiene efecto visible en bloques con una lista de items (ej. Franja de beneficios, Testimonios) — alinea el texto DENTRO de cada columna, a diferencia de "Alineación del bloque" que mueve el bloque entero en la página.', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Por defecto (izquierda)', 'sofia-studio' ) ),
+					array( 'valor' => 'center', 'etiqueta' => __( 'Centrado', 'sofia-studio' ) ),
+					array( 'valor' => 'right', 'etiqueta' => __( 'Derecha', 'sofia-studio' ) ),
+				),
+			),
+			'alineacion_vertical_contenido' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Alineación vertical del contenido', 'sofia-studio' ),
+				'ayuda'    => __( 'Útil cuando los items tienen alturas distintas (ej. un título más largo que otro) — mismo alcance que la Alineación del contenido de arriba.', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Por defecto (arriba)', 'sofia-studio' ) ),
+					array( 'valor' => 'middle', 'etiqueta' => __( 'Al medio', 'sofia-studio' ) ),
+					array( 'valor' => 'bottom', 'etiqueta' => __( 'Abajo', 'sofia-studio' ) ),
+				),
+			),
+			'aspect_ratio'                  => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Relación de aspecto', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Ninguna', 'sofia-studio' ) ),
+					array( 'valor' => '1', 'etiqueta' => '1:1 (cuadrado)' ),
+					array( 'valor' => '16-9', 'etiqueta' => '16:9' ),
+					array( 'valor' => '9-16', 'etiqueta' => '9:16' ),
+					array( 'valor' => '4-3', 'etiqueta' => '4:3' ),
+					array( 'valor' => '3-4', 'etiqueta' => '3:4' ),
+					array( 'valor' => '3-2', 'etiqueta' => '3:2' ),
+					array( 'valor' => '2-3', 'etiqueta' => '2:3' ),
+				),
+			),
+			'object_fit'                    => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Ajuste de imagen/video (object-fit)', 'sofia-studio' ),
+				'ayuda'    => __( 'Solo tiene efecto si este bloque es o contiene una <img>/<video> directa — no aplica a un color/imagen de fondo (background-image usa otra propiedad, no object-fit).', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Por defecto', 'sofia-studio' ) ),
+					array( 'valor' => 'cover', 'etiqueta' => __( 'Cubrir (recorta)', 'sofia-studio' ) ),
+					array( 'valor' => 'contain', 'etiqueta' => __( 'Contener (sin recortar)', 'sofia-studio' ) ),
+					array( 'valor' => 'fill', 'etiqueta' => __( 'Estirar', 'sofia-studio' ) ),
+				),
+			),
+			'z_index'                       => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Z-index (superposición)', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Por defecto', 'sofia-studio' ) ),
+					array( 'valor' => '-1', 'etiqueta' => '-1 (detrás)' ),
+					array( 'valor' => '0', 'etiqueta' => '0' ),
+					array( 'valor' => '1', 'etiqueta' => '1' ),
+					array( 'valor' => '10', 'etiqueta' => '10' ),
+					array( 'valor' => '100', 'etiqueta' => '100' ),
+					array( 'valor' => '1000', 'etiqueta' => '1000' ),
+					array( 'valor' => '10000', 'etiqueta' => __( '10000 (siempre encima)', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	/**
+	 * schema_propio(): controles de Nivel 2 EXTRA que este Componente
+	 * agrega sobre schema_bloque_generico() — vacío por defecto (la
+	 * mayoría del catálogo, Hero/CTA/FAQ/etc., no necesita ningún control
+	 * propio, todo lo cubre el genérico). Sofia_Componente_Container es
+	 * el primer caso real (dirección/gap/grilla, ver ahí) — un Componente
+	 * nuevo con necesidades propias hace override de este método, nunca
+	 * de schema_bloque_generico() (final).
+	 *
+	 * Mismo shape de entrada que schema_bloque_generico() — fusionado por
+	 * Sofia_Componente_Factory::schema_de(), propio SIEMPRE después del
+	 * genérico para que aparezca al final del drawer.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	public static function schema_propio(): array {
+		return array();
+	}
 }

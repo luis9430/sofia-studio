@@ -171,6 +171,7 @@ export function App({ config }) {
         setMenuContextual({
           indice: datos.indice,
           id: datos.id,
+          tipoBloque: datos.tipoBloque,
           estiloBloque: datos.estiloBloque,
           item: datos.item,
           x: datos.x,
@@ -280,6 +281,7 @@ export function App({ config }) {
   // fetch que ya usa agregarBloque() para leer la estructura actual.
   async function abrirDrawerEstiloBloque() {
     const id = menuContextual?.id;
+    const tipoBloque = menuContextual?.tipoBloque || "";
     const estiloBloque = menuContextual?.estiloBloque || {};
     setMenuContextual(null);
     if (!id) return;
@@ -289,7 +291,7 @@ export function App({ config }) {
       }).then((r) => r.json());
       const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
       drawerAbierto.current = true;
-      setDrawerEstilo({ campo: id, estilo: estiloBloque, condicion: reglas, nivel: "bloque" });
+      setDrawerEstilo({ campo: id, tipoBloque, estilo: estiloBloque, condicion: reglas, nivel: "bloque" });
     } catch {
       setEstado("error");
     }
@@ -547,6 +549,7 @@ export function App({ config }) {
             {drawerEstilo && (
               <DrawerEstilo
                 campo={drawerEstilo.campo}
+                tipoBloque={drawerEstilo.tipoBloque}
                 estilo={drawerEstilo.estilo}
                 nivel={drawerEstilo.nivel || "campo"}
                 condicion={drawerEstilo.condicion}
@@ -554,6 +557,8 @@ export function App({ config }) {
                 onCambiarCondicion={cambiarCondicionDrawer}
                 onAplicarFormato={aplicarFormato}
                 onCerrar={cerrarDrawerEstilo}
+                restUrl={config.restUrl}
+                nonce={config.nonce}
               />
             )}
             <MenuContextualBloque

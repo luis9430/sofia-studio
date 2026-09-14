@@ -67,6 +67,16 @@ class Sofia_REST_Editor {
 
 		register_rest_route(
 			'sofia/v1',
+			'/catalogo-bloques/(?P<tipo>[a-z0-9_]+)/schema',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'schema_de_bloque' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
 			'/estilo-global',
 			array(
 				array(
@@ -470,6 +480,25 @@ class Sofia_REST_Editor {
 	 */
 	public static function catalogo_bloques( WP_REST_Request $request ) {
 		return rest_ensure_response( Sofia_Componente_Factory::catalogo() );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/catalogo-bloques/{tipo}/schema — schema de
+	 * Nivel 2 (genérico + propio, ver Sofia_Componente_Factory::schema_de())
+	 * para el drawer de estilo de bloque (DrawerEstilo.jsx vía
+	 * CampoDesdeSchema.jsx) — reemplaza los controles antes hardcodeados
+	 * en JSX por la fuente de verdad real en PHP, ver Fase 2 del plan de
+	 * "primitivas de layout" (memoria de producto). 404 para un tipo que
+	 * no corresponde a ningún Componente real (dato corrupto, o un tipo
+	 * de una versión más nueva del tema) — mismo criterio de "fail
+	 * closed" que el resto de este proxy.
+	 */
+	public static function schema_de_bloque( WP_REST_Request $request ) {
+		$schema = Sofia_Componente_Factory::schema_de( $request->get_param( 'tipo' ) );
+		if ( null === $schema ) {
+			return new WP_Error( 'sofia_tipo_desconocido', 'Tipo de bloque desconocido.', array( 'status' => 404 ) );
+		}
+		return rest_ensure_response( $schema );
 	}
 
 	/**
