@@ -631,6 +631,53 @@
 		mandarMenuContextualDe(seccion, evento.clientX, evento.clientY, itemInfo);
 	}
 
+	// alHacerClickIzquierdo(evento) — paso 1 del rediseño de layout a 3
+	// zonas fijas (ver la memoria de producto): un CLICK SIMPLE (no click
+	// derecho) sobre el área de un bloque ya muestra su Nivel 2 (Estilo)
+	// en la zona de Propiedades fija — mismo criterio que
+	// "sofia:campo-clickeado" ya usa para Nivel 1 desde el día 1, ahora
+	// extendido a bloques completos. Bug de UX real reportado por el
+	// usuario probando en vivo: el menú contextual (click derecho) tapaba
+	// el propio contenido que se estaba por editar, y era un paso extra
+	// (click derecho > Estilo del bloque) para llegar a algo que ahora
+	// puede ser un solo click.
+	//
+	// Reusa mandarMenuContextualDe() (mismo cálculo de grid/containerId/
+	// estilo, ver ahí) pero manda "sofia:bloque-clickeado" en vez de
+	// "sofia:menu-contextual-bloque" — nunca abre el menú flotante, solo
+	// actualiza la zona de Propiedades.
+	//
+	// Ignora el click si cayó DENTRO de un campo editable
+	// (data-sofia-campo) — un campo de texto/imagen ya tiene su propio
+	// listener de click que manda "sofia:campo-clickeado" (Nivel 1); sin
+	// este chequeo, cualquier click en un título/párrafo dispararía AMBOS
+	// mensajes (el evento burbujea desde el campo hasta la <section> que
+	// lo contiene), y Nivel 2 pisaría a Nivel 1 en la zona de Propiedades
+	// justo cuando el usuario quería editar el TEXTO, no el bloque
+	// completo. Mismo criterio para un item de lista repetible
+	// (data-sofia-item) — ese click tiene su propio significado (foco en
+	// el item, no en el bloque completo). Y para el propio handle de
+	// arrastre/líneas de inserción, que ya manejan su click.
+	function alHacerClickIzquierdo(evento) {
+		if (evento.target.closest("[data-sofia-campo], [data-sofia-item], .sofia-handle-arrastre, .sofia-linea-insertar")) {
+			return;
+		}
+		var seccion = evento.target.closest ? evento.target.closest("section") : null;
+		if (!seccion) return;
+
+		var grid = contenedorGridDe(seccion);
+		window.parent.postMessage(
+			{
+				tipo: "sofia:bloque-clickeado",
+				containerId: grid.containerId,
+				id: seccion.getAttribute("data-sofia-bloque-id") || "",
+				tipoBloque: seccion.getAttribute("data-sofia-bloque-tipo") || "",
+				estiloBloque: estiloBloqueActualDe(seccion),
+			},
+			"*"
+		);
+	}
+
 	// alSeleccionarContenedorPadre(containerId, x, y) — Fase 3: reabre el
 	// menú contextual apuntando al Container PADRE (dado su id de
 	// instancia, que el menú del hijo ya conocía vía "containerId" en
@@ -1686,6 +1733,7 @@
 			evento.preventDefault();
 			alAgregarItemALista(boton.getAttribute("data-sofia-agregar-item"));
 		});
+		document.addEventListener("click", alHacerClickIzquierdo);
 		window.addEventListener("message", alRecibirMensajeDelPadre);
 		activarReordenar();
 		activarReordenarListas();

@@ -6,29 +6,30 @@
  * acá en el documento padre por el mismo motivo de siempre: los controles
  * de edición viven fuera del iframe, superpuestos por posición.
  *
- * Acciones posibles: "Eliminar item" (un "Beneficio" individual dentro de
- * una Franja, el bloque sigue existiendo, mutuamente excluyente con
- * "Eliminar bloque" según si `posicion.item` viene informado), "Eliminar
- * bloque" (la sección completa), y "Seleccionar contenedor" (Fase 3,
- * "primitivas de layout" — SOLO si `posicion.containerId` viene informado,
- * es decir, el bloque clickeado vive DENTRO de un Container). Bug de UX
- * real reportado por el usuario: sin esta opción, no había forma de
- * apuntar al Container PADRE cuando tenía hijos adentro — cualquier click
- * en su área visible resolvía primero al hijo bajo el cursor, así que
- * "Eliminar bloque" sobre el Container completo (borrando también su
- * contenido) era inalcanzable desde la UI. El diseño ya contempla sumar
- * más comandos (clonar, mover) más adelante, mismo patrón: un botón nuevo
- * acá + un caso nuevo en alRecibirMensajeDelPadre del iframe.
+ * REDISEÑO (extensión del paso 1 de la migración a layout de 3 zonas
+ * fijas, ver la memoria de producto): "Estilo del bloque" y "Eliminar
+ * bloque" salieron de acá — un click SIMPLE sobre el bloque ya muestra su
+ * Nivel 2 en la zona de Propiedades fija (ver alHacerClickIzquierdo en
+ * editor-iframe.js y mostrarEstiloDeBloque en App.jsx), que ahora también
+ * trae el botón "Eliminar bloque" al pie (ver DrawerEstilo.jsx). Bug de UX
+ * real reportado por el usuario: el menú contextual, al aparecer pegado al
+ * click, tapaba justo el contenido que se quería editar — sacarlo de acá
+ * resuelve ese caso sin perder ninguna acción, solo cambia el gesto (click
+ * simple en vez de click derecho + elegir del menú).
+ *
+ * Lo que SIGUE necesitando el menú flotante (no tiene un lugar fijo
+ * natural, depende de la POSICIÓN exacta del click): "Eliminar item" (un
+ * "Beneficio" individual dentro de una Franja — solo si `posicion.item`
+ * viene informado) y "Seleccionar contenedor" (Fase 3, "primitivas de
+ * layout" — SOLO si `posicion.containerId` viene informado, es decir, el
+ * bloque clickeado vive DENTRO de un Container). Bug de UX real reportado
+ * por el usuario: sin esta opción, no había forma de apuntar al Container
+ * PADRE cuando tenía hijos adentro — cualquier click en su área visible
+ * resolvía primero al hijo bajo el cursor.
  */
-export function MenuContextualBloque({
-  posicion,
-  onEliminarBloque,
-  onEliminarItem,
-  onEstiloBloque,
-  onSeleccionarContenedorPadre,
-  onCerrar,
-}) {
+export function MenuContextualBloque({ posicion, onEliminarItem, onSeleccionarContenedorPadre, onCerrar }) {
   if (!posicion) return null;
+  if (!posicion.containerId && !posicion.item) return null;
 
   return (
     <div className="sofia-menu-contextual__fondo" onClick={onCerrar} onContextMenu={(e) => e.preventDefault()}>
@@ -37,13 +38,6 @@ export function MenuContextualBloque({
         style={{ top: `${posicion.y}px`, left: `${posicion.x}px` }}
         onClick={(evento) => evento.stopPropagation()}
       >
-        {/* Un solo punto de entrada al drawer de bloque — Visibilidad se
-            alcanza cambiando de pestaña ADENTRO del drawer (ver
-            DrawerEstilo.jsx), no necesita su propia opción acá. Menos
-            redundante que 2 botones que abren el mismo componente. */}
-        <button type="button" className="sofia-menu-contextual__opcion" onClick={onEstiloBloque}>
-          Estilo del bloque
-        </button>
         {posicion.containerId && (
           <button type="button" className="sofia-menu-contextual__opcion" onClick={onSeleccionarContenedorPadre}>
             Seleccionar contenedor
@@ -58,13 +52,6 @@ export function MenuContextualBloque({
             Eliminar item
           </button>
         )}
-        <button
-          type="button"
-          className="sofia-menu-contextual__opcion sofia-menu-contextual__opcion--eliminar"
-          onClick={onEliminarBloque}
-        >
-          Eliminar bloque
-        </button>
       </div>
     </div>
   );

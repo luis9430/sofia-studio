@@ -24,7 +24,8 @@ import { CamposDesdeSchema } from "./CampoDesdeSchema.jsx";
  * "bloque" (Nivel 2 — todo lo de CAJA/contenedor: columnas de grid, fondo,
  * borde, radius, sombra, espaciado vertical, ancho/ancho
  * máximo/aspect-ratio/object-fit/z-index, de la <section> completa, abierto
- * desde "Estilo del bloque" en el menú contextual, ver App.jsx). Regla de
+ * con un click simple sobre el bloque o desde "Estilo del bloque" en el
+ * menú contextual, ver App.jsx/mostrarEstiloDeBloque). Regla de
  * qué va en cada nivel confirmada con el usuario tras auditar el catálogo
  * completo de Core Framework: "color_fondo"/"margen"/"relleno" vivían mal
  * ubicados en Nivel 1 (son propiedades de la CAJA del campo, no de su
@@ -208,6 +209,7 @@ export function DrawerEstilo({
   onCambiarEstilo,
   onCambiarCondicion,
   onAplicarFormato,
+  onEliminarBloque,
   tabInicial = "estilo",
   restUrl,
   nonce,
@@ -269,7 +271,7 @@ export function DrawerEstilo({
             <button
               type="button"
               className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
-              title="Visibilidad se edita desde 'Visibilidad del bloque' en el menú contextual (click derecho)"
+              title="Seleccioná un bloque para editar su visibilidad"
             >
               Visibilidad
             </button>
@@ -385,6 +387,14 @@ export function DrawerEstilo({
       {tab === "visibilidad" && condicion && (
         <div className="sofia-drawer-estilo__cuerpo">
           <EditorCondicion reglas={condicion} onCambiar={onCambiarCondicion} />
+        </div>
+      )}
+
+      {nivel === "bloque" && onEliminarBloque && (
+        <div className="sofia-drawer-estilo__pie">
+          <button type="button" className="sofia-drawer-estilo__eliminar" onClick={() => onEliminarBloque(campo)}>
+            Eliminar bloque
+          </button>
         </div>
       )}
     </div>

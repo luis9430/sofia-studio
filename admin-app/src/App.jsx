@@ -213,6 +213,17 @@ export function App({ config }) {
         setBloqueResaltado(null);
         return;
       }
+      if (datos.tipo === "sofia:bloque-clickeado") {
+        // Paso 1 del rediseño de layout a 3 zonas fijas (ver la memoria
+        // de producto): un click SIMPLE (no click derecho) sobre un
+        // bloque ya muestra su Nivel 2 en la zona de Propiedades — mismo
+        // camino que "Estilo del bloque" del menú contextual (mismo
+        // fetch de la condición de Visibilidad incluido, ver
+        // mostrarEstiloDeBloque más abajo), así la pestaña Visibilidad
+        // queda igual de disponible desde ambos caminos.
+        mostrarEstiloDeBloque(datos.id, datos.tipoBloque, datos.estiloBloque);
+        return;
+      }
       if (datos.tipo === "sofia:menu-contextual-bloque") {
         setMenuContextual({
           indice: datos.indice,
@@ -356,29 +367,29 @@ export function App({ config }) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:aplicar-formato", comando }, "*");
   }
 
-  // Abre el drawer de bloque (Nivel 2) — desde "Estilo del bloque" en el
-  // menú contextual (ver MenuContextualBloque.jsx), único punto de entrada
-  // tanto para Estilo como para Visibilidad (el usuario cambia de pestaña
-  // DENTRO del drawer — un segundo botón "Visibilidad del bloque" en el
-  // menú era redundante, pedido explícito del usuario). El estilo ya viene
-  // en menuContextual (el iframe lo manda con "sofia:menu-contextual-bloque",
-  // ver estiloBloqueActualDe en editor-iframe.js); la condición de
-  // Visibilidad NO se refleja en ningún atributo del DOM inspeccionable
-  // (solo la marca visual de "oculto", no las reglas en sí), así que hay
-  // que pedirle el contenido completo de la página al proxy REST, mismo
-  // fetch que ya usa agregarBloque() para leer la estructura actual.
-  async function abrirDrawerEstiloBloque() {
-    const id = menuContextual?.id;
-    const tipoBloque = menuContextual?.tipoBloque || "";
-    const estiloBloque = menuContextual?.estiloBloque || {};
-    setMenuContextual(null);
+  // Muestra el Nivel 2 de un bloque en la zona de Propiedades — llamado
+  // tanto desde el menú contextual ("Estilo del bloque", click derecho)
+  // como desde un click SIMPLE directo sobre el bloque (paso 1 del
+  // rediseño de layout a 3 zonas fijas, ver la memoria de producto y
+  // "sofia:bloque-clickeado" más abajo) — único punto de entrada tanto
+  // para Estilo como para Visibilidad (el usuario cambia de pestaña
+  // DENTRO del drawer). Único caller: el handler de "sofia:bloque-clickeado"
+  // más abajo (click simple sobre un bloque, ver alHacerClickIzquierdo en
+  // editor-iframe.js) — "Estilo del bloque" del menú contextual se
+  // eliminó (ver MenuContextualBloque.jsx), el click simple lo reemplaza
+  // por completo. La condición de Visibilidad NO se refleja en ningún
+  // atributo del DOM inspeccionable (solo la marca visual de "oculto", no
+  // las reglas en sí), así que hay que pedirle el contenido completo de
+  // la página al proxy REST, mismo fetch que ya usa agregarBloque() para
+  // leer la estructura actual.
+  async function mostrarEstiloDeBloque(id, tipoBloque, estiloBloque) {
     if (!id) return;
     try {
       const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
       const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
-      setDrawerEstilo({ campo: id, tipoBloque, estilo: estiloBloque, condicion: reglas, nivel: "bloque" });
+      setDrawerEstilo({ campo: id, tipoBloque: tipoBloque || "", estilo: estiloBloque || {}, condicion: reglas, nivel: "bloque" });
     } catch {
       setEstado("error");
     }
@@ -464,11 +475,24 @@ export function App({ config }) {
   // así que reusarlo acá evita sumar un segundo parámetro `containerId`
   // que solo duplicaría lo que el ID ya resuelve solo — ver el mismo
   // cambio de contrato en alEliminarBloque(), editor-iframe.js.
-  function eliminarBloque() {
-    const id = menuContextual?.id;
+  // idExplicito: paso 1 del rediseño de layout a 3 zonas fijas (ver la
+  // memoria de producto) — "Eliminar bloque" ahora también se dispara
+  // desde el botón al pie de la zona de Propiedades (drawerEstilo?.campo,
+  // nivel "bloque"), no solo desde el menú contextual de click derecho
+  // (menuContextual?.id). Parámetro opcional en vez de 2 funciones
+  // separadas: mismo mensaje al iframe, solo cambia de dónde sale el id.
+  function eliminarBloque(idExplicito) {
+    const id = idExplicito || menuContextual?.id;
     setMenuContextual(null);
     setBloqueResaltado(null);
     if (!id) return;
+    // Si la zona de Propiedades estaba mostrando justo este bloque (el
+    // caso más común: se elimina desde el botón al pie del propio
+    // drawer), la limpiamos — si no, quedaría mostrando controles de
+    // estilo para un bloque que ya no existe en el árbol.
+    if (drawerEstilo?.nivel === "bloque" && drawerEstilo?.campo === id) {
+      setDrawerEstilo(null);
+    }
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:eliminar-bloque", id }, "*");
   }
 
@@ -704,9 +728,7 @@ export function App({ config }) {
             <ResaltadoBloque bloque={bloqueResaltado} />
             <MenuContextualBloque
               posicion={menuContextual}
-              onEliminarBloque={eliminarBloque}
               onEliminarItem={eliminarItemDeLista}
-              onEstiloBloque={abrirDrawerEstiloBloque}
               onSeleccionarContenedorPadre={seleccionarContenedorPadre}
               onCerrar={() => setMenuContextual(null)}
             />
@@ -740,6 +762,7 @@ export function App({ config }) {
               onCambiarEstilo={cambiarEstiloDrawer}
               onCambiarCondicion={cambiarCondicionDrawer}
               onAplicarFormato={aplicarFormato}
+              onEliminarBloque={eliminarBloque}
               restUrl={config.restUrl}
               nonce={config.nonce}
             />

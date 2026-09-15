@@ -1066,6 +1066,33 @@ body {
   width: 100%;
 }
 
+/* Pie del drawer — "Eliminar bloque", visible solo en Nivel 2 (ver
+   DrawerEstilo.jsx, nivel === "bloque"). Separado del resto del cuerpo
+   con un borde superior: es una acción destructiva, distinta de los
+   controles de estilo de arriba, no debería confundirse con "un control
+   más" de la lista. */
+.sofia-drawer-estilo__pie {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--gp-panel-border);
+}
+
+.sofia-drawer-estilo__eliminar {
+  width: 100%;
+  border: 1px solid var(--gp-danger);
+  background: transparent;
+  color: var(--gp-danger);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sofia-drawer-estilo__eliminar:hover {
+  background: var(--gp-danger-soft);
+}
+
 /* Overlay de resaltado de bloque: pointer-events:none es crítico — sin
    esto, el propio overlay (que se dibuja ARRIBA del iframe en el z-index)
    capturaría los clicks/mouseover que en realidad tienen que llegar al
