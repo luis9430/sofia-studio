@@ -360,3 +360,107 @@ h1, h2, h3, h4, h5, h6 {
 	height: 100%;
 	object-fit: fill;
 }
+
+/* Heading (Fase 2, plan "50 primitivas") — sin tamaño/peso propio fijo acá:
+   cada nivel (h1-h6) ya hereda la tipografía base del navegador/tema, y el
+   color/tamaño real se ajustan desde Nivel 1 (atributo_estilo() sobre
+   "texto") si hace falta desviarse del default — mismo criterio que
+   cualquier otro campo editable de texto del catálogo. */
+.sofia-heading h1, .sofia-heading h2, .sofia-heading h3,
+.sofia-heading h4, .sofia-heading h5, .sofia-heading h6 {
+	margin: 0;
+	font-family: var(--sofia-fuente-display);
+}
+
+/* RichText (Fase 2) — espaciado real entre párrafos, lo único que lo
+   distingue de Texto libre (un único <p> sin necesidad de este margen). */
+.sofia-rich-text__contenido p {
+	margin: 0 0 var(--sofia-espaciado-base) 0;
+}
+
+.sofia-rich-text__contenido p:last-child {
+	margin-bottom: 0;
+}
+
+/* Icon (Fase 2) — 1em: hereda el tamaño de fuente del contexto donde vive
+   (ver el comentario largo en Sofia_Componente_Icon::claves_estilo_relevantes()
+   sobre por qué no hay una prop de tamaño propia), currentColor ya resuelto
+   por el atributo stroke del <svg> en sí (ver render()). */
+.sofia-icon__svg {
+	width: 1em;
+	height: 1em;
+	font-size: 2rem;
+}
+
+/* Video (Fase 2) — el placeholder <img> (modo editor, sin video cargado)
+   comparte el mismo ancho/radius que el <video> real para que el click no
+   "salte" de tamaño una vez que se elige el archivo. */
+.sofia-video__reproductor,
+.sofia-video img {
+	display: block;
+	width: 100%;
+	border-radius: var(--sofia-radio-borde);
+}
+
+/* Embed (Fase 2) — 16:9 fijo por defecto (el caso de YouTube/Vimeo
+   dominante); AspectRatio ya resuelve el caso de necesitar otra relación,
+   combinándose por fuera de este Componente si hiciera falta. */
+.sofia-embed__iframe {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border-radius: var(--sofia-radio-borde);
+}
+
+.sofia-embed__placeholder {
+	padding: var(--sofia-espaciado-base);
+	border: 1px dashed var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+	color: var(--sofia-color-texto-suave);
+	text-align: center;
+}
+
+/* Avatar (Fase 2) — círculo de tamaño fijo (48px, mismo criterio que
+   "enlace no editable" de Button: no hay hoy una prop de tamaño propia).
+   object-fit:cover evita que una foto no cuadrada deforme el círculo. */
+.sofia-avatar__imagen {
+	display: block;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.sofia-avatar__iniciales {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--sofia-color-secundario);
+	color: var(--sofia-color-fondo);
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+/* Badge (Fase 2) — sin variantes semánticas de color todavía (ver el
+   comentario largo en Sofia_Componente_Badge): un único color neutro
+   (--sofia-color-secundario) hasta que la Fase 3 agregue los roles
+   éxito/advertencia/error/info a Sofia_Estilo_Global::ROLES_SITIO.
+   --sofia-badge--tag baja el radius a algo apenas redondeado en vez de
+   la pastilla completa por defecto — la única diferencia real de forma
+   entre Badge y su variante Tag. */
+.sofia-badge {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 999px;
+	background: var(--sofia-color-secundario);
+	color: var(--sofia-color-fondo);
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.sofia-badge--tag {
+	border-radius: 4px;
+}

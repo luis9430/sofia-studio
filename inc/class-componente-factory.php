@@ -50,6 +50,20 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Spacer( $tipo, $id, $props, $hijos );
 			case 'aspect_ratio':
 				return new Sofia_Componente_Aspect_Ratio( $tipo, $id, $props, $hijos );
+			case 'heading':
+				return new Sofia_Componente_Heading( $tipo, $id, $props, $hijos );
+			case 'rich_text':
+				return new Sofia_Componente_Rich_Text( $tipo, $id, $props, $hijos );
+			case 'icon':
+				return new Sofia_Componente_Icon( $tipo, $id, $props, $hijos );
+			case 'video':
+				return new Sofia_Componente_Video( $tipo, $id, $props, $hijos );
+			case 'embed':
+				return new Sofia_Componente_Embed( $tipo, $id, $props, $hijos );
+			case 'avatar':
+				return new Sofia_Componente_Avatar( $tipo, $id, $props, $hijos );
+			case 'badge':
+				return new Sofia_Componente_Badge( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -92,7 +106,7 @@ class Sofia_Componente_Factory {
 	 * agregar tipos nuevos acá — son presets de este mismo Componente, no
 	 * clases separadas.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por
