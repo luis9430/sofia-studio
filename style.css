@@ -273,3 +273,114 @@ h1, h2, h3, h4, h5, h6 {
 	height: 100%;
 	object-fit: fill;
 }
+
+/* Container — Layout interno real (Fase 1, plan "50 primitivas", ver la
+   memoria de producto) — hueco encontrado al arrancar esta fase: el
+   schema de Container (display/direccion/envolver/justificar/alinear/
+   columnas_grilla/gap) existía desde el plan anterior de "primitivas de
+   layout", pero render() nunca lo traducía a HTML real, así que estas
+   props se guardaban en el editor sin ningún efecto visible. Ver
+   Sofia_Componente_Container::atributos_div_interno().
+
+   .sofia-container SIN ninguna de estas clases sigue siendo el
+   comportamiento de SIEMPRE (display:block implícito, los hijos se
+   apilan uno debajo del otro en flujo normal) — "Bloque (por defecto)"
+   del <select> de Layout interno no necesita ninguna regla CSS propia. */
+.sofia-container--fila {
+	display: flex;
+	flex-direction: row;
+	gap: var(--sofia-container-gap, 0);
+}
+
+.sofia-container--columna {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sofia-container-gap, 0);
+}
+
+.sofia-container--grilla {
+	display: grid;
+	gap: var(--sofia-container-gap, 0);
+}
+
+.sofia-container--grilla-2 { grid-template-columns: repeat(2, 1fr); }
+.sofia-container--grilla-3 { grid-template-columns: repeat(3, 1fr); }
+.sofia-container--grilla-4 { grid-template-columns: repeat(4, 1fr); }
+
+.sofia-container--ninguno > * {
+	display: contents;
+}
+
+.sofia-container--invertida.sofia-container--fila { flex-direction: row-reverse; }
+.sofia-container--invertida.sofia-container--columna { flex-direction: column-reverse; }
+
+.sofia-container--envolver { flex-wrap: wrap; }
+
+.sofia-container--justificar-inicio { justify-content: flex-start; }
+.sofia-container--justificar-centro { justify-content: center; }
+.sofia-container--justificar-fin { justify-content: flex-end; }
+.sofia-container--justificar-entre { justify-content: space-between; }
+
+.sofia-container--alinear-inicio { align-items: flex-start; }
+.sofia-container--alinear-centro { align-items: center; }
+.sofia-container--alinear-fin { align-items: flex-end; }
+
+/* Divider (Fase 1, plan "50 primitivas") — <hr> nativo despojado de su
+   estilo default del navegador (que ya trae borde 3D/inset feo en la
+   mayoría de motores), reconstruido como una línea simple de 1px con el
+   color de borde real del sitio (Nivel 3) — ver el comentario largo en
+   Sofia_Componente_Divider::claves_estilo_relevantes() sobre por qué
+   este color no es configurable por instancia todavía. */
+.sofia-divider__linea {
+	border: none;
+	border-top: 1px solid var(--sofia-color-borde);
+	margin: 0;
+}
+
+/* Spacer (Fase 1, plan "50 primitivas") — "height" real viene inline
+   (style="height:...", ver Sofia_Componente_Spacer::render()) porque es
+   un valor continuo por instancia, no una opción de una lista corta —
+   mismo criterio que "espaciado_vertical"/"gap" en el resto del sistema.
+   Fallback acá SOLO por si alguna vez "alto" queda vacío/corrupto —
+   nunca debería pasar (props_por_defecto() siempre define un token real),
+   pero un <div> de 0px sin ningún indicio visual sería confuso de
+   depurar dentro del editor sin este piso mínimo. */
+.sofia-spacer__espacio {
+	height: var(--sofia-espaciado-base);
+	width: 100%;
+}
+
+/* AspectRatio (Fase 1, plan "50 primitivas") — la relación de aspecto en
+   sí (aspect-1/aspect-16-9/etc.) ya la aplica Core Framework a la
+   <section> exterior (utility class real, ver el comentario largo en
+   Sofia_Componente::CLASES_UTILITARIAS_BLOQUE) — acá solo hace falta que
+   el wrapper interno y su hijo llenen el 100% de esa caja ya
+   dimensionada, mismo patrón que .sofia-hero.fit-cover > img pero
+   apuntando al HIJO completo (":scope > *"), no solo a una <img> propia
+   (el hijo de AspectRatio puede ser cualquier Componente del catálogo). */
+.sofia-aspect-ratio__contenido {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.sofia-aspect-ratio.fit-cover .sofia-aspect-ratio__contenido > img,
+.sofia-aspect-ratio.fit-cover .sofia-aspect-ratio__contenido > video {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.sofia-aspect-ratio.fit-contain .sofia-aspect-ratio__contenido > img,
+.sofia-aspect-ratio.fit-contain .sofia-aspect-ratio__contenido > video {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.sofia-aspect-ratio.fit-fill .sofia-aspect-ratio__contenido > img,
+.sofia-aspect-ratio.fit-fill .sofia-aspect-ratio__contenido > video {
+	width: 100%;
+	height: 100%;
+	object-fit: fill;
+}

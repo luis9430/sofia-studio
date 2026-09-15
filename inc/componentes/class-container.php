@@ -1,32 +1,25 @@
 <?php
 /**
  * Sofia_Componente_Container — primitiva de layout (ver la memoria de
- * producto "Sofia Studio: plan de primitivas de layout"), PRIMER
- * Componente del catálogo que puede contener OTROS Componentes como
- * hijos, en vez de solo campos de texto/imagen propios.
+ * producto), PRIMER Componente del catálogo que puede contener OTROS
+ * Componentes como hijos, en vez de solo campos de texto/imagen propios.
+ * Resuelve, por sí solo, el rol de "Box"/"Stack"/"Grid"/"Cluster"/
+ * "Split"/"Inline" del catálogo de 50 primitivas (memoria de producto,
+ * plan "50 primitivas de UI") — ver VARIANTES más abajo: nunca son tipos
+ * nuevos en la Factory, son presets de esta misma clase.
  *
- * Fase 1 (este archivo): valida el MECANISMO de anidamiento en sí — un
- * <div> que renderiza sus hijos, ya resueltos por Sofia_Pagina
- * (Sofia_Componente::$hijos, ver el comentario largo ahí sobre por qué
- * llegan YA instanciados y no como array crudo). Deliberadamente SIN
- * ningún control de layout propio todavía (dirección, gap, grilla,
- * alineación) — eso es Fase 2 (schema tipado de campos), que se agrega
- * sobre esta base sin romper nada de lo que ya funciona acá: fondo, borde,
- * radio de borde, sombra, ancho, utility classes de Core Framework, TODO
- * eso ya funciona gratis vía atributos_seccion()/Nivel 2, heredado tal
- * cual de cualquier otro Componente del catálogo.
- *
- * Fase 3 (editor visual — ver Sofia_Componente_Factory::TIPOS_REGISTRADOS,
- * editor-iframe.js y App.jsx) agregó el mecanismo real de anidamiento
- * manual en el editor: instancias Muuri acotadas a cada
- * ".sofia-container" (activarReordenarDentroDeContainers), líneas "+" de
- * inserción también dentro de un container, e inserción/eliminación en
- * profundidad del lado de App.jsx. Este archivo (render()) no necesitó
- * ningún cambio para eso — ya renderizaba sus hijos correctamente desde
- * Fase 1, el trabajo de Fase 3 fue enteramente en cómo el editor visual
- * arma/lee el árbol {id,tipo,hijos}, salvo por UN detalle: cuando un
- * Container se inserta a NIVEL SUPERIOR (no dentro de otro container), ver
- * el comentario sobre el wrapper <section> más abajo en render().
+ * Historial real (Fase 1/2/3 abajo son de un plan ANTERIOR de la memoria
+ * de producto, "primitivas de layout" — no confundir con las fases del
+ * plan actual "50 primitivas"): un `<div>` que renderiza sus hijos, ya
+ * resueltos por Sofia_Pagina (Sofia_Componente::$hijos, ver el comentario
+ * largo ahí sobre por qué llegan YA instanciados y no como array crudo).
+ * El editor visual (paso 2 del rediseño de layout a 3 zonas fijas —
+ * Panel de Estructura, ver la memoria de producto) reordena/selecciona
+ * hijos de un Container desde el árbol lateral, no arrastrando en el
+ * canvas — este archivo (render()) no necesita saber nada de eso, solo
+ * emite HTML real, salvo por UN detalle: cuando un Container se inserta a
+ * NIVEL SUPERIOR (no dentro de otro container), ver el comentario sobre
+ * el wrapper <section> más abajo en render().
  */
 class Sofia_Componente_Container extends Sofia_Componente {
 
@@ -83,13 +76,181 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	 */
 	public function render(): string {
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-container-exterior' ) . '>';
-		$html .= '<div class="sofia-container">';
+		$html .= '<div ' . $this->atributos_div_interno() . '>';
 		foreach ( $this->hijos as $hijo ) {
 			$html .= $hijo->render();
 		}
 		$html .= '</div>';
 		$html .= '</section>';
 		return $html;
+	}
+
+	/**
+	 * atributos_div_interno(): class="..." + style="..." del
+	 * <div class="sofia-container"> interno — Fase 1 de "50 primitivas"
+	 * (ver la memoria de producto) cierra un hueco real encontrado
+	 * releyendo este archivo: schema_propio() ya declaraba display/
+	 * direccion/envolver/justificar/alinear/columnas_grilla/gap como
+	 * controles del drawer desde Fase 2 ("primitivas de layout"), pero
+	 * render() nunca los leía — el usuario podía elegir "Fila" en el
+	 * drawer y el bloque seguía viéndose exactamente igual, porque ningún
+	 * atributo salía al HTML para que el CSS pudiera targetear. Mismo
+	 * patrón que el resto del sistema (utility classes de Core Framework +
+	 * custom properties para valores libres, ver
+	 * Sofia_Componente::clases_utilitarias_bloque()/atributo_estilo_bloque()):
+	 * "display" resuelve a una clase CSS ("sofia-container--fila"), "gap"
+	 * (input libre o token) resuelve a --sofia-container-gap inline.
+	 *
+	 * VARIANTE (Fase 1, nueva): un preset que solo cambia los DEFAULTS de
+	 * display/gap/justificar/envolver — nunca agrega un tipo nuevo a la
+	 * Factory (ver Sofia_Componente_Factory::TIPOS_REGISTRADOS). Sigue
+	 * siendo "container" para GoPress/el catálogo de la IA; Stack/Grid/
+	 * Cluster/Split/Inline/Box son simplemente Container con otro punto de
+	 * partida — el usuario puede seguir ajustando cada control suelto
+	 * después de elegir una variante, esta nunca es una restricción.
+	 * valores_con_variante() resuelve variante → overrides ANTES de leer
+	 * cada prop individual, así una variante nunca pisa un control que el
+	 * usuario ya tocó a mano (props reales siempre ganan sobre el default
+	 * de la variante).
+	 */
+	private function atributos_div_interno(): string {
+		$valores = $this->valores_con_variante();
+
+		$clases = array( 'sofia-container' );
+
+		$display = $valores['display'] ?? '';
+		if ( isset( self::CLASES_DISPLAY[ $display ] ) ) {
+			$clases[] = self::CLASES_DISPLAY[ $display ];
+		}
+
+		// direccion/envolver/justificar/alinear solo tienen sentido real con
+		// display fila/columna (mismo criterio ya documentado en la "ayuda"
+		// de schema_propio()) — igual se resuelven sin condicionar por
+		// display acá: una clase "sofia-container--justificar-centro" sin
+		// display:flex de por medio simplemente no tiene ningún selector
+		// CSS que la consuma con efecto visible, mismo patrón "no rompe,
+		// no hace nada" que ya usa CLASES_UTILITARIAS_BLOQUE con controles
+		// fuera de contexto (ej. aspect_ratio en un Componente sin imagen).
+		if ( 'invertida' === ( $valores['direccion'] ?? '' ) ) {
+			$clases[] = 'sofia-container--invertida';
+		}
+		if ( ! empty( $valores['envolver'] ) ) {
+			$clases[] = 'sofia-container--envolver';
+		}
+		$justificar = $valores['justificar'] ?? '';
+		if ( isset( self::CLASES_JUSTIFICAR[ $justificar ] ) ) {
+			$clases[] = self::CLASES_JUSTIFICAR[ $justificar ];
+		}
+		$alinear = $valores['alinear'] ?? '';
+		if ( isset( self::CLASES_ALINEAR[ $alinear ] ) ) {
+			$clases[] = self::CLASES_ALINEAR[ $alinear ];
+		}
+		$columnas_grilla = (string) ( $valores['columnas_grilla'] ?? '' );
+		if ( 'grilla' === $display && in_array( $columnas_grilla, array( '2', '3', '4' ), true ) ) {
+			$clases[] = 'sofia-container--grilla-' . $columnas_grilla;
+		}
+
+		// gap: INPUT LIBRE o token de Core Framework (mismo mecanismo que
+		// "espaciado_vertical" de Nivel 2 genérico, ver
+		// Sofia_Componente::atributo_estilo_bloque()) — nunca una utility
+		// class fija, porque el espacio entre hijos es un valor continuo,
+		// no una opción corta de una lista. --sofia-container-gap (no
+		// "gap:" directo en style, aunque acá SIEMPRE tendría el mismo
+		// efecto): custom property porque el CSS de esta clase necesita
+		// poder tener un fallback propio (ver style.css) cuando la
+		// variante define un gap por defecto sin que el usuario haya
+		// tocado nada.
+		$estilo = '';
+		$gap    = $valores['gap'] ?? '';
+		if ( is_string( $gap ) && '' !== $gap ) {
+			if ( Sofia_Estilo_Global::es_token_con_nombre( $gap ) ) {
+				$estilo = 'style="--sofia-container-gap:' . esc_attr( Sofia_Estilo_Global::resolver_valor( $gap ) ) . '"';
+			} elseif ( preg_match( '/^\d+(\.\d+)?(px|rem|%)$/', $gap ) ) {
+				$estilo = 'style="--sofia-container-gap:' . esc_attr( $gap ) . '"';
+			}
+		}
+
+		return sprintf( 'class="%s" %s', esc_attr( implode( ' ', $clases ) ), $estilo );
+	}
+
+	/**
+	 * VARIANTES: preset de $tipo => overrides de props que esa variante
+	 * aplica CUANDO el usuario no configuró ese control a mano — nunca
+	 * pisa un valor real ya presente en $this->props (ver
+	 * valores_con_variante()). "libre" (default, sin variante elegida) no
+	 * tiene entrada acá — sin overrides, el comportamiento es exactamente
+	 * el de Container tal cual venía siendo hasta Fase 1.
+	 */
+	// Tokens "cf:space-{xs|s|m|l|xl}" — escala REAL de Core Framework
+	// (confirmado en Sofia_Estilo_Global::ETIQUETAS_ESCALA, nunca
+	// "space-2"/"space-4"/"space-8": esa numeración no existe en este
+	// sistema de tokens, era una suposición sin verificar descartada
+	// antes de commitear).
+	private const VARIANTES = array(
+		'stack'   => array( 'display' => 'columna', 'gap' => 'cf:space-m' ),
+		'grid'    => array( 'display' => 'grilla', 'columnas_grilla' => '3', 'gap' => 'cf:space-m' ),
+		'cluster' => array( 'display' => 'fila', 'envolver' => true, 'justificar' => 'start', 'gap' => 'cf:space-s' ),
+		'split'   => array( 'display' => 'fila', 'justificar' => 'space-between' ),
+		'inline'  => array( 'display' => 'fila', 'gap' => 'cf:space-s' ),
+	);
+
+	private const CLASES_DISPLAY = array(
+		'fila'    => 'sofia-container--fila',
+		'columna' => 'sofia-container--columna',
+		'grilla'  => 'sofia-container--grilla',
+		'ninguno' => 'sofia-container--ninguno',
+	);
+
+	private const CLASES_JUSTIFICAR = array(
+		'start'         => 'sofia-container--justificar-inicio',
+		'center'        => 'sofia-container--justificar-centro',
+		'end'           => 'sofia-container--justificar-fin',
+		'space-between' => 'sofia-container--justificar-entre',
+	);
+
+	private const CLASES_ALINEAR = array(
+		'start'  => 'sofia-container--alinear-inicio',
+		'center' => 'sofia-container--alinear-centro',
+		'end'    => 'sofia-container--alinear-fin',
+	);
+
+	/**
+	 * valores_con_variante(): los controles de layout (display/direccion/
+	 * envolver/justificar/alinear/columnas_grilla/gap) con el override de
+	 * la VARIANTE elegida como base, y cualquier valor que el usuario haya
+	 * tocado a mano encima — un control queda "sin tocar" cuando su prop
+	 * guardada es "" (string vacío) o ausente, el mismo significado que
+	 * "" ya tiene en cada <select> de schema_propio() ("Por defecto"/
+	 * "Bloque (por defecto)", nunca un valor real distinguible de "no
+	 * elegido"). Por eso NO alcanza con un array_merge() simple (que
+	 * pisaría el override de la variante con un "" real presente en
+	 * props): cada clave se resuelve por separado, prop real primero si
+	 * NO está vacía, si no el override de la variante, si no "" — mismo
+	 * criterio de "la variante es un punto de partida, nunca una
+	 * restricción" documentado en atributos_div_interno().
+	 *
+	 * Caso de borde aceptado, documentado a propósito: "envolver" es un
+	 * toggle booleano (CampoDesdeSchema.jsx), así que "false" (desmarcado
+	 * a mano) y "nunca tocado" son indistinguibles acá — hoy la ÚNICA
+	 * variante que lo activa por defecto es "cluster", así que el único
+	 * efecto real de esta ambigüedad es que un Cluster no puede
+	 * desactivar "Envolver" sin también cambiarlo a otra variante o a
+	 * "libre". Se acepta por ahora (impacto chico, un control de un caso
+	 * de uso específico) en vez de cambiar el contrato de "" como "sin
+	 * tocar" que usa TODO el resto del sistema.
+	 */
+	private function valores_con_variante(): array {
+		$variante = (string) ( $this->props['variante'] ?? '' );
+		$override = self::VARIANTES[ $variante ] ?? array();
+
+		$valores = array();
+		foreach ( array( 'display', 'direccion', 'envolver', 'justificar', 'alinear', 'columnas_grilla', 'gap' ) as $clave ) {
+			$propio = $this->props[ $clave ] ?? '';
+			$valores[ $clave ] = ( '' !== $propio && null !== $propio && false !== $propio )
+				? $propio
+				: ( $override[ $clave ] ?? '' );
+		}
+		return $valores;
 	}
 
 	/**
@@ -105,16 +266,40 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	 */
 
 	/**
-	 * schema_propio(): controles de layout que solo Container tiene —
-	 * ninguno de estos afecta el HTML de render() todavía (eso queda
-	 * fuera de esta Fase 2, ver el comentario largo arriba de la clase);
-	 * esto valida el MECANISMO de schema propio fusionado con el
-	 * genérico, mismo alcance deliberado que Fase 1 validó solo el
-	 * mecanismo de anidamiento. Adaptado de la tabla "Props reales de
-	 * Container" del plan de arquitectura (memoria de producto).
+	 * schema_propio(): controles de layout que solo Container tiene.
+	 *
+	 * Historial real (por si el nombre "Fase 1" confunde entre dos planes
+	 * distintos de la memoria de producto): estos controles existían
+	 * desde el plan de "primitivas de layout" (Fase 2 de ESE plan), pero
+	 * render() nunca los leía — display/direccion/gap/etc. se guardaban
+	 * bien pero no tenían NINGÚN efecto visual, un hueco real encontrado
+	 * al arrancar la Fase 1 del plan de "50 primitivas" (memoria de
+	 * producto). atributos_div_interno() (ver render()) ahora sí los
+	 * traduce a clases CSS + custom properties reales.
+	 *
+	 * "variante" (nuevo en Fase 1 de "50 primitivas"): preset que cambia
+	 * los DEFAULTS de display/gap/justificar/envolver sin agregar un tipo
+	 * nuevo a la Factory — ver el comentario largo en
+	 * valores_con_variante(). Cubre Stack/Grid/Cluster/Split/Inline del
+	 * catálogo de 50 primitivas pedido por el usuario; "Box" (el catálogo
+	 * también lo pide) es Container SIN variante, ya cubierto por
+	 * "" (Libre).
 	 */
 	public static function schema_propio(): array {
 		return array(
+			'variante'   => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Variante', 'sofia-studio' ),
+				'ayuda'    => __( 'Un punto de partida — cambia los valores por defecto de Layout interno/Espacio entre hijos/etc. de abajo, que seguís pudiendo ajustar uno por uno después.', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Libre (Box)', 'sofia-studio' ) ),
+					array( 'valor' => 'stack', 'etiqueta' => __( 'Stack (columna, con espacio)', 'sofia-studio' ) ),
+					array( 'valor' => 'grid', 'etiqueta' => __( 'Grid (grilla de 3)', 'sofia-studio' ) ),
+					array( 'valor' => 'cluster', 'etiqueta' => __( 'Cluster (fila que envuelve)', 'sofia-studio' ) ),
+					array( 'valor' => 'split', 'etiqueta' => __( 'Split (extremos separados)', 'sofia-studio' ) ),
+					array( 'valor' => 'inline', 'etiqueta' => __( 'Inline (fila compacta)', 'sofia-studio' ) ),
+				),
+			),
 			'display'    => array(
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Layout interno', 'sofia-studio' ),

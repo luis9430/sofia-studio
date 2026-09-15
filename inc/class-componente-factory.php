@@ -44,6 +44,12 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Image( $tipo, $id, $props, $hijos );
 			case 'button':
 				return new Sofia_Componente_Button( $tipo, $id, $props, $hijos );
+			case 'divider':
+				return new Sofia_Componente_Divider( $tipo, $id, $props, $hijos );
+			case 'spacer':
+				return new Sofia_Componente_Spacer( $tipo, $id, $props, $hijos );
+			case 'aspect_ratio':
+				return new Sofia_Componente_Aspect_Ratio( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -77,8 +83,16 @@ class Sofia_Componente_Factory {
 	 * el set mínimo de 5 piezas combinables (Section/Container/Text/Image/
 	 * Button) que el plan define como alternativa a seguir sumando
 	 * Componentes temáticos fijos.
+	 *
+	 * 'divider'/'spacer'/'aspect_ratio' se agregan en la Fase 1 del plan
+	 * "50 primitivas de UI" (memoria de producto) — primeros 3 tipos
+	 * nuevos genuinos de ese catálogo más grande, categoría Layout.
+	 * "container" gana además un campo "variante" (ver class-container.php)
+	 * que cubre Stack/Grid/Cluster/Split/Inline/Box del mismo catálogo sin
+	 * agregar tipos nuevos acá — son presets de este mismo Componente, no
+	 * clases separadas.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por
