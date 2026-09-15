@@ -58,8 +58,45 @@ body {
   overflow: hidden;
   display: flex;
   justify-content: center;
-  padding: 20px 56px;
+  align-items: stretch;
+  gap: 16px;
+  padding: 20px 24px 20px 56px;
   position: relative;
+}
+
+/* ZonaPropiedades — REDISEÑO (paso 1, layout de 3 zonas fijas, ver la
+   memoria de producto): columna hermana de .sofia-sitio-frame (nunca
+   dentro de ella, así queda fuera del "marco de navegador" que simula el
+   sitio) — mismo z-index normal de flujo (0), ya no necesita superponerse
+   a nada. width fija (no flex:1) — el canvas es quien debe estirarse con
+   el espacio disponible, esta columna se queda en un ancho de lectura
+   cómodo para controles, igual que la referencia visual que confirmó este
+   layout. */
+.sofia-zona-propiedades {
+  width: 300px;
+  flex: 0 0 auto;
+  background: var(--gp-panel);
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Estado vacío — decisión explícita: sin nada seleccionado, un mensaje
+   neutro en vez de vaciar la columna entera (que la haría "parpadear" de
+   ancho 0 a 300px cada vez que el usuario deselecciona algo). */
+.sofia-zona-propiedades__vacio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--gp-panel-text-dim);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .sofia-lienzo-wrap::before {
@@ -536,70 +573,25 @@ body {
   background: var(--gp-panel-2);
 }
 
-/* Botón "editar estilo" (✏️): aparece pegado al borde derecho del campo
-   tras un solo click (ver BotonEditarCampo.jsx) — reemplaza la barra de
-   formato flotante que antes exigía SELECCIONAR texto (arrastrando), un
-   gesto poco descubierto por el usuario con un simple click. */
-.sofia-boton-editar-campo {
-  position: absolute;
-  z-index: 20;
-  width: 28px;
-  height: 28px;
-  margin-left: 4px;
-  border: 1px solid var(--gp-panel-border);
-  background: var(--gp-panel);
-  border-radius: 7px;
-  cursor: pointer;
-  font-size: 13px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-
-.sofia-boton-editar-campo:hover {
-  background: var(--gp-panel-2);
-}
-
-/* Drawer de estilo (Nivel 3) — panel lateral, ancla inicial a la esquina
-   superior derecha del viewport del iframe (mismo criterio de "controles
-   fuera del documento del iframe" que MenuContextualBloque), arrastrable
-   desde ahí por su cabecera — pedido explícito del usuario: en el último
-   bloque de una página, el drawer fijo tapaba contenido sin forma de
-   esquivarlo. El offset de arrastre se aplica vía transform (ver
-   DrawerEstilo.jsx), top/right/bottom siguen fijos como posición base. */
+/* Drawer de estilo (Nivel 3) — REDISEÑO (paso 1, layout de 3 zonas fijas,
+   ver la memoria de producto): dejó de ser position:absolute flotante
+   sobre el iframe (con su propio mecanismo de arrastre, ver el historial
+   de DrawerEstilo.jsx) — ahora es un panel de ALTURA/ANCHO completos de su
+   columna contenedora (.sofia-zona-propiedades, ver más abajo), montado
+   SIEMPRE, sin z-index ni sombra de "flotar por encima" porque ya no
+   flota sobre nada. */
 .sofia-drawer-estilo {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  bottom: 16px;
-  width: 260px;
-  z-index: 25;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--gp-panel);
-  border: 1px solid var(--gp-panel-border);
-  border-radius: 12px;
-  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
-  overflow: hidden;
-}
-
-/* Overlay transparente que cubre TODO el viewport (iframe incluido)
-   mientras dura un arrastre del drawer — bug real encontrado en la
-   práctica: el iframe es un documento distinto con su propio contexto de
-   eventos, así que en cuanto el cursor entraba en su área durante el drag
-   los "mousemove" dejaban de llegar a este documento, y el drawer se
-   quedaba pegado. z-index entre el iframe y el drawer: absorbe el mouse
-   sin taparlo a él. */
-.sofia-drawer-estilo__overlay-arrastre {
-  position: absolute;
-  inset: 0;
-  z-index: 24;
-  cursor: move;
+  overflow-y: auto;
 }
 
 .sofia-drawer-estilo__cabecera {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--gp-panel-border);
-  cursor: move; /* arrastra el drawer — ver alPresionarCabecera en DrawerEstilo.jsx */
 }
 
 .sofia-drawer-estilo__tabs {
@@ -636,24 +628,6 @@ body {
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.sofia-drawer-estilo__cerrar {
-  width: 32px;
-  height: 32px;
-  margin-right: 4px;
-  border: none;
-  background: transparent;
-  color: var(--gp-panel-text-dim);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.sofia-drawer-estilo__cerrar:hover {
-  background: var(--gp-panel-2);
-  color: var(--gp-panel-text);
 }
 
 .sofia-drawer-estilo__cuerpo {

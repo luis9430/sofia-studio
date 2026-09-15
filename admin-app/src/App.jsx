@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { BotonEditarCampo } from "./BotonEditarCampo.jsx";
 import { DrawerEstilo } from "./DrawerEstilo.jsx";
 import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
@@ -67,17 +66,16 @@ function todosLosIds(estructura) {
 }
 
 /**
- * App es el panel completo del editor in-place: un iframe full-bleed (ocupa
- * toda la pantalla disponible, sin bordes ni chrome de WordPress visible —
- * ver Sofia_Panel_Editor::ocultar_chrome_admin en el tema, y la memoria de
- * producto "Sofia Studio" sobre por qué se eligió pulir el iframe en vez de
- * eliminarlo) con una barra de estado flotante SOBRE el contenido, nunca
- * empujando el layout — mismo patrón documentado en Bricks/Elementor/AEM:
- * los controles viven fuera del documento del iframe, superpuestos. Todo
- * control de un campo (negrita/cursiva, alineación, color) vive en el
- * drawer de estilo (DrawerEstilo.jsx), abierto con el botón ✏️ que aparece
- * al hacer click en el campo (BotonEditarCampo.jsx) — un solo control por
- * campo, en vez de una barra de formato aparte más el drawer.
+ * App es el panel completo del editor in-place, con layout de 3 zonas
+ * fijas (paso 1 de la migración, ver la memoria de producto — el resto de
+ * zonas, catálogo arrastrable y chat de IA in-context, quedan para pasos
+ * siguientes): el sitio (iframe, ver Sofia_Panel_Editor::ocultar_chrome_admin
+ * en el tema) al centro, y la zona de Propiedades (DrawerEstilo.jsx)
+ * SIEMPRE montada a la derecha — nunca un panel flotante que hay que abrir
+ * ni cerrar, un click en cualquier campo/bloque simplemente cambia qué
+ * muestra. Todo control de un campo (negrita/cursiva, alineación, color)
+ * vive ahí, un solo lugar, en vez de una barra de formato aparte más un
+ * drawer flotante.
  *
  * El iframe nunca guarda nada por su cuenta (ver inc/js/editor-iframe.js)
  * — solo informa cambios vía postMessage, que este componente escucha y
@@ -101,26 +99,18 @@ export function App({ config }) {
   // ÚLTIMO cambio de la ráfaga dispara guardado + reload.
   const timerCondicion = useRef(null);
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
-  // Botón "editar estilo" (✏️) que aparece al hacer UN SOLO click sobre un
-  // campo editable (ver "sofia:campo-clickeado" en editor-iframe.js,
-  // activarTexto) — reemplaza la barra de formato flotante que antes solo
-  // aparecía al SELECCIONAR texto (arrastrando), un gesto poco descubrible
-  // que el usuario señaló explícitamente. Retiene {campo, rect, estilo} del
-  // ÚLTIMO click, insumo para abrir el drawer al presionar el botón.
-  const [campoClickeado, setCampoClickeado] = useState(null); // { campo, rect, estilo } | null
-  // Campo+estilo del drawer de estilo (Nivel 3) — RETENIDO mientras el
-  // drawer sigue abierto, aunque el usuario haga click en otro campo (en
-  // ese caso el drawer simplemente cambia de campo, ver alRecibirMensaje) o
-  // mueva el mouse hacia los propios controles del drawer (fuera del
-  // iframe) — sin esto, un segundo click en el mismo campo o un drag del
-  // drawer podría perder el campo activo a mitad de camino.
-  // { campo, estilo, nivel } | null — nivel "campo" (default) usa `campo`
-  // como identificador ("{id}.subcampo..."), nivel "bloque" usa `campo`
-  // como el ID DIRECTO del bloque (mismo shape, distinto significado —
-  // más simple que 2 estados separados que solo uno puede estar activo a
-  // la vez).
+  // Campo+estilo mostrado en la zona de Propiedades fija (paso 1 del
+  // rediseño de layout, ver la memoria de producto) — { campo, estilo,
+  // nivel } | null. nivel "campo" (default) usa `campo` como identificador
+  // ("{id}.subcampo..."), nivel "bloque" usa `campo` como el ID DIRECTO
+  // del bloque (mismo shape, distinto significado — más simple que 2
+  // estados separados que solo uno puede estar activo a la vez). Un solo
+  // click en CUALQUIER campo actualiza esto directo (ver
+  // "sofia:campo-clickeado" más abajo) — ya no hace falta el paso
+  // intermedio del botón ✏️ flotante (BotonEditarCampo.jsx, eliminado):
+  // con el panel siempre visible, "click en un campo" y "mostrar su
+  // estilo" son el mismo gesto.
   const [drawerEstilo, setDrawerEstilo] = useState(null);
-  const drawerAbierto = useRef(false);
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [catalogoBloques, setCatalogoBloques] = useState([]);
   const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
@@ -206,14 +196,13 @@ export function App({ config }) {
         return;
       }
       if (datos.tipo === "sofia:campo-clickeado") {
-        setCampoClickeado({ campo: datos.campo, rect: datos.rect, estilo: datos.estilo });
-        // Si el drawer YA estaba abierto, un click en otro campo lo mueve
-        // a ese campo nuevo directo — evita el paso extra de cerrar y
-        // volver a abrir con el botón ✏️ cuando el usuario va editando
-        // varios campos seguidos.
-        if (drawerAbierto.current) {
-          setDrawerEstilo({ campo: datos.campo, estilo: datos.estilo });
-        }
+        // Actualiza la zona de Propiedades directo — un click en CUALQUIER
+        // campo (nivel "campo", el default) muestra su estilo ahí, sin
+        // paso intermedio. Si el panel estaba mostrando un BLOQUE (nivel
+        // "bloque", abierto desde el menú contextual), este click lo pisa
+        // igual — mismo criterio que "el panel siempre refleja la última
+        // selección" acordado para todo este rediseño.
+        setDrawerEstilo({ campo: datos.campo, estilo: datos.estilo });
         return;
       }
       if (datos.tipo === "sofia:bloque-resaltado") {
@@ -367,24 +356,6 @@ export function App({ config }) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:aplicar-formato", comando }, "*");
   }
 
-  // Abre el drawer de estilo (Nivel 3) sobre el campo del último click (ver
-  // campoClickeado, llenado por "sofia:campo-clickeado" en
-  // editor-iframe.js) — el botón ✏️ que lo dispara solo se muestra cuando
-  // campoClickeado existe, así que este chequeo es más una guarda de tipos
-  // que un caso real esperado.
-  function abrirDrawerEstilo() {
-    if (!campoClickeado) return;
-    drawerAbierto.current = true;
-    setDrawerEstilo({ campo: campoClickeado.campo, estilo: campoClickeado.estilo });
-    setCampoClickeado(null); // el drawer ya abierto reemplaza al botón ✏️.
-  }
-
-  function cerrarDrawerEstilo() {
-    drawerAbierto.current = false;
-    setDrawerEstilo(null);
-    setCampoClickeado(null);
-  }
-
   // Abre el drawer de bloque (Nivel 2) — desde "Estilo del bloque" en el
   // menú contextual (ver MenuContextualBloque.jsx), único punto de entrada
   // tanto para Estilo como para Visibilidad (el usuario cambia de pestaña
@@ -407,7 +378,6 @@ export function App({ config }) {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
       const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
-      drawerAbierto.current = true;
       setDrawerEstilo({ campo: id, tipoBloque, estilo: estiloBloque, condicion: reglas, nivel: "bloque" });
     } catch {
       setEstado("error");
@@ -732,24 +702,6 @@ export function App({ config }) {
           <div className="sofia-sitio-viewport">
             <iframe ref={iframeRef} src={urlIframe} title="Editor de página" className="sofia-editor-admin__iframe" />
             <ResaltadoBloque bloque={bloqueResaltado} />
-            {campoClickeado && !drawerEstilo && (
-              <BotonEditarCampo rect={campoClickeado.rect} onClick={abrirDrawerEstilo} />
-            )}
-            {drawerEstilo && (
-              <DrawerEstilo
-                campo={drawerEstilo.campo}
-                tipoBloque={drawerEstilo.tipoBloque}
-                estilo={drawerEstilo.estilo}
-                nivel={drawerEstilo.nivel || "campo"}
-                condicion={drawerEstilo.condicion}
-                onCambiarEstilo={cambiarEstiloDrawer}
-                onCambiarCondicion={cambiarCondicionDrawer}
-                onAplicarFormato={aplicarFormato}
-                onCerrar={cerrarDrawerEstilo}
-                restUrl={config.restUrl}
-                nonce={config.nonce}
-              />
-            )}
             <MenuContextualBloque
               posicion={menuContextual}
               onEliminarBloque={eliminarBloque}
@@ -768,6 +720,32 @@ export function App({ config }) {
               />
             )}
           </div>
+        </div>
+
+        {/* ZonaPropiedades — paso 1 del rediseño de layout a 3 zonas fijas
+            (ver la memoria de producto): columna SIEMPRE montada, hermana
+            de .sofia-sitio-frame (nunca dentro del "marco de navegador").
+            DrawerEstilo ya NO es un overlay flotante — vive acá completo,
+            sin abrir/cerrar; con drawerEstilo=null muestra un estado vacío
+            en vez de desmontarse, así la columna nunca "parpadea" de
+            ancho. */}
+        <div className="sofia-zona-propiedades">
+          {drawerEstilo ? (
+            <DrawerEstilo
+              campo={drawerEstilo.campo}
+              tipoBloque={drawerEstilo.tipoBloque}
+              estilo={drawerEstilo.estilo}
+              nivel={drawerEstilo.nivel || "campo"}
+              condicion={drawerEstilo.condicion}
+              onCambiarEstilo={cambiarEstiloDrawer}
+              onCambiarCondicion={cambiarCondicionDrawer}
+              onAplicarFormato={aplicarFormato}
+              restUrl={config.restUrl}
+              nonce={config.nonce}
+            />
+          ) : (
+            <p className="sofia-zona-propiedades__vacio">Seleccioná un bloque para editarlo</p>
+          )}
         </div>
       </div>
     </div>

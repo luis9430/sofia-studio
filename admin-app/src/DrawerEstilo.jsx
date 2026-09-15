@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { CampoConToken } from "./CampoConToken.jsx";
 import { CamposDesdeSchema } from "./CampoDesdeSchema.jsx";
 
@@ -53,18 +53,15 @@ import { CamposDesdeSchema } from "./CampoDesdeSchema.jsx";
  * iframe quien aplique el cambio al elemento real (ver alAplicarEstilo /
  * alRecibirMensajeDelPadre en editor-iframe.js).
  *
- * Arrastrable por la cabecera — pedido explícito del usuario: en el último
- * bloque de una página, el drawer anclado a la esquina superior derecha
- * tapaba contenido sin espacio para esquivarlo. offsetArrastre es un
- * desplazamiento relativo a la posición CSS de anclaje (top/right fijos en
- * style.css) — persiste mientras el drawer sigue MONTADO, aunque el
- * usuario cambie de campo activo (ver App.jsx: el drawer no se remonta al
- * cambiar de campo, solo al cerrarse y volver a abrirse) — bug real
- * encontrado en la práctica: una key por campo remontaba el componente en
- * cada cambio de campo, reseteando la posición arrastrada de golpe cada
- * vez que el usuario elegía otro texto sin cerrar el drawer primero. Solo
- * vuelve a {0,0} cuando App.jsx desmonta el componente entero (drawerEstilo
- * pasa a null) y lo vuelve a montar desde cero.
+ * REDISEÑO (paso 1 de la migración a layout de 3 zonas fijas, ver la
+ * memoria de producto): dejó de ser un panel FLOTANTE arrastrable anclado
+ * por encima del iframe (el mecanismo de arrastre existía porque, en el
+ * último bloque de una página, tapaba contenido sin espacio para
+ * esquivarlo) — ahora vive SIEMPRE montado en la columna de Propiedades
+ * fija a la derecha del editor (ver App.jsx/ZonaPropiedades), así que ya no
+ * se superpone a nada que necesite esquivarse. Sin botón "Cerrar" tampoco
+ * (decisión explícita: el panel siempre refleja la última selección, un
+ * click en otro bloque simplemente cambia qué muestra).
  */
 const ALINEACIONES = [
   { valor: "left", etiqueta: "Izquierda", icono: "≡" },
@@ -211,22 +208,17 @@ export function DrawerEstilo({
   onCambiarEstilo,
   onCambiarCondicion,
   onAplicarFormato,
-  onCerrar,
   tabInicial = "estilo",
   restUrl,
   nonce,
 }) {
   const [tab, setTab] = useState(tabInicial);
-  const [offsetArrastre, setOffsetArrastre] = useState({ x: 0, y: 0 });
-  const [arrastrando, setArrastrando] = useState(false);
-  const arrastreRef = useRef(null); // { inicioX, inicioY, offsetInicial } mientras el mouse está presionado.
   // schemaBloque: schema de Nivel 2 pedido a GoPress/WP vía
   // GET sofia/v1/catalogo-bloques/{tipoBloque}/schema — null mientras
   // carga o si nivel !== "bloque" (Nivel 1 no lo necesita). Se vuelve a
-  // pedir si tipoBloque cambia (el usuario cierra el drawer y abre el de
-  // OTRO bloque de distinto tipo sin desmontar del todo el árbol, aunque
-  // en la práctica App.jsx sí lo desmonta al cerrar — de todas formas
-  // correcto tenerlo como dependencia).
+  // pedir si tipoBloque cambia (el usuario selecciona otro bloque de
+  // distinto tipo sin que este componente se desmonte — ya no depende de
+  // "abrir/cerrar" el panel, ver el comentario largo arriba).
   const [schemaBloque, setSchemaBloque] = useState(null);
 
   useEffect(() => {
@@ -254,108 +246,45 @@ export function DrawerEstilo({
     onCambiarEstilo({ ...estilo, ...cambios });
   }
 
-  // arrastrando activa un overlay transparente que cubre TODO el viewport,
-  // iframe incluido (ver JSX abajo) — bug real encontrado en la práctica:
-  // el iframe es un documento distinto con su propio contexto de eventos;
-  // en cuanto el cursor entraba al área del iframe DURANTE el arrastre
-  // (mouse rápido, cosa casi inevitable con el drawer ancho), los eventos
-  // "mousemove" dejaban de llegar a este documento por completo, y el
-  // drawer se quedaba pegado en su posición original. El overlay, al vivir
-  // en ESTE documento por encima del iframe, garantiza que el mouse nunca
-  // "se va" a otro contexto mientras dura el drag.
-  function alPresionarCabecera(evento) {
-    // Ignora clicks sobre botones de la propia cabecera (tabs, cerrar) —
-    // solo el área libre de la cabecera arrastra el drawer.
-    if (evento.target.closest("button")) return;
-    evento.preventDefault(); // evita selección de texto accidental mientras se arrastra.
-    arrastreRef.current = { inicioX: evento.clientX, inicioY: evento.clientY, offsetInicial: offsetArrastre };
-    setArrastrando(true);
-    window.addEventListener("mousemove", alMoverMouse);
-    window.addEventListener("mouseup", alSoltarMouse);
-  }
-
-  function alMoverMouse(evento) {
-    if (!arrastreRef.current) return;
-    const { inicioX, inicioY, offsetInicial } = arrastreRef.current;
-    setOffsetArrastre({
-      x: offsetInicial.x + (evento.clientX - inicioX),
-      y: offsetInicial.y + (evento.clientY - inicioY),
-    });
-  }
-
-  function alSoltarMouse() {
-    arrastreRef.current = null;
-    setArrastrando(false);
-    window.removeEventListener("mousemove", alMoverMouse);
-    window.removeEventListener("mouseup", alSoltarMouse);
-  }
-
   return (
-    <>
-      {arrastrando && <div className="sofia-drawer-estilo__overlay-arrastre" />}
-      <div
-        className="sofia-drawer-estilo"
-        style={{ transform: `translate(${offsetArrastre.x}px, ${offsetArrastre.y}px)` }}
-      >
-        <div className="sofia-drawer-estilo__cabecera" onMouseDown={alPresionarCabecera}>
-          <div className="sofia-drawer-estilo__tabs">
+    <div className="sofia-drawer-estilo">
+      <div className="sofia-drawer-estilo__cabecera">
+        <div className="sofia-drawer-estilo__tabs">
+          <button
+            type="button"
+            className={`sofia-drawer-estilo__tab ${tab === "estilo" ? "sofia-drawer-estilo__tab--activo" : ""}`}
+            onClick={() => setTab("estilo")}
+          >
+            Estilo
+          </button>
+          {condicion ? (
             <button
               type="button"
-              className={`sofia-drawer-estilo__tab ${tab === "estilo" ? "sofia-drawer-estilo__tab--activo" : ""}`}
-              onMouseDown={(evento) => evento.stopPropagation()}
-              onClick={() => setTab("estilo")}
+              className={`sofia-drawer-estilo__tab ${tab === "visibilidad" ? "sofia-drawer-estilo__tab--activo" : ""}`}
+              onClick={() => setTab("visibilidad")}
             >
-              Estilo
+              Visibilidad
             </button>
-            {condicion ? (
-              <button
-                type="button"
-                className={`sofia-drawer-estilo__tab ${tab === "visibilidad" ? "sofia-drawer-estilo__tab--activo" : ""}`}
-                onMouseDown={(evento) => evento.stopPropagation()}
-                onClick={() => setTab("visibilidad")}
-              >
-                Visibilidad
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
-                onMouseDown={(evento) => evento.stopPropagation()}
-                title="Visibilidad se edita desde 'Visibilidad del bloque' en el menú contextual (click derecho)"
-              >
-                Visibilidad
-              </button>
-            )}
+          ) : (
             <button
               type="button"
               className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
-              onMouseDown={(evento) => evento.stopPropagation()}
-              title="Próximamente: fuente dinámica (Post, Propiedad, Testimonio)"
+              title="Visibilidad se edita desde 'Visibilidad del bloque' en el menú contextual (click derecho)"
             >
-              Datos <span>próx.</span>
+              Visibilidad
             </button>
-          </div>
+          )}
           <button
             type="button"
-            className="sofia-drawer-estilo__cerrar"
-            onMouseDown={(evento) => evento.stopPropagation()}
-            onClick={onCerrar}
-            title="Cerrar"
+            className="sofia-drawer-estilo__tab sofia-drawer-estilo__tab--proximo"
+            title="Próximamente: fuente dinámica (Post, Propiedad, Testimonio)"
           >
-            ×
+            Datos <span>próx.</span>
           </button>
         </div>
+      </div>
 
         {tab === "estilo" && (
-          // Sin preventDefault en mousedown acá — bug real encontrado en la
-          // práctica: bloqueaba el foco de CUALQUIER control, inputs de
-          // texto/número incluidos (tamaño de fuente, margen, relleno), no
-          // solo los botones tipo swatch para los que se había agregado
-          // originalmente. El blur del campo editable en el iframe ya tiene
-          // su propio setTimeout (ver activarTexto en editor-iframe.js) que
-          // da margen de sobra para que un click en un botón del drawer
-          // llegue antes de leerse el valor final — este preventDefault era
-          // una capa redundante que rompía los inputs nuevos.
           <div className="sofia-drawer-estilo__cuerpo">
             {nivel === "campo" && (
               <>
@@ -453,12 +382,11 @@ export function DrawerEstilo({
           </div>
         )}
 
-        {tab === "visibilidad" && condicion && (
-          <div className="sofia-drawer-estilo__cuerpo">
-            <EditorCondicion reglas={condicion} onCambiar={onCambiarCondicion} />
-          </div>
-        )}
-      </div>
-    </>
+      {tab === "visibilidad" && condicion && (
+        <div className="sofia-drawer-estilo__cuerpo">
+          <EditorCondicion reglas={condicion} onCambiar={onCambiarCondicion} />
+        </div>
+      )}
+    </div>
   );
 }
