@@ -18,44 +18,32 @@ class Sofia_Modo_Editor {
 	}
 
 	/**
-	 * Muuri (CDN, vendor sin build step — mismo criterio que
-	 * SOFIA_LIBRERIAS_JS para las dependencias de los Componentes del
-	 * catálogo). Reemplaza a SortableJS — bug real encontrado en la
-	 * práctica: con bloques de altura MUY dispar (Hero ~37px junto a una
-	 * Franja de 267px+), SortableJS reordenaba erráticamente MIENTRAS el
-	 * drag seguía activo (confirmado con logging real: oldIndex/newIndex
-	 * saltando sin relación clara con el movimiento del mouse, incluso
-	 * lento), sin que swapThreshold/invertSwap/fallbackOnBody lo
-	 * resolvieran. Causa raíz (investigación real): SortableJS reordena
-	 * nodos en el FLUJO NORMAL del documento y lee getBoundingClientRect()
-	 * en vivo mientras hay animación CSS en curso — geometría inestable
-	 * por diseño con alturas dispares. Muuri usa un modelo
-	 * fundamentalmente distinto: calcula posiciones con su propio motor de
-	 * layout (bin-packing tipo Masonry) y las aplica vía transform sobre
-	 * ítems position:absolute — nunca depende del reflow del navegador
-	 * sobre un flujo variable, y su algoritmo de swap compara ÁREA DE
-	 * INTERSECCIÓN real (mecanismos anti-jitter propios: sortInterval,
-	 * minDragDistance, minBounceBackAngle) en vez de comparar bounding
-	 * rects de un documento en movimiento.
+	 * Muuri (drag-and-drop position:absolute) fue ELIMINADO en el paso 3
+	 * del rediseño de layout a 3 zonas fijas (ver la memoria de producto):
+	 * el objetivo de ese paso es que el canvas sea un espejo FIEL del
+	 * sitio público real (flujo normal, sin ningún CSS "solo modo editor"
+	 * para simular posiciones) — mantener Muuri lo contradecía
+	 * directamente. Reordenar bloques (paso 2) e items de listas
+	 * repetibles (este paso) ya no se arrastra sobre el canvas: se hace
+	 * desde el panel de Estructura (ver PanelEstructura.jsx/App.jsx), que
+	 * le pide a este script mover un nodo puntual del DOM real — nunca un
+	 * motor de layout paralelo. El bug histórico de SortableJS que motivó
+	 * adoptar Muuri (reordenamiento errático con bloques de altura muy
+	 * dispar, ver el historial de git) era específico de arrastrar
+	 * DIRECTAMENTE sobre un documento en flujo variable mientras se
+	 * recalculaba geometría en vivo — un mover puntual disparado por click
+	 * en el árbol (sin ningún drag real dentro del iframe) nunca pisa esa
+	 * causa raíz.
 	 */
-	const VERSION_MUURI = '0.9.5';
-
 	public static function encolar_script(): void {
 		if ( ! self::activo() ) {
 			return;
 		}
 		wp_enqueue_media(); // necesario para que wp.media() esté disponible dentro del iframe.
 		wp_enqueue_script(
-			'sofia-muuri',
-			'https://cdn.jsdelivr.net/npm/muuri@' . self::VERSION_MUURI . '/dist/muuri.min.js',
-			array(),
-			self::VERSION_MUURI,
-			true
-		);
-		wp_enqueue_script(
 			'sofia-editor-iframe',
 			get_stylesheet_directory_uri() . '/inc/js/editor-iframe.js',
-			array( 'sofia-muuri' ),
+			array(),
 			wp_get_theme()->get( 'Version' ),
 			true
 		);
@@ -92,258 +80,47 @@ class Sofia_Modo_Editor {
 	}
 
 	/**
-	 * CSS del handle de arrastre (Nivel 2) — inyectado inline en vez de un
-	 * archivo .css propio, mismo criterio que
-	 * imprimir_css_ocultar_admin_bar: es CSS que SOLO debe existir cuando
-	 * el modo editor está activo, nunca en una visita pública normal (ver
-	 * inc/js/editor-iframe.js, activarReordenar(), que inyecta el
-	 * elemento .sofia-handle-arrastre dentro de cada <section>).
+	 * CSS que SOLO debe existir cuando el modo editor está activo, nunca en
+	 * una visita pública normal — inyectado inline en vez de un archivo
+	 * .css propio, mismo criterio que imprimir_css_ocultar_admin_bar.
+	 *
+	 * REDISEÑO (paso 3, ver la memoria de producto): antes de este paso,
+	 * este método imponía TODO un layout paralelo — .sofia-pagina>section/
+	 * [data-sofia-item]/.sofia-container>section pasaban a position:absolute
+	 * (requisito de Muuri), con un margen de 60px reservado para el handle
+	 * de arrastre, anchos recalculados a mano, utility classes de Ancho
+	 * peleando de especificidad contra ese CSS, y centrado que ni siquiera
+	 * llegó a funcionar (quedó documentado como deuda pendiente). Todo eso
+	 * desapareció junto con Muuri: el canvas ahora es FLUJO NORMAL real, el
+	 * mismo layout exacto que vería cualquier visitante del sitio público
+	 * — el objetivo explícito de este paso era justamente esa fidelidad
+	 * 1:1, algo que el modelo de Muuri contradecía de raíz.
 	 */
 	public static function imprimir_css_reordenar(): void {
 		if ( ! self::activo() ) {
 			return;
 		}
-		// Bug real encontrado en la práctica, dos iteraciones:
-		// (1) el handle DENTRO de la sección (top/left sobre el propio
-		//     contenido) tapaba el título.
-		// (2) el intento de sacarlo por fuera del borde (left: -36px) lo
-		//     dejaba fuera del viewport visible: la sección ocupa el ancho
-		//     completo de la pantalla, así que un hijo con left negativo
-		//     queda recortado por el borde real del navegador, invisible
-		//     por completo (a diferencia de un layout con margen lateral
-		//     libre, donde "salirse del borde" todavía cae dentro de la
-		//     ventana).
-		// Fix real: el handle vuelve a vivir DENTRO de la sección (top/
-		// right en la esquina, no top/left donde suele estar el título) y
-		// se mantiene chico + semitransparente por defecto — visible pero
-		// discreto, en vez de invisible hasta hover (que además dependía
-		// del mismo posicionamiento roto).
-		// Colores fijos (no variables CSS): este <style> se inyecta DENTRO
-		// del iframe, en el documento del sitio real — no tiene acceso a
-		// las custom properties del panel padre (ver admin-app/src/style.css,
-		// que sí las define para su propio documento). Mismos valores
-		// hexadecimales exactos del mockup de diseño original ("Editor de
-		// Contenido", Artifact): --gp-panel #1c1a17, --gp-accent #d97a4d,
-		// --gp-panel-border #38342f — así el chrome de edición dentro del
-		// iframe combina con el panel Preact que lo rodea, en vez de un
-		// gris genérico sin relación con la paleta real del producto.
-		// Investigación real confirmó por qué el handle NO puede vivir en
-		// el panel Preact exterior (fuera del iframe): SortableJS, en
-		// escritorio, depende del "dragstart" NATIVO de HTML5 Drag&Drop —
-		// el navegador solo lo dispara a partir de un gesto de mouse real
-		// sobre un elemento draggable=true; un evento sintético
-		// (dispatchEvent) siempre tiene isTrusted:false y el navegador lo
-		// ignora para ese propósito. El handle tiene que seguir siendo del
-		// documento del iframe.
-		//
-		// Para lograr igual la sensación visual de "handle fuera del
-		// contenido" (pedido explícito, mismo patrón de Bricks/Elementor):
-		// SOLO EN MODO EDITOR, .sofia-pagina gana un padding lateral
-		// transparente (MARGEN_HANDLE) — nunca en una visita pública
-		// normal, así que el layout real de la página no cambia para
-		// ningún visitante. El handle se posiciona en left negativo DENTRO
-		// de ese margen recién creado — a diferencia del primer intento
-		// (bug real ya documentado: left negativo sin margen real
-		// disponible queda recortado fuera del viewport), acá el margen SÍ
-		// existe de verdad dentro del propio documento del iframe.
-		//
-		// padding-left 60px (no 44px, el ancho exacto del handle): bug de
-		// UI real encontrado en la práctica — con margen y left-negativo
-		// del MISMO tamaño, el handle quedaba pegado justo al borde
-		// izquierdo del canvas/iframe, sin aire de sobra. El handle sigue
-		// en left:-44px (ver abajo), quedando centrado dentro de estos
-		// 60px con ~16px de aire real a su izquierda.
-		// .sofia-pagina > section pasa a position:absolute (requisito de
-		// Muuri: calcula y aplica sus propias coordenadas x/y vía
-		// transform, nunca depende del flujo normal del documento — ver el
-		// comentario largo sobre por qué se migró de SortableJS en
-		// activarReordenar(), editor-iframe.js). width:100% explícito
-		// porque position:absolute ya no hereda el ancho automático de
-		// bloque en flujo normal.
-		// Bug real encontrado en la práctica, confirmado con
-		// getBoundingClientRect() real en el navegador: Muuri mide el
-		// ancho DISPONIBLE del contenedor grid (.sofia-pagina) para
-		// posicionar sus items, pero ignora por completo cualquier
-		// padding-left declarado ahí (documentación oficial: usar un
-		// WRAPPER aparte para necesidades de layout adicionales, nunca
-		// aplicarlas al elemento que Muuri gestiona directo). Con
-		// padding-left en .sofia-pagina, cada <section> (width:100%)
-		// terminaba calculando su ancho sobre el BORDER-BOX completo
-		// (padding incluido), empezando en x:0 en vez de x:60 — el margen
-		// que debía existir para el handle nunca se materializó de
-		// verdad, dejando el handle en left:-44px REAL (fuera del
-		// viewport, recortado) en vez de dentro de un margen real.
-		// Fix: el margen se mueve a margin-left EN CADA SECTION (un item
-		// individual, no el contenedor grid) — Muuri no interfiere con el
-		// margin de sus propios items, solo con el padding del contenedor
-		// que los agrupa.
+		// Colores fijos (no variables CSS) en todo este bloque: se inyecta
+		// DENTRO del iframe, en el documento del sitio real — no tiene
+		// acceso a las custom properties del panel padre (ver
+		// admin-app/src/style.css, que sí las define para su propio
+		// documento). Mismos valores hexadecimales exactos del mockup de
+		// diseño original ("Editor de Contenido", Artifact): --gp-panel
+		// #1c1a17, --gp-accent #d97a4d — así el chrome de edición dentro
+		// del iframe combina con el panel Preact que lo rodea, en vez de
+		// un gris genérico sin relación con la paleta real del producto.
 		echo '<style>
-			.sofia-pagina {
-				position: relative; overflow: visible;
-			}
-			/* .sofia-pagina > section SIN z-index en el CSS estático — bug
-			   real encontrado en la práctica: un z-index alto en el HANDLE
-			   (hijo) no alcanza, porque cada <section> con position:absolute
-			   crea su PROPIO stacking context implícito — el z-index de un
-			   hijo solo compite DENTRO de ese contexto, nunca "sale" a
-			   competir contra otra sección completa. Lo que decide si la
-			   Franja de beneficios (sección posterior) tapa el handle del
-			   Hero anterior es el z-index de las SECCIONES mismas, que sin
-			   valor explícito quedan empatadas en 0 y gana el orden del DOM
-			   (la posterior se pinta encima). Fix real: JS asigna z-index
-			   INVERSO al orden a cada <section> (ver activarReordenar(),
-			   editor-iframe.js) — la primera sección siempre queda arriba
-			   de todas las siguientes, así su handle (que sobresale del
-			   width:100% del contenido, en la franja izquierda de padding)
-			   nunca quede tapado por ninguna sección posterior.
-			   overflow:visible en <section> sigue siendo necesario para
-			   que el navegador ni siquiera intente recortar ese handle que
-			   sobresale del ancho declarado. */
-			.sofia-pagina > section {
-				position: absolute; margin-left: 60px; width: calc(100% - 60px);
-				box-sizing: border-box; overflow: visible;
-			}
-			/* Utility classes de Ancho/Ancho máximo (Nivel 2, ver
-			   Sofia_Componente::CLASES_UTILITARIAS_BLOQUE) sin efecto visible
-			   dentro del editor — bug real encontrado en la práctica: la regla
-			   de arriba (".sofia-pagina > section", especificidad 0,1,1) le
-			   gana a una utility class sola como ".width-90" (especificidad
-			   0,1,0), así que "width:90%" del CSS de Core Framework nunca
-			   ganaba la cascada. Estas reglas combinan AMBOS selectores
-			   (0,2,1) para ganarle, sin tocar position/margin-left (Muuri
-			   sigue intacto) — mismo ancho final que tendría la visita
-			   pública real, ahora también visible mientras se edita. */
-			.sofia-pagina > section.max-width-10 { max-width: 10rem; }
-			.sofia-pagina > section.max-width-20 { max-width: 20rem; }
-			.sofia-pagina > section.max-width-30 { max-width: 30rem; }
-			.sofia-pagina > section.max-width-40 { max-width: 40rem; }
-			.sofia-pagina > section.max-width-50 { max-width: 50rem; }
-			.sofia-pagina > section.max-width-60 { max-width: 60rem; }
-			.sofia-pagina > section.max-width-70 { max-width: 70rem; }
-			.sofia-pagina > section.max-width-80 { max-width: 80rem; }
-			.sofia-pagina > section.max-width-90 { max-width: 90rem; }
-			.sofia-pagina > section.max-width-100 { max-width: 100rem; }
-			.sofia-pagina > section.max-site-width { max-width: var(--max-screen-width, 1400px); }
-			.sofia-pagina > section.width-10 { width: calc(10% - 60px); }
-			.sofia-pagina > section.width-20 { width: calc(20% - 60px); }
-			.sofia-pagina > section.width-30 { width: calc(30% - 60px); }
-			.sofia-pagina > section.width-40 { width: calc(40% - 60px); }
-			.sofia-pagina > section.width-50 { width: calc(50% - 60px); }
-			.sofia-pagina > section.width-60 { width: calc(60% - 60px); }
-			.sofia-pagina > section.width-70 { width: calc(70% - 60px); }
-			.sofia-pagina > section.width-80 { width: calc(80% - 60px); }
-			.sofia-pagina > section.width-90 { width: calc(90% - 60px); }
-			.sofia-pagina > section.full-width { width: calc(100% - 60px); }
-			.sofia-pagina > section.auto-width { width: auto; }
-			/* Centrado del bloque (ancho reducido, ej. Ancho: 50%) NO se
-			   resuelve acá con left/transform — Muuri posiciona cada
-			   <section> con su PROPIO transform:translate(x,y) inline (ver
-			   gridNivelSuperior en editor-iframe.js), que pisaría cualquier
-			   transform puesto por CSS. Queda pendiente como una fase aparte
-			   (JS: ajustar el X calculado, no CSS) — por ahora el ancho SÍ se
-			   ve reducido correctamente, pero pegado a la izquierda dentro
-			   del editor; en la visita pública real (sin Muuri) si se
-			   quisiera centrar de verdad, sería mismo problema con position
-			   normal — este control tal como está pensado hoy no incluye
-			   alineación, solo tamaño. */
-			.sofia-handle-arrastre {
-				position: absolute; top: 8px; left: -44px; z-index: 1;
-				width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-				background: #1c1a17; border: 1px solid #38342f; color: #ede9e3; border-radius: 6px;
-				cursor: grab; font-size: 14px; user-select: none;
-			}
-			.sofia-handle-arrastre:hover { background: #262320; border-color: #4a453e; }
-			.sofia-handle-arrastre:active { cursor: grabbing; }
-
-			/* [data-sofia-lista]/[data-sofia-item] pasan a position:relative/
-			   absolute — mismo requisito de Muuri que .sofia-pagina/section
-			   arriba, pero SOLO en modo editor (nunca en el CSS de
-			   producción del Componente, que sigue usando su layout real,
-			   ej. display:grid de 3 columnas, para cualquier visitante).
-			   width explícito en el item: position:absolute no hereda el
-			   ancho automático que tenía en flujo normal (grid/flex). */
-			/* width:100% explícito — bug real encontrado en la práctica
-			   (reportado por el usuario con captura: texto envuelto letra
-			   por letra en Franja de beneficios/Testimonios con "Alineación
-			   del contenido" activa). Causa raíz: [data-sofia-lista] es
-			   display:grid (ver .sofia-franja-beneficios__grid/
-			   .sofia-testimonios__grid en style.css) SIN width explícito —
-			   en flujo normal, un grid container mide el 100% de su padre
-			   por default, PERO acá todos sus HIJOS son position:absolute
-			   (ver [data-sofia-item] abajo, requisito de Muuri), así que no
-			   queda contenido en flujo que le dé un tamaño intrínseco al
-			   grid: colapsa al mínimo posible (la suma de sus gaps, ej.
-			   2 gaps de 24px = 48px con 3 columnas — el número exacto que
-			   medía en el bug real). Como los hijos calculan su propio
-			   ancho como % del padre (width:calc(100%/N), ver
-			   [data-sofia-item]), sin este width explícito hay una
-			   dependencia circular: el padre no puede medirse sin sus
-			   hijos, los hijos no pueden medirse sin el padre. */
-			[data-sofia-lista] { position: relative; width: 100%; }
-			/* width vía --sofia-columnas (default 3) — Muuri en modo editor
-			   NUNCA usa CSS Grid/display:grid real (cada item se posiciona a
-			   mano con position:absolute + transform, ver el comentario largo
-			   sobre Muuri en activarReordenar(), editor-iframe.js), así que
-			   el ancho de cada item tiene que calcularse en JS/CSS acá — el
-			   grid-template-columns real de .sofia-franja-beneficios__grid/
-			   .sofia-testimonios__grid (ver style.css) solo aplica en el
-			   sitio PÚBLICO, sin Muuri encima. Bug real encontrado en la
-			   práctica: "Estilo del bloque" → Columnas cambiaba
-			   --sofia-columnas en la <section>, pero acá seguía hardcodeado a
-			   33.333% (3 columnas fijas) — el control no tenía NINGÚN efecto
-			   visible dentro del editor, solo hubiera funcionado en el sitio
-			   público. --sofia-columnas hereda de la <section> (heredable por
-			   ser custom property) hasta [data-sofia-item], sin necesitar que
-			   editor-iframe.js la vuelva a fijar en cada item individual. */
-			[data-sofia-item] {
-				position: absolute; width: calc((100% / var(--sofia-columnas, 3)) - 20px); box-sizing: border-box;
-			}
-
-			/* .sofia-container/.sofia-container > section — mismo requisito
-			   de Muuri que .sofia-pagina/section arriba (Fase 3, "primitivas
-			   de layout": activarReordenarDentroDeContainers() en
-			   editor-iframe.js), aplicado ahora también DENTRO de un
-			   Container: cada hijo de un Container es él mismo una <section>
-			   completa (Hero/CTA/etc., o incluso OTRO Container anidado — ver
-			   class-container.php), que necesita position:absolute para que
-			   Muuri la controle vía transform, exactamente igual que a nivel
-			   superior. position:relative en el propio .sofia-container (no
-			   position:static heredado) es lo que le da a sus hijos absolutos
-			   un ancestro posicionado del que colgar, y overflow:visible para
-			   no recortar el handle de arrastre de ningún hijo, mismo
-			   comentario que ".sofia-pagina > section" arriba. Sin
-			   margin-left/handle propio a nivel de ESTE contenedor (a
-			   diferencia de .sofia-pagina, que reserva 60px para el handle de
-			   nivel superior) — el handle de cada hijo sigue viviendo DENTRO
-			   de su propia <section> (agregarHandleASeccion se aplica igual
-			   acá, ver activarReordenarDentroDeContainers), position:absolute
-			   con left negativo relativo a ESA sección, no al container. */
-			.sofia-container {
-				position: relative; overflow: visible; min-height: 40px;
-			}
-			.sofia-container > section {
-				position: absolute; width: 100%; box-sizing: border-box; overflow: visible;
-			}
-			/* Handle de un ITEM dentro de una lista repetible (ej. un
-			   "Beneficio" de la Franja) — mismo criterio que el handle de
-			   bloque de arriba, pero más chico y posicionado dentro del
-			   propio item. */
-			.sofia-handle-arrastre-item {
-				position: absolute; top: 4px; right: 4px; z-index: 5;
-				width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
-				background: #1c1a17; border: 1px solid #38342f; color: #ede9e3; border-radius: 5px;
-				cursor: grab; font-size: 11px; user-select: none;
-			}
-			.sofia-handle-arrastre-item:hover { background: #262320; border-color: #4a453e; }
-			.sofia-handle-arrastre-item:active { cursor: grabbing; }
-
 			/* Marca visual de "bloque oculto por condición de visibilidad"
 			   (pestaña Visibilidad del drawer) — atributo en la propia
-			   <section> (ver Sofia_Componente::atributos_seccion()), NUNCA un
-			   <div> envolvente que rompería el matching de Muuri. ::after con
-			   el texto del propio atributo (content: attr(...)) evita
-			   duplicar la etiqueta en un data-* Y en un elemento HTML aparte. */
+			   <section> (ver Sofia_Componente::atributos_seccion()). ::after
+			   con el texto del propio atributo (content: attr(...)) evita
+			   duplicar la etiqueta en un data-* Y en un elemento HTML aparte.
+			   position:relative en la propia <section> (no heredado) — en
+			   flujo normal ninguna <section> tiene position propio por
+			   default, así que hace falta declararlo para poder anclar el
+			   ::after en su esquina. */
 			[data-sofia-oculto-condicion] {
+				position: relative;
 				outline: 2px dashed #d97a4d; outline-offset: -2px; opacity: 0.6;
 			}
 			[data-sofia-oculto-condicion]::after {
@@ -363,10 +140,9 @@ class Sofia_Modo_Editor {
 			   (color/tamano_fuente, en el <h3>/<p> editable) y Nivel 2
 			   (color_fondo/color_borde/radius/sombra/offset_x/
 			   espaciado_vertical, en la <section>).
-			   position:relative necesario para posicionar el ::after — un
-			   <h3>/<p> normal no tiene position propio; no interfiere con
-			   Nivel 2 (la <section> ya es position:absolute, esta regla
-			   simplemente no cambia nada ahí).
+			   position:relative necesario para posicionar el ::after — ni
+			   un <h3>/<p> (Nivel 1) ni una <section> (Nivel 2) tienen
+			   position propio por default en flujo normal.
 			   Solo visible en :hover (nunca permanente) — pedido explícito
 			   del usuario, para no ensuciar el canvas en reposo cuando hay
 			   varios campos con token en la misma pantalla. */
@@ -389,12 +165,6 @@ class Sofia_Modo_Editor {
 			[data-sofia-estilo-offset_x]::before,
 			[data-sofia-estilo-espaciado_vertical]::before {
 				content: "CF"; display: none;
-				/* top/right (no left) — en Nivel 2 la <section> ya tiene el
-				   handle de arrastre en la esquina superior IZQUIERDA
-				   (left:-44px, ver .sofia-handle-arrastre); el badge va del
-				   otro lado para no solaparse. En Nivel 1 (h3/p editable) no
-				   hay ningún otro elemento en esa esquina, así que el mismo
-				   lado funciona igual de bien ahí. */
 				position: absolute; top: -8px; right: -8px; z-index: 4;
 				background: #4a3fd9; color: #fff;
 				font-size: 9px; font-weight: 700; letter-spacing: 0.02em;
@@ -421,20 +191,11 @@ class Sofia_Modo_Editor {
 			   naranja de acento queda reservado EXCLUSIVAMENTE para
 			   "agregar bloque completo" — un lenguaje de color consistente:
 			   gris = acción dentro del bloque actual, naranja = acción
-			   sobre la estructura de bloques de la página. */
-			/* Flujo normal (no position:absolute) — bug real encontrado en
-			   la práctica: un primer intento puso este botón DENTRO de
-			   [data-sofia-lista] con position:absolute/top:100%, pero
-			   Muuri fija el height de ESE contenedor basándose
-			   ÚNICAMENTE en sus items — un botón absoluto nunca aporta a
-			   ese cálculo, así que la <section> jamás reservaba espacio
-			   visual real para él (quedaba superpuesto sobre el bloque
-			   siguiente). Fix real: el botón se movió a HERMANO de
-			   [data-sofia-lista] (ver
-			   Sofia_Componente_Franja_Beneficios::render()), fuera del
-			   contenedor que Muuri gestiona — en flujo normal ahí, sí
-			   empuja la altura real de la <section>, que el
-			   ResizeObserver de nivel superior detecta solo. */
+			   sobre la estructura de bloques de la página. Flujo normal
+			   (nunca tuvo relación con Muuri): vive como hermano de
+			   [data-sofia-lista] (ver Sofia_Componente_Franja_Beneficios::
+			   render()), empuja la altura real de la <section> igual que
+			   cualquier otro contenido. */
 			.sofia-boton-agregar-item {
 				display: block; width: 100%; margin-top: 8px;
 				padding: 10px; background: transparent;
@@ -447,56 +208,60 @@ class Sofia_Modo_Editor {
 			/* Línea de inserción ENTRE bloques — mismo patrón del mockup de
 			   diseño original ("Editor de Contenido", Artifact): una raya
 			   fina que solo se pinta al hover, con un botón "+" circular al
-			   centro. Bug real encontrado en la práctica (confirmado con
-			   logging real de SortableJS): vivir como HERMANA de las
-			   <section> dentro de .sofia-pagina contaminaba oldIndex/
-			   newIndex del Sortable de nivel superior — "draggable"
-			   filtra qué es arrastrable, pero NO excluye del conteo de
-			   índices. Fix: la línea vive DENTRO de cada <section>
-			   (position:absolute sobre su borde superior/inferior, ver
-			   activarLineasInsertar()) — .sofia-pagina vuelve a tener SOLO
-			   <section> como hijos directos.
-			   z-index alto + pointer-events:none en el ::before (la raya)
-			   para no interceptar clicks destinados al contenido real;
-			   solo el botón "+" en sí es clickeable. */
+			   centro. Paso 3 (ver la memoria de producto, eliminación de
+			   Muuri): antes vivía DENTRO de cada <section> con
+			   position:absolute, porque ser hermana suelta de .sofia-pagina
+			   contaminaba los índices que leía SortableJS/Muuri — sin ningún
+			   motor de drag leyendo el DOM (leerBloquesDesde en
+			   editor-iframe.js ya filtra explícitamente por
+			   data-sofia-bloque-id/-tipo, ignorando cualquier otro hermano),
+			   esa razón desapareció: la línea vuelve a ser hermana suelta,
+			   en flujo normal, más simple que reposicionarla a mano sobre
+			   cada borde de sección. */
 			.sofia-linea-insertar {
-				position: absolute; left: 0; right: 0; height: 16px; z-index: 6;
+				height: 16px; margin: -8px 0; position: relative; z-index: 6;
 				display: flex; align-items: center; justify-content: center;
-				pointer-events: none;
 			}
-			.sofia-linea-insertar--arriba { top: -8px; }
-			.sofia-linea-insertar--abajo { bottom: -8px; }
 			/* --vacio (Fase 3): línea única dentro de un .sofia-container SIN
-			   hijos — a diferencia de arriba/abajo (una raya angosta pegada
-			   al borde de una <section> real), acá no hay ninguna sección de
-			   la que colgar, así que esta variante ocupa TODO el alto del
-			   .sofia-container vacío (min-height:40px, ver la regla de
-			   .sofia-container más arriba) — el botón "+" queda centrado en
-			   ese espacio en vez de pegado a un borde. Visible SIEMPRE (no
-			   solo al hover, a diferencia de arriba/abajo): un container
-			   vacío no tiene ningún otro contenido/affordance visual, sin
-			   esto sería un rectángulo en blanco sin pista de que ahí se
-			   puede insertar algo. */
+			   hijos — a diferencia de la línea normal (una raya angosta
+			   entre dos bloques), acá no hay ningún bloque del que colgar,
+			   así que esta variante ocupa TODO el alto del .sofia-container
+			   vacío (min-height:40px, ver la regla de .sofia-container más
+			   abajo) — el botón "+" queda centrado en ese espacio en vez de
+			   pegado a un borde. Visible SIEMPRE (no solo al hover, a
+			   diferencia de la línea normal): un container vacío no tiene
+			   ningún otro contenido/affordance visual, sin esto sería un
+			   rectángulo en blanco sin pista de que ahí se puede insertar
+			   algo. */
 			.sofia-linea-insertar--vacio {
-				position: absolute; inset: 0; height: auto;
+				height: auto; margin: 0;
 				border: 1.5px dashed #d97a4d33; border-radius: 4px;
 			}
 			.sofia-linea-insertar--vacio .sofia-linea-insertar__boton { opacity: 1; }
 			.sofia-linea-insertar::before {
 				content: ""; position: absolute; left: 0; right: 0; top: 50%;
 				height: 1px; background: transparent; transition: background 0.15s ease-out;
-				pointer-events: none;
 			}
 			.sofia-linea-insertar:hover::before { background: #d97a4d; }
 			.sofia-linea-insertar__boton {
 				position: relative; width: 22px; height: 22px; border-radius: 50%;
 				border: 1.5px solid #d97a4d; background: #fff; color: #d97a4d;
 				display: flex; align-items: center; justify-content: center;
-				font-size: 15px; line-height: 1; cursor: pointer; pointer-events: auto;
+				font-size: 15px; line-height: 1; cursor: pointer;
 				opacity: 0; transform: scale(0.85); transition: opacity 0.12s, transform 0.12s;
 			}
 			.sofia-linea-insertar:hover .sofia-linea-insertar__boton { opacity: 1; transform: scale(1); }
 			.sofia-linea-insertar__boton:hover { background: #d97a4d; color: #fff; }
+
+			/* .sofia-container (Fase 3, "primitivas de layout"): ya no
+			   necesita position:relative/overflow para alojar hijos
+			   position:absolute (eliminado junto con Muuri) — solo
+			   min-height, para que un container VACÍO siga teniendo un área
+			   clickeable real donde mostrar su línea de inserción "vacio"
+			   de arriba. */
+			.sofia-container {
+				min-height: 40px;
+			}
 		</style>';
 	}
 }

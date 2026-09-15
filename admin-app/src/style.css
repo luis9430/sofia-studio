@@ -164,6 +164,19 @@ body {
   color: var(--gp-accent-text);
 }
 
+/* Nodo de un ITEM de lista repetible (Franja de beneficios/Testimonios/
+   FAQ, ver conNombres en App.jsx, paso 3 del rediseño de layout — Muuri
+   eliminado) — mismo gesto de arrastre que un bloque real, pero no abre
+   ningún drawer al hacer click (no tiene Nivel 2 propio), así que el
+   cursor vuelve a "default" en vez de "pointer" para no prometer una
+   acción que no existe. Texto más tenue: es un nivel más profundo del
+   árbol, visualmente subordinado a su bloque contenedor. */
+.sofia-estructura-nodo--item {
+  cursor: default;
+  color: var(--gp-panel-text-dim);
+  font-size: 12px;
+}
+
 .sofia-estructura-nodo--arrastrando {
   opacity: 0.4;
 }

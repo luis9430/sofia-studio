@@ -66,21 +66,81 @@ function todosLosIds(estructura) {
   return ids;
 }
 
+// extraerListasDe(estructura, contenido): construye {idDeBloque: items[]}
+// leyendo pagina.contenido — paso 3 del rediseño de layout (ver la memoria
+// de producto, eliminación de Muuri). Genérico (no un mapa hardcodeado de
+// "estos 3 tipos tienen lista"): cualquier bloque de la estructura cuya
+// clave "{id}.items" exista en contenido y sea un array se considera con
+// lista — mismo criterio que Sofia_Componente::atributo_editable() usa
+// para nombrar el campo del lado PHP, sin duplicar acá qué Componentes
+// específicos (Franja de beneficios/Testimonios/FAQ hoy) la usan.
+function extraerListasDe(estructura, contenido) {
+  var mapa = {};
+  function recorrer(nodos) {
+    nodos.forEach(function (nodo) {
+      var items = contenido[nodo.id + ".items"];
+      if (Array.isArray(items)) mapa[nodo.id] = items;
+      if (nodo.hijos && nodo.hijos.length) recorrer(nodo.hijos);
+    });
+  }
+  recorrer(estructura);
+  return mapa;
+}
+
+// etiquetaDeItem: primer valor de texto no vacío de un item de lista
+// repetible (ej. {titulo:"Rápido", texto:"..."} → "Rápido") — paso 3 del
+// rediseño de layout (ver la memoria de producto). No hay un mapa
+// tipo→"campo identificador" hardcodeado acá (Franja de beneficios usa
+// "titulo", Testimonios usa "nombre", FAQ usa "pregunta" — ver cada
+// class-*.php): tomar el primer campo con contenido real alcanza para una
+// etiqueta útil sin mantener sincronizado un mapeo por tipo en el
+// frontend cada vez que se agregue un Componente con lista nuevo.
+function etiquetaDeItem(item, indice) {
+  var valores = Object.values(item || {});
+  var primero = valores.find((v) => typeof v === "string" && v.trim());
+  // .replace: un valor puede traer HTML enriquecido (negrita/cursiva, ver
+  // Sofia_Componente::texto_enriquecido) — se muestra como texto plano en
+  // el árbol, nunca interpretado como markup.
+  return primero ? primero.replace(/<[^>]+>/g, "").trim() || `Item ${indice + 1}` : `Item ${indice + 1}`;
+}
+
 // conNombres: copia $estructura agregando `nombre` (legible) a cada nodo, a
-// partir del catálogo real de Componentes (ver catalogoBloques en App) —
-// paso 2 del rediseño de layout, alimenta PanelEstructura.jsx. El árbol que
-// llega del REST/iframe solo trae {id, tipo, hijos?} (mismo shape liviano
-// que ya usa el resto del sistema, ver leerBloquesDesde en
+// partir del catálogo real de Componentes (ver catalogoBloques en App), Y
+// agregando nodos HIJOS sintéticos por cada item de una lista repetible
+// (ver listasPorBloque en App) — paso 2 (nombres) y paso 3 (items de
+// lista) del rediseño de layout, alimenta PanelEstructura.jsx. El árbol
+// que llega del REST/iframe solo trae {id, tipo, hijos?} (mismo shape
+// liviano que ya usa el resto del sistema, ver leerBloquesDesde en
 // editor-iframe.js) — el nombre humano ("Hero", "Franja de beneficios") se
 // resuelve acá en vez de viajar en cada mensaje, mismo criterio que ya usa
 // nombresBloque dentro del iframe (un solo mapeo tipo→nombre, pedido una
 // vez al catálogo real).
-function conNombres(estructura, catalogo) {
-  return estructura.map((bloque) => ({
-    ...bloque,
-    nombre: catalogo.find((c) => c.tipo === bloque.tipo)?.nombre || bloque.tipo,
-    hijos: bloque.hijos && bloque.hijos.length ? conNombres(bloque.hijos, catalogo) : bloque.hijos,
-  }));
+//
+// Los nodos-item sintéticos llevan `esItem:true` + `campoLista`/
+// `indiceItem` (el mismo shape que ya espera "sofia:eliminar-item-lista" /
+// "sofia:mover-item-lista" en editor-iframe.js) — PanelEstructura/App.jsx
+// los distinguen de un bloque real por esa marca, nunca por heurística
+// sobre el id (un id de item es sintético, "{idBloque}.items.{indice}",
+// nunca un ID de instancia real asignado por GoPress).
+function conNombres(estructura, catalogo, listasPorBloque) {
+  return estructura.map((bloque) => {
+    var items = listasPorBloque[bloque.id];
+    var hijosBloques = bloque.hijos && bloque.hijos.length ? conNombres(bloque.hijos, catalogo, listasPorBloque) : bloque.hijos;
+    var hijosItems = items
+      ? items.map((item, indice) => ({
+          id: `${bloque.id}.items.${indice}`,
+          esItem: true,
+          campoLista: `${bloque.id}.items`,
+          indiceItem: indice,
+          nombre: etiquetaDeItem(item, indice),
+        }))
+      : null;
+    return {
+      ...bloque,
+      nombre: catalogo.find((c) => c.tipo === bloque.tipo)?.nombre || bloque.tipo,
+      hijos: hijosItems || hijosBloques,
+    };
+  });
 }
 
 /**
@@ -109,12 +169,10 @@ export function App({ config }) {
   // INMEDIATO, y cada guardado exitoso hacía su propio
   // iframe.reload() — 2+ cambios seguidos en poco tiempo (ej. "+ Regla"
   // más elegir su valor) encadenaban 2 reloads, el segundo interrumpiendo
-  // al primero A MITAD DE CARGA. Muuri se inicializa en DOMContentLoaded;
-  // un reload interrumpido dejaba el DOM a medio construir, y cualquier
-  // evento de Muuri disparado sobre ese estado parcial reportaba una
-  // lista de items corrupta (items "perdidos"). Mismo mecanismo de
-  // debounce que timersPorCampo, pero con su propio timer: solo el
-  // ÚLTIMO cambio de la ráfaga dispara guardado + reload.
+  // al primero A MITAD DE CARGA. Un reload interrumpido dejaba el DOM a
+  // medio construir. Mismo mecanismo de debounce que timersPorCampo, pero
+  // con su propio timer: solo el ÚLTIMO cambio de la ráfaga dispara
+  // guardado + reload.
   const timerCondicion = useRef(null);
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
   // Campo+estilo mostrado en la zona de Propiedades fija (paso 1 del
@@ -142,6 +200,18 @@ export function App({ config }) {
   // escribiendo en GoPress primero y recién después refresca este estado,
   // nunca al revés.
   const [estructura, setEstructura] = useState([]);
+  // listasPorBloque: {idDeBloque: [{...item}, ...]} — paso 3 del rediseño
+  // de layout (ver la memoria de producto, eliminación de Muuri): los
+  // items de una lista repetible (Franja de beneficios/Testimonios/FAQ,
+  // ver Sofia_Componente::atributo_editable "{id}.items") YA NO se
+  // reordenan arrastrando en el canvas (ese handle vivía dentro de Muuri,
+  // eliminado) — se suman como nodos HIJOS de su bloque en el árbol de
+  // Estructura (ver conNombresYListas más abajo), mismo mecanismo de
+  // selección/arrastre que ya reordena bloques completos. Se puebla en
+  // recargarEstructura() leyendo pagina.contenido, la única fuente real
+  // de estos arrays (nunca vienen en pagina.estructura, que solo trae
+  // {id,tipo,hijos} de BLOQUES).
+  const [listasPorBloque, setListasPorBloque] = useState({});
   const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
   // Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
   // (paleta/tipografía), sin relación con ningún campo/bloque seleccionado
@@ -203,7 +273,14 @@ export function App({ config }) {
       const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
-      setEstructura(pagina.estructura || []);
+      const estructuraNueva = pagina.estructura || [];
+      setEstructura(estructuraNueva);
+      // listasPorBloque (paso 3, ver el comentario largo junto a su
+      // useState): a diferencia de "estructura" (que ya viaja completo en
+      // "sofia:estructura-reordenada"), los items de una lista repetible
+      // NUNCA vienen en ese mensaje — solo existen en pagina.contenido, así
+      // que cada refresco de estructura también recalcula este mapa.
+      setListasPorBloque(extraerListasDe(estructuraNueva, pagina.contenido || {}));
     } catch {
       // Silencioso: un fallo acá solo deja el árbol del panel desactualizado
       // un momento, no bloquea ninguna otra operación del editor — el
@@ -245,6 +322,19 @@ export function App({ config }) {
 
       if (datos.tipo === "sofia:campo-editado") {
         programarGuardado(datos.campo, datos.valor);
+        // Actualiza el árbol de Estructura EN VIVO cuando el campo
+        // editado es la lista completa de un bloque repetible (ver
+        // notificarListaActualizada en editor-iframe.js, que manda el
+        // array entero tras cualquier agregar/eliminar/mover/editar
+        // texto de un item) — sin esto, el árbol quedaría desactualizado
+        // hasta el próximo recargarEstructura() disparado por otra
+        // operación (agregar/eliminar/mover un BLOQUE), que puede tardar
+        // en llegar o no llegar nunca en una sesión que solo edita texto
+        // de items.
+        if (datos.campo.endsWith(".items") && Array.isArray(datos.valor)) {
+          const idBloque = datos.campo.slice(0, -".items".length);
+          setListasPorBloque((actual) => ({ ...actual, [idBloque]: datos.valor }));
+        }
         return;
       }
       if (datos.tipo === "sofia:campo-clickeado") {
@@ -476,16 +566,29 @@ export function App({ config }) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:resaltar-bloque-por-id", id: nodo.id }, "*");
   }
 
-  // Reordenar desde el panel de Estructura: el árbol vive FUERA del
-  // iframe, así que no puede mover el nodo real por su cuenta — le pide al
-  // iframe que lo haga (ver alMoverBloque en editor-iframe.js, que
-  // resuelve la instancia Muuri dueña del bloque y llama grid.move()) y
-  // ese mensaje ya responde con "sofia:estructura-reordenada" para
-  // refrescar tanto el estado local (setEstructura) como GoPress
-  // (guardarEstructura) — mismo flujo que ya dispara un drag real sobre el
-  // canvas, el árbol solo cambia CÓMO se originó el movimiento.
+  // Reordenar un BLOQUE desde el panel de Estructura: el árbol vive FUERA
+  // del iframe, así que no puede mover el nodo real por su cuenta — le
+  // pide al iframe que lo haga (ver alMoverBloque en editor-iframe.js,
+  // mover puntual en flujo normal desde el paso 3) y ese mensaje ya
+  // responde con "sofia:estructura-reordenada" para refrescar tanto el
+  // estado local (setEstructura) como GoPress (guardarEstructura).
   function moverBloqueDesdeEstructura(id, posicion) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:mover-bloque", id, posicion }, "*");
+  }
+
+  // Reordenar un ITEM de lista repetible desde el panel de Estructura
+  // (paso 3, ver la memoria de producto — reemplaza el drag directo sobre
+  // el canvas que usaba el handle .sofia-handle-arrastre-item, eliminado
+  // junto con Muuri): mismo patrón que moverBloqueDesdeEstructura, pero
+  // alMoverItemDeLista en editor-iframe.js responde con
+  // "sofia:campo-editado" (mismo mensaje que cualquier edición de la
+  // lista, ver notificarListaActualizada), que el handler de arriba ya
+  // sabe traducir a un refresco de listasPorBloque.
+  function moverItemDesdeEstructura(campoLista, indiceItem, posicion) {
+    iframeRef.current?.contentWindow.postMessage(
+      { tipo: "sofia:mover-item-lista", campoLista, indiceItem, posicion },
+      "*"
+    );
   }
 
   // El iframe aplica el estilo al elemento/sección real Y notifica el
@@ -635,7 +738,7 @@ export function App({ config }) {
   // perdía scroll/estado por un cambio que solo agrega UNA sección. Ahora
   // pide el HTML de SOLO ese bloque (GET .../bloque/{id}, ver
   // Sofia_REST_Editor::obtener_html_de_bloque()) y lo manda al iframe para
-  // insertarlo vía Muuri.add() (ver alInsertarBloqueHTML en
+  // insertarlo en el DOM real (ver alInsertarBloqueHTML en
   // editor-iframe.js) — sigue siendo PHP la única fuente de HTML real,
   // cambia solo CUÁNDO se pide: un fragmento puntual, no la página entera.
   //
@@ -798,14 +901,22 @@ export function App({ config }) {
             (ver la memoria de producto): columna SIEMPRE montada a la
             izquierda del canvas, hermana de .sofia-sitio-frame, mismo
             criterio que .sofia-zona-propiedades a la derecha (paso 1).
-            conNombres() resuelve el nombre humano de cada nodo recién acá,
-            en el render — `estructura` en estado sigue guardando solo
-            {id,tipo,hijos}, el shape liviano que ya viaja en cada mensaje. */}
+            conNombres() resuelve el nombre humano de cada nodo Y agrega
+            los nodos-item de listas repetibles (paso 3, Muuri eliminado)
+            recién acá, en el render — `estructura`/`listasPorBloque` en
+            estado siguen guardando solo el shape liviano que ya viaja en
+            cada mensaje. onSeleccionar/onMover despachan según
+            nodo.esItem: un bloque real sigue el camino ya construido en
+            el paso 2, un item de lista usa su propio mensaje. */}
         <PanelEstructura
-          estructura={conNombres(estructura, catalogoBloques)}
+          estructura={conNombres(estructura, catalogoBloques, listasPorBloque)}
           seleccionado={drawerEstilo?.nivel === "bloque" ? drawerEstilo.campo : null}
-          onSeleccionar={seleccionarDesdeEstructura}
-          onMover={moverBloqueDesdeEstructura}
+          onSeleccionar={(nodo) => (nodo.esItem ? undefined : seleccionarDesdeEstructura(nodo))}
+          onMover={(id, posicion, nodo) =>
+            nodo?.esItem
+              ? moverItemDesdeEstructura(nodo.campoLista, nodo.indiceItem, posicion)
+              : moverBloqueDesdeEstructura(id, posicion)
+          }
         />
         <div className="sofia-sitio-frame">
           <div className="sofia-sitio-chrome">

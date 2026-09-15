@@ -24,23 +24,6 @@
 
 	var elementoConSeleccion = null;
 
-	// dragStartPredicate compartido por las 2 instancias de Muuri (nivel
-	// superior y listas internas) — bug real encontrado en la práctica:
-	// Muuri no distingue el botón del mouse en su dragHandle, así que un
-	// CLICK DERECHO sobre o cerca de un handle (para abrir el menú
-	// contextual, ver alHacerClickDerecho) podía interpretarse como el
-	// inicio de un drag. Ese "drag" fantasma disparaba dragEnd con el DOM
-	// a medio camino, y notificarListaActualizada() guardaba una lista de
-	// items CORROMPIDA (items perdidos) — confirmado en la práctica: el
-	// bug solo ocurría al hacer click derecho encima o cerca del contenido
-	// de un item. e.button === 2 es el estándar MouseEvent para el botón
-	// derecho; para cualquier otro botón, cae en el predicado default de
-	// Muuri (mismo comportamiento de siempre).
-	function noArrastrarConBotonDerecho(item, evento) {
-		if (evento.button === 2) return false;
-		return Muuri.ItemDrag.defaultStartPredicate(item, evento);
-	}
-
 	function notificarCambio(campo, valor) {
 		window.parent.postMessage({ tipo: "sofia:campo-editado", campo: campo, valor: valor }, "*");
 	}
@@ -367,60 +350,23 @@
 			}
 		}
 
-		// offset_x (Desplazamiento horizontal): a diferencia de las
-		// propiedades de PROPIEDADES_TOKEN_BLOQUE, nunca se escribe en
-		// seccion.style.transform acá — Muuri es quien controla ese
-		// atributo (su propio transform:translate(x,y) de posición, ver
-		// layoutNivelSuperiorConAlineacion). Acá se resuelve el valor
-		// (fijo o token) a PÍXELES reales aplicándolo temporalmente a un
-		// elemento invisible y leyendo getComputedStyle, y se guarda ese
-		// número en data-sofia-offset-x-px — que layoutNivelSuperiorConAlineacion
-		// lee y suma en el próximo layout() de abajo.
-		//
-		// data-sofia-estilo-offset_x guarda el valor CRUDO completo
-		// (token O fijo, cualquiera) — a diferencia de color/color_fondo
-		// (donde el crudo solo hace falta para un TOKEN, porque un color
-		// fijo se puede releer tal cual de el.style.color), acá no hay
-		// ningún "el.style.transform" del que leer de vuelta el string
-		// original (Muuri lo pisa) — sin este data-attribute, reabrir el
-		// drawer perdería el valor guardado incluso para un offset fijo.
+		// offset_x (Desplazamiento horizontal): en flujo normal (paso 3 del
+		// rediseño de layout, ver la memoria de producto — Muuri
+		// eliminado) se aplica directo como transform:translateX(...),
+		// mismo patrón que cualquier otra propiedad de
+		// PROPIEDADES_TOKEN_BLOQUE — antes necesitaba un mecanismo aparte
+		// (resolver a píxeles y congelar en un data-attribute) porque
+		// Muuri fijaba su PROPIO transform:translate(x,y) en cada layout,
+		// pisando cualquier transform que este método hubiera puesto acá.
+		// Sin Muuri, ya no hay nadie más escribiendo en seccion.style.transform.
+		seccion.style.transform = estilo.offset_x ? "translateX(" + resolverValorConToken(estilo.offset_x) + ")" : "";
 		if (estilo.offset_x) {
 			seccion.setAttribute("data-sofia-estilo-offset_x", estilo.offset_x);
-
-			var medidor = document.createElement("div");
-			medidor.style.position = "absolute";
-			medidor.style.visibility = "hidden";
-			medidor.style.transform = "translateX(" + resolverValorConToken(estilo.offset_x) + ")";
-			document.body.appendChild(medidor);
-			var tx = 0;
-			var transformResuelto = window.getComputedStyle(medidor).transform;
-			var match = transformResuelto && transformResuelto.match(/matrix\(([^)]+)\)/);
-			if (match) {
-				var valores = match[1].split(",").map(function (v) {
-					return parseFloat(v.trim());
-				});
-				tx = valores.length >= 5 ? valores[4] : 0;
-			}
-			document.body.removeChild(medidor);
-			if (tx) {
-				seccion.setAttribute("data-sofia-offset-x-px", String(tx));
-			} else {
-				seccion.removeAttribute("data-sofia-offset-x-px");
-			}
 		} else {
 			seccion.removeAttribute("data-sofia-estilo-offset_x");
-			seccion.removeAttribute("data-sofia-offset-x-px");
 		}
 
 		notificarCambio(id + "._estilo_bloque", estilo);
-
-		// Cambiar columnas/padding altera la altura real de la <section> —
-		// mismo motivo que en alAgregarItemALista()/activarLineasInsertar():
-		// el grid de nivel superior necesita refrescar sus dimensiones
-		// cacheadas para no superponer el bloque siguiente.
-		if (gridNivelSuperior) {
-			gridNivelSuperior.refreshItems().layout();
-		}
 	}
 
 	function alRecibirMensajeDelPadre(evento) {
@@ -447,6 +393,10 @@
 		}
 		if (datos.tipo === "sofia:eliminar-item-lista") {
 			alEliminarItemDeLista(datos.campoLista, datos.indiceItem);
+			return;
+		}
+		if (datos.tipo === "sofia:mover-item-lista") {
+			alMoverItemDeLista(datos.campoLista, datos.indiceItem, datos.posicion);
 			return;
 		}
 		if (datos.tipo === "sofia:seleccionar-contenedor-padre") {
@@ -600,8 +550,7 @@
 	// encuentra la <section> más cercana, nunca la del padre), así que
 	// "Eliminar bloque" sobre el Container completo (con todo lo de
 	// adentro) era inalcanzable desde la UI aunque el mecanismo de borrado
-	// en sí ya lo soportara (ver alEliminarBloque, limpieza recursiva de
-	// instanciasContainers).
+	// en sí ya lo soportara (ver alEliminarBloque).
 	function mandarMenuContextualDe(seccion, x, y, itemInfo) {
 		// contenedorGridDe (Fase 3) — el índice y el containerId ahora son
 		// relativos al grid REAL que contiene a esta sección (nivel
@@ -692,10 +641,10 @@
 	// justo cuando el usuario quería editar el TEXTO, no el bloque
 	// completo. Mismo criterio para un item de lista repetible
 	// (data-sofia-item) — ese click tiene su propio significado (foco en
-	// el item, no en el bloque completo). Y para el propio handle de
-	// arrastre/líneas de inserción, que ya manejan su click.
+	// el item, no en el bloque completo). Y para las propias líneas de
+	// inserción, que ya manejan su click.
 	function alHacerClickIzquierdo(evento) {
-		if (evento.target.closest("[data-sofia-campo], [data-sofia-item], .sofia-handle-arrastre, .sofia-linea-insertar")) {
+		if (evento.target.closest("[data-sofia-campo], [data-sofia-item], .sofia-linea-insertar")) {
 			return;
 		}
 		var seccion = evento.target.closest ? evento.target.closest("section") : null;
@@ -732,32 +681,68 @@
 	// Franja) — distinto de alEliminarBloque: acá el bloque entero sigue
 	// existiendo, solo se quita un item de su lista. Reusa
 	// notificarListaActualizada() para reportar el array resultante, mismo
-	// mecanismo que un reordenamiento.
+	// mecanismo que un reordenamiento. Flujo normal (paso 3, Muuri
+	// eliminado): quitar el elemento del DOM alcanza, sin ningún estado de
+	// grid paralelo que sincronizar.
 	function alEliminarItemDeLista(campoLista, indiceItem) {
 		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
 		var item = contenedorLista ? contenedorLista.querySelector(':scope > [data-sofia-item="' + indiceItem + '"]') : null;
 		if (!item) return;
 
-		// grid.remove() de Muuri (no item.remove() a mano) — necesario
-		// para que el estado interno del grid (posiciones, layout) se
-		// actualice correctamente; el DOM real se limpia solo con
-		// removeElements:true.
-		var instancia = instanciasListas.get(contenedorLista);
-		if (instancia) {
-			var instanciaItem = instancia.getItems([item]);
-			instancia.remove(instanciaItem, { removeElements: true });
-		} else {
-			item.remove();
-		}
+		item.remove();
 		reindexarItemsDeLista(contenedorLista);
 		notificarListaActualizada(contenedorLista);
+	}
 
-		// Mismo motivo que en alAgregarItemALista(): eliminar un item
-		// cambia la altura de la <section> contenedora — el grid de nivel
-		// superior necesita refrescar sus dimensiones cacheadas.
-		if (gridNivelSuperior) {
-			gridNivelSuperior.refreshItems().layout();
-		}
+	// moverNodoAPosicion(contenedor, selector, nodo, posicion): mueve $nodo
+	// (ya hijo DIRECTO de $contenedor, matcheado por $selector — mismo
+	// criterio de "solo los hijos que de verdad cuentan" que
+	// leerBloquesDesde/reindexarItemsDeLista, ignorando hermanos ajenos
+	// como .sofia-linea-insertar) para que termine exactamente en el
+	// índice $posicion, con la MISMA semántica que Array.prototype.splice
+	// (sacar de origen, insertar en destino) — reusado por alMoverBloque y
+	// alMoverItemDeLista, los dos casos donde el paso 3 del rediseño de
+	// layout (Muuri eliminado, ver la memoria de producto) reemplaza un
+	// drag real por un mensaje puntual "mover a esta posición".
+	//
+	// insertBefore(nodo, referencia) por sí solo NO alcanza con la
+	// referencia tomada del array actual sin más: como el propio nodo se
+	// saca de su posición vieja al insertarlo, todo lo que quedaba
+	// DESPUÉS de él se corre un lugar hacia atrás — insertar "antes de
+	// items[posicion]" deja el nodo en posicion-1, no en posicion, cuando
+	// se mueve hacia ADELANTE (origen < destino). Bug real detectado con
+	// un smoke test antes de integrar esto: mover el primer item a
+	// "posición 2" en [A,B,C,D] daba [B,A,C,D] (A en índice 1) en vez de
+	// [B,C,A,D] (A en índice 2, el resultado correcto). Fix: cuando se
+	// mueve hacia adelante, la referencia es el elemento que debe quedar
+	// INMEDIATAMENTE DESPUÉS del destino final (items[posicion+1]), no el
+	// que hoy ocupa esa posición.
+	function moverNodoAPosicion(contenedor, selector, nodo, posicion) {
+		var hermanos = Array.prototype.slice.call(contenedor.querySelectorAll(":scope > " + selector));
+		var indiceActual = hermanos.indexOf(nodo);
+		if (indiceActual === posicion) return; // ya está en esa posición, nada que hacer.
+
+		var referencia = indiceActual < posicion ? hermanos[posicion + 1] || null : hermanos[posicion] || null;
+		contenedor.insertBefore(nodo, referencia);
+	}
+
+	// alMoverItemDeLista (paso 3 del rediseño de layout, ver la memoria de
+	// producto): reordena UN item de una lista repetible a $posicion —
+	// mismo mecanismo que alMoverBloque, pero para un [data-sofia-item] en
+	// vez de una <section> de nivel superior. El panel de Estructura
+	// (PanelEstructura.jsx) suma los items de cada lista repetible como
+	// nodos hijos de su bloque contenedor, mismo árbol que ya reordena
+	// bloques — reemplaza el drag directo sobre el canvas que antes movía
+	// estos items (con su propio handle .sofia-handle-arrastre-item,
+	// eliminado junto con Muuri).
+	function alMoverItemDeLista(campoLista, indiceItem, posicion) {
+		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
+		var item = contenedorLista ? contenedorLista.querySelector(':scope > [data-sofia-item="' + indiceItem + '"]') : null;
+		if (!item || !contenedorLista) return;
+
+		moverNodoAPosicion(contenedorLista, "[data-sofia-item]", item, posicion);
+		reindexarItemsDeLista(contenedorLista);
+		notificarListaActualizada(contenedorLista);
 	}
 
 	// Agrega un item nuevo al final de una lista repetible — clona el
@@ -777,7 +762,9 @@
 	// Requiere que la lista tenga AL MENOS un item para clonar; una lista
 	// vacía no puede agregar por este mecanismo (caso borde no soportado
 	// hoy: recargar el iframe tras eliminar el último item, si hiciera
-	// falta, sería la vía de escape).
+	// falta, sería la vía de escape). Flujo normal (paso 3, Muuri
+	// eliminado): insertar en el DOM ya alcanza, sin ningún grid paralelo
+	// al que avisarle del elemento nuevo.
 	function alAgregarItemALista(campoLista) {
 		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
 		var ultimoItem = contenedorLista ? contenedorLista.querySelector(":scope > [data-sofia-item]:last-of-type") : null;
@@ -786,26 +773,9 @@
 		var itemNuevo = ultimoItem.cloneNode(true);
 		ultimoItem.after(itemNuevo);
 
-		// grid.add() de Muuri (no solo insertar en el DOM) — necesario
-		// para que el grid reconozca el nuevo elemento como item propio y
-		// lo incluya en su layout/estado interno; sin esto, el elemento
-		// existiría en el DOM pero Muuri lo ignoraría por completo.
-		var instancia = instanciasListas.get(contenedorLista);
-		if (instancia) {
-			instancia.add(itemNuevo);
-		}
-
 		reindexarItemsDeLista(contenedorLista);
 		activarCamposEditables(itemNuevo);
 		notificarListaActualizada(contenedorLista);
-
-		// Agregar un item cambia la ALTURA de la <section> que lo contiene
-		// (Franja de beneficios) — el grid de NIVEL SUPERIOR (que posiciona
-		// esa sección respecto a las demás) necesita refrescar sus
-		// dimensiones cacheadas, mismo bug/fix que en activarLineasInsertar().
-		if (gridNivelSuperior) {
-			gridNivelSuperior.refreshItems().layout();
-		}
 	}
 
 	// Inserta un bloque NUEVO recibido como HTML ya renderizado por PHP
@@ -830,11 +800,9 @@
 	// contrato que agrega App.jsx al mensaje "sofia:insertar-bloque-html"
 	// (ver agregarBloque() ahí). Cuando hay containerId, la sección nueva
 	// se inserta DENTRO del <div class="sofia-container"> de esa sección
-	// (nunca directo en .sofia-pagina) y se registra contra la instancia
-	// Muuri de ESE container (ver activarReordenarDentroDeContainers),
-	// nunca contra gridNivelSuperior — insertar un ítem en el grid
-	// equivocado dejaría a Muuri con un estado interno inconsistente con
-	// el DOM real.
+	// (nunca directo en .sofia-pagina). Flujo normal (paso 3, Muuri
+	// eliminado): insertar en el DOM en la posición correcta ya alcanza,
+	// sin ningún grid paralelo al que registrar el elemento nuevo.
 	function alInsertarBloqueHTML(html, posicion, containerId) {
 		var contenedor = containerId
 			? contenedorDeHijos(document.querySelector('[data-sofia-bloque-id="' + containerId + '"]'))
@@ -850,78 +818,8 @@
 		var referencia = secciones[posicion] || null; // null → insertBefore(nodo, null) inserta al final, mismo comportamiento que "no hay siguiente".
 		contenedor.insertBefore(seccionNueva, referencia);
 
-		agregarHandleASeccion(seccionNueva);
 		activarCamposEditables(seccionNueva);
-
-		if (containerId) {
-			// Dentro de un container: el grid dueño de este espacio es la
-			// instancia de activarReordenarDentroDeContainers() para ESE
-			// .sofia-container puntual, no gridNivelSuperior — ver el
-			// comentario largo ahí sobre por qué cada container tiene su
-			// propia instancia Muuri independiente.
-			var instancia = instanciasContainers.get(contenedor);
-			if (instancia) {
-				instancia.add(seccionNueva, { index: posicion });
-			}
-		} else {
-			// Sin esto, la sección nueva nunca queda observada — ver el
-			// comentario largo junto a la declaración de
-			// observerAlturaSecciones (arriba, cerca de gridNivelSuperior).
-			// Solo aplica a nivel superior: observerAlturaSecciones está
-			// atado 1:1 a gridNivelSuperior, un ítem dentro de un container
-			// no necesita este mecanismo porque ese container (si está a
-			// su vez a nivel superior) YA está observado como sección
-			// propia, y su altura real (incluyendo hijos) es la que
-			// gridNivelSuperior necesita, no la de cada hijo individual.
-			if (observerAlturaSecciones) {
-				observerAlturaSecciones.observe(seccionNueva);
-			}
-
-			if (gridNivelSuperior) {
-				congelarOffsetXDe(seccionNueva); // ANTES de add() — ver el comentario largo en congelarOffsetXDe().
-				// add() con el índice real: Muuri necesita saber DÓNDE en su
-				// propio orden interno va el ítem nuevo, no solo agregarlo al
-				// final — sin esto, el layout visual coincidiría con el DOM
-				// pero el orden que reporta leerBloquesDeNivelSuperior() (que
-				// lee el DOM, no Muuri) quedaría bien igual; se pasa el índice
-				// de todos modos por claridad y por si Muuri lo necesita para
-				// animar la inserción en la posición correcta.
-				gridNivelSuperior.add(seccionNueva, { index: posicion });
-			}
-		}
-
-		// La Franja de beneficios/Testimonios/FAQ tienen su propia lista
-		// interna — activarReordenarListas() ya sabe ignorar contenedores
-		// que ya tienen instancia (instanciasListas.has), así que llamarlo
-		// de nuevo sobre TODO el documento es seguro y más simple que
-		// filtrar manualmente solo la sección nueva. Mismo criterio para
-		// activarReordenarDentroDeContainers() — si la sección nueva ES un
-		// Container (vacío, recién insertado), necesita su propia
-		// instancia Muuri para poder recibir hijos después; si no es
-		// container, no encuentra ningún ".sofia-container" nuevo y no
-		// hace nada.
-		activarReordenarListas();
-		activarReordenarDentroDeContainers();
-
-		actualizarZIndexSecciones(contenedor);
 		activarLineasInsertar();
-		if (gridNivelSuperior) {
-			gridNivelSuperior.refreshItems().layout();
-		}
-	}
-
-	// Reemplaza una <section> EXISTENTE por su HTML actualizado (ver
-	// Sofia_REST_Editor::obtener_html_de_bloque(), pedido desde
-	// cambiarCondicionDrawer() en App.jsx al guardar Visibilidad) —
-	// distinto de alInsertarBloqueHTML: acá el bloque YA estaba en la
-	// página, solo cambió su marca de "oculto por condición"
-	// instanciaGridDe(grid): mismo patrón "¿nivel superior o dentro de un
-	// container?" repetido en varios lugares (alReemplazarBloqueHTML,
-	// alEliminarBloque, alMoverBloque) — resuelve la instancia Muuri real a
-	// partir del resultado de contenedorGridDe(), sin duplicar el
-	// condicional en cada función.
-	function instanciaGridDe(grid) {
-		return grid.containerId ? instanciasContainers.get(grid.contenedor) : gridNivelSuperior;
 	}
 
 	// alMoverBloque (paso 2 del rediseño de layout a 3 zonas fijas, ver la
@@ -929,23 +827,18 @@
 	// del mouse — el panel de estructura/árbol de bloques (App.jsx) manda
 	// este mensaje cuando el usuario arrastra un nodo del árbol, ya que ese
 	// árbol vive FUERA del iframe y no tiene acceso al mouse real dentro de
-	// él. Mismo alcance que el drag de Muuri en el canvas (decisión
-	// explícita, Fase 3): solo reordena DENTRO del mismo padre — el árbol
-	// nunca manda un containerId destino distinto de donde el bloque ya
-	// está, así que grid.move() (misma instancia origen y destino) alcanza,
+	// él. Mismo alcance decidido en su momento para el drag de Muuri
+	// (paso 3 lo eliminó, pero la restricción de diseño sigue vigente):
+	// solo reordena DENTRO del mismo padre — el árbol nunca manda un
+	// containerId destino distinto de donde el bloque ya está, así que
+	// moverNodoAPosicion() (mismo contenedor de origen y destino) alcanza,
 	// sin necesitar remove+insertar-HTML como si fuera un bloque nuevo.
-	// grid.move() con action:"move" (no "swap"): desplaza el resto de los
-	// items, mismo comportamiento que un drag real de Muuri.
 	function alMoverBloque(id, posicion) {
 		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
 		if (!seccion) return;
 
 		var grid = contenedorGridDe(seccion);
-		var instanciaGrid = instanciaGridDe(grid);
-		if (!instanciaGrid) return;
-
-		instanciaGrid.move(seccion, posicion, { action: "move" });
-		actualizarZIndexSecciones(grid.contenedor);
+		moverNodoAPosicion(grid.contenedor, "section", seccion, posicion);
 		activarLineasInsertar();
 		window.parent.postMessage(
 			{
@@ -956,36 +849,35 @@
 		);
 	}
 
+	// Reemplaza una <section> EXISTENTE por su HTML actualizado (ver
+	// Sofia_REST_Editor::obtener_html_de_bloque(), pedido desde
+	// cambiarCondicionDrawer() en App.jsx al guardar Visibilidad) —
+	// distinto de alInsertarBloqueHTML: acá el bloque YA estaba en la
+	// página, solo cambió su marca de "oculto por condición"
 	// (data-sofia-oculto-condicion, ver Sofia_Componente::atributos_seccion()).
 	// Mismo motivo de UX que agregar/eliminar: evita recargar la página
 	// ENTERA del iframe por actualizar UNA sección.
 	//
-	// Quita la sección vieja de Muuri PRIMERO (con removeElements:true,
-	// que también la borra del DOM) y recién ahí inserta la nueva en el
-	// MISMO índice — reusa alInsertarBloqueHTML en vez de duplicar la
-	// lógica de "parsear + insertar + activar campos + agregar a Muuri".
-	// Usa contenedorGridDe() (mismo criterio que
+	// Quita la sección vieja del DOM PRIMERO y recién ahí inserta la nueva
+	// en el MISMO índice — reusa alInsertarBloqueHTML en vez de duplicar
+	// la lógica de "parsear + insertar + activar campos". Usa
+	// contenedorGridDe() (mismo criterio que
 	// alEliminarBloque/alHacerClickDerecho/alMoverMouse) para resolver el
-	// grid/índice/containerId REALES del bloque — bug real encontrado en
-	// revisión de código: la versión original de Fase 3 asumía SIEMPRE
-	// nivel superior acá, así que cambiar la condición de Visibilidad
-	// (único caller, ver cambiarCondicionDrawer en App.jsx) de un bloque
-	// DENTRO de un container no hacía nada (indice quedaba en -1, return
-	// temprano silencioso, sin ningún error visible para el usuario).
+	// contenedor/índice/containerId REALES del bloque — bug real
+	// encontrado en revisión de código: la versión original de Fase 3
+	// asumía SIEMPRE nivel superior acá, así que cambiar la condición de
+	// Visibilidad (único caller, ver cambiarCondicionDrawer en App.jsx) de
+	// un bloque DENTRO de un container no hacía nada (indice quedaba en
+	// -1, return temprano silencioso, sin ningún error visible para el
+	// usuario).
 	function alReemplazarBloqueHTML(id, html) {
 		var seccionVieja = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
 		if (!seccionVieja) return;
 
 		var grid = contenedorGridDe(seccionVieja);
 		if (grid.indice < 0) return;
-		var instanciaGrid = instanciaGridDe(grid);
-		if (!instanciaGrid) return;
 
-		var itemViejo = instanciaGrid.getItems(seccionVieja);
-		if (itemViejo.length) {
-			instanciaGrid.remove(itemViejo, { removeElements: true });
-		}
-
+		seccionVieja.remove();
 		alInsertarBloqueHTML(html, grid.indice, grid.containerId);
 	}
 
@@ -1029,54 +921,14 @@
 		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
 		if (!seccion) return;
 
-		// contenedorGridDe decide si esto es un bloque de nivel superior
-		// (gridNivelSuperior) o un hijo de un container puntual (su propia
-		// instancia en instanciasContainers) — remove() tiene que pedirse
-		// SIEMPRE a la instancia Muuri DUEÑA real del ítem, nunca a
-		// gridNivelSuperior a secas: pedirle a un grid que remueva un ítem
-		// que no es suyo deja tanto al DOM como al estado interno de Muuri
-		// inconsistentes (getItems() de un grid ajeno no encuentra nada,
-		// pero tampoco avisa del error).
-		var grid = contenedorGridDe(seccion);
-		var instanciaGrid = instanciaGridDe(grid);
-		if (!instanciaGrid) return;
-
-		// remove() de Muuri toma INSTANCIAS de Item (getItems(seccion)), no
-		// el elemento DOM crudo — usar seccion.remove() a mano dejaría al
-		// grid con una referencia interna a un item ya destruido, rompiendo
-		// su estado. removeElements:true además borra el <section> del DOM
-		// por nosotros. getItems(seccion) (el elemento, no un índice) —
-		// más directo que recalcular el índice que ya usamos para
-		// encontrar el grid dueño.
-		var items = instanciaGrid.getItems(seccion);
-		if (!items.length) return;
-		instanciaGrid.remove(items, { removeElements: true });
-
-		// Si el bloque eliminado ES un container (o contiene, en cualquier
-		// profundidad, otros containers anidados adentro), sus instancias
-		// Muuri propias (las que gobiernan SUS hijos, ver
-		// activarReordenarDentroDeContainers) quedan con el elemento raíz ya
-		// fuera del DOM (removeElements:true de arriba) pero siguen vivas en
-		// instanciasContainers — bug real encontrado en revisión de código:
-		// sin este cleanup, cada container eliminado deja una o más
-		// instancias Muuri huérfanas que activarLineasInsertar() sigue
-		// invocando (refreshItems/layout) indefinidamente en cada
-		// reordenamiento/inserción posterior, acumulando memoria y
-		// listeners fantasma en una sesión de edición larga. Recursivo
-		// (querySelectorAll, no solo el hijo directo) porque un Container
-		// puede tener otro Container anidado adentro — eliminar el de
-		// afuera debe limpiar TODA la cadena, no solo el nivel inmediato.
-		var containersInternos = seccion.querySelectorAll(".sofia-container");
-		Array.prototype.forEach.call(containersInternos, function (contenedorInterno) {
-			if (instanciasContainers.has(contenedorInterno)) {
-				instanciasContainers.get(contenedorInterno).destroy();
-				instanciasContainers.delete(contenedorInterno);
-			}
-		});
+		// Flujo normal (paso 3, Muuri eliminado): quitar la sección del DOM
+		// alcanza — sin ningún grid paralelo cuyo estado interno haya que
+		// mantener sincronizado, y sin instancias huérfanas que limpiar si
+		// el bloque eliminado era (o contenía) un Container.
+		seccion.remove();
 
 		seccionResaltada = null;
 		window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
-		actualizarZIndexSecciones(grid.contenedor); // menos secciones ahora, recalcula el z-index de cada una.
 		activarLineasInsertar(); // reconstruye posiciones tras el borrado.
 		window.parent.postMessage(
 			{
@@ -1085,253 +937,6 @@
 			},
 			"*"
 		);
-	}
-
-	// activarReordenar (Nivel 2) — Muuri corre DENTRO de este documento
-	// (ver la memoria de producto "Sofia Studio": ninguna librería de DnD
-	// cruza la frontera del iframe de forma madura, mismo patrón que
-	// Elementor/Bricks: drag en el canvas real, informando solo el
-	// resultado final al padre). "dragHandle" restringe el arrastre a un
-	// ícono propio (".sofia-handle-arrastre", inyectado acá, nunca parte
-	// del HTML que emite cada Componente) — SIN esto, arrastrar por
-	// cualquier parte de la sección competiría con hacer click para editar
-	// el texto/imagen de adentro.
-	// gridNivelSuperior: instancia de Muuri para reordenar bloques de nivel
-	// superior (Hero, Franja de beneficios, etc.) — reemplaza a SortableJS
-	// tras un bug real de fondo: con bloques de altura MUY dispar (Hero
-	// ~37px junto a una Franja de 267px+), SortableJS reordenaba
-	// erráticamente MIENTRAS el drag seguía activo (confirmado con
-	// logging real: oldIndex/newIndex saltando sin relación clara con el
-	// movimiento del mouse, incluso lento), sin que
-	// swapThreshold/invertSwap/fallbackOnBody lo resolvieran — causa raíz:
-	// SortableJS reordena nodos en el FLUJO NORMAL del documento y lee
-	// getBoundingClientRect() en vivo mientras hay animación CSS en curso.
-	// Muuri calcula posiciones con su propio motor de layout y las aplica
-	// vía transform sobre ítems position:absolute (ver CSS en
-	// class-modo-editor.php) — nunca depende del reflow del navegador
-	// sobre un flujo variable.
-	var gridNivelSuperior = null;
-
-	// observerAlturaSecciones: mismo ResizeObserver que activarReordenar()
-	// registra sobre las <section> presentes al cargar — variable de
-	// módulo (no local a esa función) para poder sumarle también una
-	// sección agregada DESPUÉS (ver alInsertarBloqueHTML), que de otro
-	// modo nunca quedaba observada (bug real: el contenedor .sofia-pagina
-	// se quedaba con su altura vieja, sin reflejar el bloque nuevo, y el
-	// footer terminaba superpuesto sobre contenido real).
-	var observerAlturaSecciones = null;
-
-	// layoutNivelSuperiorConAlineacion: layout personalizado de Muuri (API
-	// documentada: function(grid, layoutId, items, width, height, callback))
-	// para gridNivelSuperior — reemplaza el layout default de "una columna,
-	// x siempre en 0" por uno que respeta "Alineación del bloque" (Nivel 2,
-	// ver CLASES_UTILITARIAS_BLOQUE.alineacion_bloque/self-left/-center/
-	// -right) cuando el bloque tiene un Ancho/Ancho máximo menor al 100%.
-	//
-	// Bug real que esto resuelve: sin un layout custom, Ancho/Ancho máximo
-	// SÍ reducían el tamaño visual del bloque dentro del editor (ver el fix
-	// de especificidad en class-modo-editor.php), pero el bloque quedaba
-	// siempre pegado a la izquierda — Muuri fija left:0/x:0 para todo item
-	// en su layout default de una columna, ignorando cualquier margin:auto
-	// que el CSS pudiera declarar (position:absolute no reacciona a margin
-	// auto). Acá se calcula el X a mano: si el item tiene "self-center" o
-	// "self-right", se centra/alinea a la derecha DENTRO del espacio
-	// disponible real (el ancho del contenedor MENOS el margin-left:60px
-	// fijo del handle, que sigue aplicando siempre — ver
-	// class-modo-editor.php).
-	//
-	// itemMargin.left ya incluye ese margin-left:60px (Muuri lee el margin
-	// CSS real de cada item) — nunca duplicar sumándolo de nuevo al X
-	// calculado, solo usarlo para saber dónde empieza el espacio útil.
-	//
-	// data-sofia-offset-x-px (leído acá, escrito por congelarOffsetXInicial
-	// más abajo): el offset EN PÍXELES ya resuelto, tomado UNA SOLA VEZ
-	// ANTES de que Muuri tome control del transform del elemento — Muuri
-	// fija su propio transform:translate(x,y) completo en cada layout
-	// (element.style.transform es un único atributo, no se pueden componer
-	// 2 transforms independientes ahí), así que leer el offset con
-	// getComputedStyle DENTRO de esta función leería el transform que
-	// MUURI ya puso (que incluye el x/y calculado), no el offset original
-	// — el offset se sumaría de nuevo en cada recálculo, creciendo sin
-	// control. El data-attribute es un snapshot inmutable tomado antes de
-	// ese punto.
-	function offsetXDesdeAtributo(el) {
-		var valor = el.getAttribute("data-sofia-offset-x-px");
-		return valor ? parseFloat(valor) || 0 : 0;
-	}
-
-	function layoutNivelSuperiorConAlineacion(grid, layoutId, items, width, height, callback) {
-		var layout = { id: layoutId, items: items, slots: [], styles: {} };
-		var y = 0;
-
-		items.forEach(function (item) {
-			var el = item.getElement();
-			var itemMargin = item.getMargin();
-			var itemWidth = item.getWidth();
-			var itemHeight = item.getHeight();
-			var espacioDisponible = width - itemMargin.left - itemMargin.right;
-			var alineacion = claveUtilitariaActual(el, CLASES_UTILITARIAS_BLOQUE.alineacion_bloque);
-
-			var x = 0; // default: pegado al margin-left fijo (comportamiento de siempre).
-			if ("center" === alineacion) {
-				x = Math.max(0, (espacioDisponible - itemWidth) / 2);
-			} else if ("right" === alineacion) {
-				x = Math.max(0, espacioDisponible - itemWidth);
-			}
-			x += offsetXDesdeAtributo(el); // se SUMA a la alineación, nunca la reemplaza — pedido explícito del usuario.
-
-			layout.slots.push(x, y);
-			y += itemHeight + itemMargin.top + itemMargin.bottom;
-		});
-
-		layout.styles.width = width + "px";
-		layout.styles.height = y + "px";
-		callback(layout);
-	}
-
-	// congelarOffsetXDe: lee el transform:translateX(...) que PHP pudo
-	// haber emitido en el style="..." inicial de UNA <section> (ver
-	// Sofia_Componente::atributo_estilo_bloque(), "offset_x") y lo
-	// convierte a un número de píxeles YA RESUELTO (sea un valor fijo o un
-	// token de Core Framework — getComputedStyle devuelve el resultado
-	// final de la cascada en ambos casos), guardándolo en
-	// data-sofia-offset-x-px ANTES de que Muuri tome control del transform
-	// del elemento. Debe llamarse ANTES de instanciar Muuri (todas las
-	// secciones de la carga inicial, ver activarReordenar) o ANTES de
-	// gridNivelSuperior.add() (una sección insertada/reemplazada después,
-	// ver alInsertarBloqueHTML) — nunca dentro del layout function (ver el
-	// comentario largo ahí): para ese punto Muuri ya pisó el transform con
-	// su propia posición calculada, y leerlo ahí sumaría el offset una y
-	// otra vez en cada recálculo.
-	function congelarOffsetXDe(seccion) {
-		var transform = window.getComputedStyle(seccion).transform;
-		if (!transform || "none" === transform) return;
-		var match = transform.match(/matrix\(([^)]+)\)/);
-		if (!match) return;
-		var valores = match[1].split(",").map(function (v) {
-			return parseFloat(v.trim());
-		});
-		var tx = valores.length >= 5 ? valores[4] : 0; // tx es el 5to valor de matrix(a,b,c,d,tx,ty).
-		if (tx) seccion.setAttribute("data-sofia-offset-x-px", String(tx));
-	}
-
-	function congelarOffsetXInicial(contenedor) {
-		contenedor.querySelectorAll(":scope > section").forEach(congelarOffsetXDe);
-	}
-
-	// Asigna z-index DECRECIENTE a cada <section> de nivel superior según
-	// su posición real en el DOM — la primera sección siempre queda por
-	// encima de todas las que le siguen. Necesario porque cada <section>
-	// (position:absolute) crea su propio stacking context: sin esto, dos
-	// secciones con z-index empatado en 0 se apilan por orden del DOM (la
-	// posterior tapa a la anterior), y el handle de arrastre (que
-	// sobresale del ancho declarado, en la franja de padding izquierda)
-	// quedaba oculto detrás de cualquier sección siguiente. Se llama al
-	// inicializar y de nuevo tras cualquier reordenamiento/inserción, ya
-	// que el orden real puede cambiar.
-	function actualizarZIndexSecciones(contenedor) {
-		var secciones = contenedor.querySelectorAll(":scope > section");
-		var total = secciones.length;
-		secciones.forEach(function (seccion, indice) {
-			seccion.style.zIndex = total - indice;
-		});
-	}
-
-	// Extraído de activarReordenar() para poder reusarlo sobre una
-	// <section> insertada dinámicamente (ver alInsertarBloqueHTML) —
-	// mismo handle, mismo título, un solo lugar que mantener.
-	function agregarHandleASeccion(seccion) {
-		if (seccion.querySelector(":scope > .sofia-handle-arrastre")) return; // ya tiene handle, evita duplicar si esto corriera dos veces.
-		var handle = document.createElement("div");
-		handle.className = "sofia-handle-arrastre";
-		// El título menciona el click derecho explícitamente — bug de
-		// UX real señalado por el usuario: sin esta pista, un usuario
-		// no técnico no tiene forma de descubrir que existe un menú
-		// contextual (eliminar bloque/item) más allá de arrastrar.
-		handle.setAttribute("title", "Arrastrar para reordenar · Click derecho para más opciones");
-		handle.textContent = "⠿";
-		seccion.prepend(handle);
-	}
-
-	function activarReordenar() {
-		var contenedor = document.querySelector(".sofia-pagina");
-		if (!contenedor || typeof Muuri === "undefined" || gridNivelSuperior) return; // ya inicializado, evita doble-instancia.
-
-		contenedor.querySelectorAll(":scope > section").forEach(agregarHandleASeccion);
-
-		actualizarZIndexSecciones(contenedor);
-		congelarOffsetXInicial(contenedor); // ANTES de instanciar Muuri — ver el comentario largo en esa función.
-
-		gridNivelSuperior = new Muuri(contenedor, {
-			// "section" (sin ":scope >") — bug real encontrado en la
-			// práctica: Muuri filtra hijos DIRECTOS del contenedor
-			// aplicando el selector con matches() a cada uno; ":scope >
-			// section" es sintaxis pensada para querySelectorAll relativo
-			// al documento, no para matches() de un elemento individual —
-			// el filtro fallaba silenciosamente (sin error en consola) y
-			// dejaba TODAS las secciones superpuestas en top:0/left:0 en
-			// vez de apiladas, porque Muuri nunca las reconoció como
-			// items válidos para calcular su layout.
-			items: "section",
-			dragEnabled: true,
-			dragHandle: ".sofia-handle-arrastre",
-			dragStartPredicate: noArrastrarConBotonDerecho,
-			// dragSortHeuristics: mecanismos anti-jitter que SortableJS no
-			// tiene — sortInterval (pausa antes de reevaluar el orden),
-			// minDragDistance (umbral mínimo antes de considerar cualquier
-			// sort), atacan justo la clase de síntoma ya vivida
-			// (reordenamiento errático con movimientos chicos).
-			dragSortHeuristics: { sortInterval: 100, minDragDistance: 10 },
-			dragSortPredicate: { threshold: 50, action: "move" },
-			layout: layoutNivelSuperiorConAlineacion,
-		});
-
-		gridNivelSuperior.on("dragEnd", function () {
-			// synchronize(): alinea el orden real del DOM con el orden
-			// interno de Muuri tras el drag — necesario antes de leer las
-			// secciones en su posición final.
-			gridNivelSuperior.synchronize();
-			actualizarZIndexSecciones(contenedor); // el orden cambió, recalcula qué sección va arriba de cuál.
-			activarLineasInsertar(); // reconstruye posiciones tras el nuevo orden.
-			window.parent.postMessage(
-				{ tipo: "sofia:estructura-reordenada", bloques: leerBloquesDeNivelSuperior(contenedor) },
-				"*"
-			);
-		});
-
-		// Bug real encontrado en la práctica: Muuri solo recalcula alturas
-		// cuando se le pide explícitamente (refreshItems().layout()) — un
-		// cambio de contenido que no pasa por un punto ya cubierto a mano
-		// (ej. editar un texto y que crezca a 2 líneas, o que una imagen
-		// termine de cargar) dejaba el layout desactualizado hasta que
-		// algo ajeno (un resize de ventana) forzaba un recálculo. Un
-		// ResizeObserver sobre cada <section> cubre TODOS los casos de una
-		// sola vez, sin depender de recordar llamar refreshItems() en cada
-		// punto nuevo del código que pueda cambiar una altura.
-		//
-		// observerAlturaSecciones queda en una variable de módulo (no
-		// local a esta función) para poder observar TAMBIÉN una <section>
-		// agregada dinámicamente después (ver alInsertarBloqueHTML) — bug
-		// real encontrado en la práctica: activarReordenar() corre UNA
-		// SOLA VEZ al cargar la página, así que un bloque insertado más
-		// tarde nunca quedaba observado. El contenedor .sofia-pagina
-		// (position:relative, sin height propio — todas sus <section> hijas
-		// son position:absolute, que no aportan altura al padre en flujo
-		// normal) dependía ENTERAMENTE de que Muuri fijara su altura real
-		// vía este observer; sin él para el bloque nuevo, el contenedor se
-		// quedaba con la altura vieja y el footer (fuera de .sofia-pagina,
-		// en flujo normal del documento) quedaba pegado ahí, superpuesto
-		// sobre el contenido real que Muuri sí había posicionado más abajo.
-		if (typeof ResizeObserver !== "undefined") {
-			observerAlturaSecciones = new ResizeObserver(function () {
-				if (gridNivelSuperior) {
-					gridNivelSuperior.refreshItems().layout();
-				}
-			});
-			contenedor.querySelectorAll(":scope > section").forEach(function (seccion) {
-				observerAlturaSecciones.observe(seccion);
-			});
-		}
 	}
 
 	// contenedorDeHijos: dado el <section> de un bloque, devuelve el
@@ -1463,32 +1068,22 @@
 	// cada bloque). Pedido explícito del usuario: "+  Agregar bloque" de
 	// la barra superior solo insertaba al final; esto permite elegir la
 	// posición exacta. Igual que el resto del chrome de edición, vive
-	// DENTRO del iframe (SortableJS/handles ya establecieron ese patrón) —
-	// el click solo abre el MISMO catálogo que ya existe en el panel
-	// padre, pasando la posición exacta vía postMessage.
-	// Bug real encontrado en la práctica, tras investigación con logging
-	// real de SortableJS: las líneas vivían como HERMANAS de las
-	// <section> dentro de .sofia-pagina — mismo contenedor que gestiona
-	// Sortable.create(). La opción "draggable" de Sortable solo filtra
-	// qué es ARRASTRABLE, pero oldIndex/newIndex siguen contando TODOS
-	// los hijos del contenedor (líneas incluidas) — con 3 secciones + 4
-	// líneas de inserción (antes/entre/después), una sección en posición
-	// real 1 podía reportarse con oldIndex 3 o 5 según cuántas líneas
-	// hubiera antes en el DOM, rompiendo por completo el cálculo de swap
-	// (confirmado con logs reales: oldIndex 3/5/1 con solo 3 secciones).
-	// Fix real: la línea vive DENTRO de cada <section> (position:absolute,
-	// ver CSS), nunca como hermana suelta — .sofia-pagina vuelve a tener
-	// SOLO <section> como hijos directos, Sortable indexa correctamente.
+	// DENTRO del iframe — el click solo abre el MISMO catálogo que ya
+	// existe en el panel padre, pasando la posición exacta vía postMessage.
 	//
-	// Fase 3 extiende esto para vivir TAMBIÉN dentro de cada
-	// .sofia-container — mismo criterio de "línea DENTRO de la sección
-	// que gestiona el grid correspondiente, nunca hermana suelta del
-	// grid": acá el grid es la instancia de Muuri del container (ver
-	// activarReordenarDentroDeContainers), así que las líneas de un
-	// container van DENTRO de cada <section> hija de ESE
-	// .sofia-container, exactamente el mismo patrón que a nivel superior,
-	// solo que agregarLineasEnGrid() ahora es una función reusada dos
-	// veces en vez de código inline.
+	// Paso 3 (ver la memoria de producto, eliminación de Muuri): la línea
+	// vive como HERMANA suelta de las <section> (ver CSS en
+	// class-modo-editor.php) — antes tenía que vivir DENTRO de cada
+	// <section> porque ser hermana contaminaba los índices que leía
+	// SortableJS/Muuri; sin ningún motor de drag leyendo el DOM, esa razón
+	// desapareció (leerBloquesDesde ya filtra explícitamente por
+	// data-sofia-bloque-id/-tipo, ignorando cualquier hermano que no lo
+	// tenga).
+	//
+	// Se extiende igual dentro de cada .sofia-container — mismo criterio,
+	// las líneas de un container van DENTRO de ese .sofia-container como
+	// hermanas de sus <section> hijas, identificado por el ID del bloque
+	// Container que lo envuelve.
 	function agregarLineasEnGrid(contenedorGrid, containerId) {
 		var secciones = contenedorGrid.querySelectorAll(":scope > section");
 
@@ -1503,16 +1098,15 @@
 			return;
 		}
 
+		// Primera línea, ANTES de la primera sección — hermana suelta, ver
+		// el comentario largo arriba.
+		contenedorGrid.insertBefore(crearLineaInsertar(0, "arriba", containerId), secciones[0]);
+
 		secciones.forEach(function (seccion, indice) {
-			// "arriba" en cada sección cubre "insertar antes de esta" —
-			// la primera sección además necesita la línea de "arriba"
-			// visible (ninguna otra sección la tapa desde encima).
-			seccion.appendChild(crearLineaInsertar(indice, "arriba", containerId));
-			if (indice === secciones.length - 1) {
-				// "abajo" SOLO en la última sección — el resto ya cubre
-				// "después de mí" con el "arriba" de la sección siguiente.
-				seccion.appendChild(crearLineaInsertar(secciones.length, "abajo", containerId));
-			}
+			// Una línea DESPUÉS de cada sección cubre "insertar entre esta
+			// y la siguiente" (o al final, para la última).
+			var linea = crearLineaInsertar(indice + 1, "abajo", containerId);
+			seccion.after(linea);
 		});
 	}
 
@@ -1544,35 +1138,7 @@
 			if (!containerId) return;
 			agregarLineasEnGrid(contenedorHijos, containerId);
 		});
-
-		// Bug real encontrado en la práctica: agregar las líneas cambia la
-		// altura REAL de cada <section> (position:absolute — ver CSS), pero
-		// Muuri ya había calculado/cacheado las alturas ANTES de este
-		// cambio (en activarReordenar(), que corre primero). Sin refrescar
-		// esas dimensiones, Muuri seguía posicionando el siguiente bloque
-		// según la altura VIEJA, más chica — el último bloque terminaba
-		// superpuesto sobre el anterior en vez de ir debajo.
-		// refreshItems() releé las dimensiones reales, layout() reubica
-		// todos los items con esos valores actualizados. Mismo refresco
-		// para CADA instancia de container, no solo gridNivelSuperior —
-		// mismo motivo, una línea nueva también cambia la altura de la
-		// sección que la contiene dentro de un container.
-		if (gridNivelSuperior) {
-			gridNivelSuperior.refreshItems().layout();
-		}
-		instanciasContainers.forEach(function (instancia) {
-			instancia.refreshItems().layout();
-		});
 	}
-
-	// instanciasListas: registro de las instancias Sortable de CADA lista
-	// repetible presente en la página (una por cada [data-sofia-lista], ej.
-	// una por cada "Franja de beneficios") — investigación confirmó que
-	// SortableJS espera exactamente este patrón (una instancia por
-	// contenedor anidado, sin API de "árbol" propia). Indexado por el
-	// contenedor DOM mismo, no por índice numérico: más simple que
-	// mantenerlo sincronizado con la posición del bloque en la página.
-	var instanciasListas = new Map();
 
 	// Reconstruye el array completo de items de UNA lista leyendo el DOM
 	// actual (ya reordenado/editado por el usuario) y lo manda al padre
@@ -1597,167 +1163,6 @@
 			return objeto;
 		});
 		notificarCambio(campo, items);
-	}
-
-	// activarReordenarListas (Nivel 2, sub-items) — monta una instancia
-	// Sortable POR CADA [data-sofia-lista] presente en la página (ej. cada
-	// Franja de beneficios), separada de la instancia de nivel superior.
-	// Sin "group" en ninguna de las dos: investigación confirmó que sin un
-	// group.name COMPARTIDO, SortableJS confina el drag a su propio
-	// contenedor automáticamente — un "Beneficio" nunca puede terminar
-	// arrastrado hacia la lista de bloques de nivel superior, ni viceversa,
-	// sin necesidad de declarar pull:false/put:false a mano.
-	function activarReordenarListas() {
-		if (typeof Muuri === "undefined") return;
-
-		document.querySelectorAll("[data-sofia-lista]").forEach(function (contenedorLista) {
-			if (instanciasListas.has(contenedorLista)) return; // ya tiene instancia, evita doble-inicialización.
-
-			contenedorLista.querySelectorAll(":scope > [data-sofia-item]").forEach(function (item) {
-				if (item.querySelector(":scope > .sofia-handle-arrastre-item")) return;
-				var handle = document.createElement("div");
-				handle.className = "sofia-handle-arrastre-item";
-				handle.setAttribute("title", "Arrastrar para reordenar · Click derecho para más opciones");
-				handle.textContent = "⠿";
-				item.prepend(handle);
-			});
-
-			var instancia = new Muuri(contenedorLista, {
-				// "[data-sofia-item]" (sin ":scope >", mismo bug/fix que
-				// gridNivelSuperior más arriba) — a diferencia de
-				// SortableJS (que usaba "draggable" para excluir el botón
-				// "+ Agregar", hermano directo de los items dentro del
-				// mismo grid, ver Sofia_Componente::boton_agregar_item()),
-				// Muuri excluye por completo cualquier elemento que no
-				// matchee este selector desde la propia inicialización del
-				// grid — el botón nunca es candidato a moverse.
-				items: "[data-sofia-item]",
-				dragEnabled: true,
-				dragHandle: ".sofia-handle-arrastre-item",
-				dragStartPredicate: noArrastrarConBotonDerecho,
-				dragSortHeuristics: { sortInterval: 100, minDragDistance: 10 },
-				dragSortPredicate: { threshold: 50, action: "move" },
-			});
-			instancia.on("dragEnd", function () {
-				instancia.synchronize();
-				reindexarItemsDeLista(contenedorLista);
-				notificarListaActualizada(contenedorLista);
-			});
-			instanciasListas.set(contenedorLista, instancia);
-
-			// Mismo fix que en activarReordenar(): un cambio de contenido
-			// (ej. editar un texto y que crezca a 2 líneas) dentro de un
-			// item cambia la altura de este grid interno Y de la <section>
-			// que lo contiene — ambos grids (este y gridNivelSuperior)
-			// necesitan refrescarse, no solo el que detecta el cambio.
-			if (typeof ResizeObserver !== "undefined") {
-				var observerAlturaItems = new ResizeObserver(function () {
-					instancia.refreshItems().layout();
-					if (gridNivelSuperior) {
-						gridNivelSuperior.refreshItems().layout();
-					}
-				});
-				contenedorLista.querySelectorAll(":scope > [data-sofia-item]").forEach(function (item) {
-					observerAlturaItems.observe(item);
-				});
-			}
-		});
-	}
-
-	// instanciasContainers: registro de las instancias Muuri de CADA
-	// .sofia-container presente en la página (Fase 3, "primitivas de
-	// layout") — mismo patrón que instanciasListas (Nivel 2, sub-items),
-	// pero para bloques-componente completos en vez de items de una lista
-	// de datos. Indexado por el <div class="sofia-container"> mismo (el
-	// contenedor de HIJOS, no la <section> exterior que lo envuelve — ver
-	// class-container.php), consistente con instanciasListas (que también
-	// indexa por el contenedor de items, no por el bloque padre).
-	//
-	// UNA instancia Muuri INDEPENDIENTE por container, sin "group"
-	// compartido con gridNivelSuperior ni entre containers hermanos —
-	// decisión de diseño explícita (ver el plan de esta fase): mover un
-	// bloque ENTRE niveles (nivel superior ↔ dentro de un container, o
-	// entre dos containers distintos) está FUERA DE ALCANCE. Sin un
-	// "group.name" compartido, Muuri confina cada drag a su propio grid
-	// automáticamente — mismo mecanismo que ya confirmó
-	// activarReordenarListas() para listas de datos, acá aplicado a
-	// bloques-componente.
-	var instanciasContainers = new Map();
-
-	// activarReordenarDentroDeContainers (Fase 3) — instancia Muuri
-	// acotada a cada .sofia-container, items:"section" (a diferencia de
-	// activarReordenarListas, que usa "[data-sofia-item]": acá los hijos
-	// son BLOQUES-COMPONENTE completos, cada uno su propia <section> con
-	// atributos_seccion() — mismo criterio de "sección completa" que
-	// gridNivelSuperior, solo que acotado a un contenedor anidado en vez
-	// de .sofia-pagina). Reusa agregarHandleASeccion (mismo handle visual
-	// que un bloque de nivel superior — el usuario ya conoce qué significa
-	// ese ícono) en vez de inventar un handle propio para bloques
-	// anidados.
-	function activarReordenarDentroDeContainers() {
-		if (typeof Muuri === "undefined") return;
-
-		document.querySelectorAll(".sofia-container").forEach(function (contenedorHijos) {
-			if (instanciasContainers.has(contenedorHijos)) return; // ya tiene instancia, evita doble-inicialización.
-
-			contenedorHijos.querySelectorAll(":scope > section").forEach(agregarHandleASeccion);
-			actualizarZIndexSecciones(contenedorHijos);
-			congelarOffsetXInicial(contenedorHijos);
-
-			var instancia = new Muuri(contenedorHijos, {
-				items: "section",
-				dragEnabled: true,
-				dragHandle: ".sofia-handle-arrastre",
-				dragStartPredicate: noArrastrarConBotonDerecho,
-				dragSortHeuristics: { sortInterval: 100, minDragDistance: 10 },
-				dragSortPredicate: { threshold: 50, action: "move" },
-				// Sin layout custom (a diferencia de gridNivelSuperior) —
-				// "Alineación del bloque" (self-left/-center/-right) dentro
-				// de un container es un caso de borde deliberadamente fuera
-				// de alcance de esta fase: el layout default de Muuri (una
-				// columna, x:0) alcanza para validar el mecanismo de
-				// anidamiento en sí, mismo criterio de alcance acotado que
-				// ya usó Fase 1/2 para Container.
-			});
-
-			instancia.on("dragEnd", function () {
-				instancia.synchronize();
-				actualizarZIndexSecciones(contenedorHijos);
-				activarLineasInsertar();
-				// Estructura COMPLETA recursiva (no solo la de este
-				// container) — mismo mensaje que ya persiste
-				// gridNivelSuperior/instanciasListas, App.jsx no necesita
-				// saber que este cambio vino de un container anidado en vez
-				// de nivel superior, solo persiste el árbol que recibe.
-				window.parent.postMessage(
-					{
-						tipo: "sofia:estructura-reordenada",
-						bloques: leerBloquesDeNivelSuperior(document.querySelector(".sofia-pagina")),
-					},
-					"*"
-				);
-			});
-
-			instanciasContainers.set(contenedorHijos, instancia);
-
-			// Mismo fix de ResizeObserver que activarReordenar()/
-			// activarReordenarListas(): un cambio de altura DENTRO de un
-			// hijo (ej. texto que crece a 2 líneas) necesita refrescar TRES
-			// grids potencialmente afectados — el propio container, y
-			// gridNivelSuperior (la <section> exterior del container
-			// también puede haber cambiado de altura).
-			if (typeof ResizeObserver !== "undefined") {
-				var observerAlturaHijos = new ResizeObserver(function () {
-					instancia.refreshItems().layout();
-					if (gridNivelSuperior) {
-						gridNivelSuperior.refreshItems().layout();
-					}
-				});
-				contenedorHijos.querySelectorAll(":scope > section").forEach(function (seccion) {
-					observerAlturaHijos.observe(seccion);
-				});
-			}
-		});
 	}
 
 	// Activa contenteditable/wp.media() sobre los [data-sofia-campo] bajo
@@ -1812,9 +1217,6 @@
 		});
 		document.addEventListener("click", alHacerClickIzquierdo);
 		window.addEventListener("message", alRecibirMensajeDelPadre);
-		activarReordenar();
-		activarReordenarListas();
-		activarReordenarDentroDeContainers();
 		activarLineasInsertar();
 	});
 })();

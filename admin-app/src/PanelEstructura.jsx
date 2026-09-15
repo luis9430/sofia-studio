@@ -17,23 +17,37 @@ import { useState } from "preact/hooks";
  *    lista angosta y previsible, y el iframe se sincroniza por mensaje (ver
  *    alMoverBloque en editor-iframe.js) en vez de recibir el drag directo.
  *
- * Mismo alcance que el drag de Muuri en el canvas (decisión explícita de la
- * Fase 3 de "primitivas de layout"): el drag acá SOLO reordena dentro del
- * mismo padre — nunca mueve un nodo de un Container a otro, ni entre nivel
- * superior y un Container. Ampliar a eso es una fase aparte (requiere
- * reconstruir el HTML del bloque movido para su nuevo padre, no solo
- * reordenar el existente).
+ * Mismo alcance que tenía el drag de Muuri en el canvas cuando existía
+ * (decisión de diseño explícita, Fase 3 de "primitivas de layout" —
+ * vigente aunque Muuri ya no exista, ver el paso 3 del rediseño en la
+ * memoria de producto): el drag acá SOLO reordena dentro del mismo padre
+ * — nunca mueve un nodo de un Container a otro, ni entre nivel superior y
+ * un Container. Ampliar a eso es una fase aparte (requiere reconstruir el
+ * HTML del bloque movido para su nuevo padre, no solo reordenar el
+ * existente).
+ *
+ * Paso 3 (Muuri eliminado del canvas, ver la memoria de producto): los
+ * nodos de un bloque con lista repetible (Franja de beneficios/
+ * Testimonios/FAQ) traen ADEMÁS un item por hijo, marcados `esItem:true`
+ * (ver conNombres en App.jsx) — mismos gestos de selección/arrastre que
+ * un bloque real, pero un item nunca tiene hijos propios ni abre el
+ * drawer de Estilo (no tiene Nivel 2 propio, solo el texto que ya se edita
+ * directo en el canvas) — onSeleccionar/onMover en App.jsx despachan
+ * según esta marca.
  *
  * Drag & drop nativo HTML5 (draggable=true + eventos dragstart/dragover/
- * drop) en vez de sumar una librería nueva — la lista es plana visualmente
- * (una fila por nodo, sin necesitar reflow de grid como Muuri en el canvas),
- * así que el mecanismo nativo del navegador alcanza sin dependencias extra.
+ * drop) en vez de sumar una librería nueva — la lista es plana
+ * visualmente (una fila por nodo), así que el mecanismo nativo del
+ * navegador alcanza sin dependencias extra.
  */
 export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover }) {
-  // arrastrando: { id, padreId } del nodo que se está arrastrando — padreId
-  // es null a nivel superior. Se usa para bloquear el drop sobre un nodo de
-  // OTRO padre (ver alSoltar) sin tener que recalcular el árbol en cada
-  // dragover, y para el estilo visual de "fila siendo arrastrada".
+  // arrastrando: { nodo, padreId } del nodo que se está arrastrando —
+  // padreId es null a nivel superior. Se usa para bloquear el drop sobre
+  // un nodo de OTRO padre (ver alSoltar) sin tener que recalcular el
+  // árbol en cada dragover, y para el estilo visual de "fila siendo
+  // arrastrada". Guarda el NODO completo (no solo su id) porque onMover
+  // necesita saber si es un item de lista (nodo.esItem) para elegir qué
+  // mensaje mandarle al iframe.
   const [arrastrando, setArrastrando] = useState(null);
   const [sobreId, setSobreId] = useState(null);
 
@@ -47,7 +61,7 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
   }
 
   function alEmpezarArrastre(evento, nodo, padreId) {
-    setArrastrando({ id: nodo.id, padreId });
+    setArrastrando({ nodo, padreId });
     evento.dataTransfer.effectAllowed = "move";
     // Firefox requiere setData con ALGO para permitir el drag — el valor en
     // sí no se usa, todo el estado real vive en el `arrastrando` de React.
@@ -55,7 +69,7 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
   }
 
   function alPasarPorEncima(evento, nodo, padreId) {
-    if (!arrastrando || arrastrando.padreId !== padreId || arrastrando.id === nodo.id) return;
+    if (!arrastrando || arrastrando.padreId !== padreId || arrastrando.nodo.id === nodo.id) return;
     evento.preventDefault();
     setSobreId(nodo.id);
   }
@@ -63,18 +77,18 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
   function alSoltar(evento, nodo, padreId, indice) {
     evento.preventDefault();
     setSobreId(null);
-    if (!arrastrando || arrastrando.padreId !== padreId || arrastrando.id === nodo.id) {
+    if (!arrastrando || arrastrando.padreId !== padreId || arrastrando.nodo.id === nodo.id) {
       setArrastrando(null);
       return;
     }
-    onMover(arrastrando.id, indice);
+    onMover(arrastrando.nodo.id, indice, arrastrando.nodo);
     setArrastrando(null);
   }
 
   function renderNodo(nodo, padreId, indice, profundidad) {
     const tieneHijos = nodo.hijos && nodo.hijos.length > 0;
     const estaSeleccionado = seleccionado === nodo.id;
-    const estaArrastrando = arrastrando?.id === nodo.id;
+    const estaArrastrando = arrastrando?.nodo.id === nodo.id;
     const estaSobre = sobreId === nodo.id;
 
     return (
@@ -82,6 +96,7 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
         <div
           className={[
             "sofia-estructura-nodo",
+            nodo.esItem && "sofia-estructura-nodo--item",
             estaSeleccionado && "sofia-estructura-nodo--activo",
             estaArrastrando && "sofia-estructura-nodo--arrastrando",
             estaSobre && "sofia-estructura-nodo--sobre",
