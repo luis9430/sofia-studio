@@ -240,12 +240,25 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	 * tocar" que usa TODO el resto del sistema.
 	 */
 	private function valores_con_variante(): array {
-		$variante = (string) ( $this->props['variante'] ?? '' );
+		// BUG REAL corregido tras probar en vivo: display/direccion/gap/
+		// etc. (schema_propio(), Nivel 2 igual que el genérico) viajan
+		// dentro de $this->props['_estilo_bloque'], NUNCA como claves
+		// sueltas de $this->props — mismo lugar exacto de donde ya las
+		// lee atributo_estilo_bloque() en la clase base (ver
+		// $this->props['_estilo_bloque'] ahí). La primera versión de este
+		// método leía $this->props['display'] directo: el drawer SÍ
+		// guardaba bien, pero render() nunca encontraba nada ahí (siempre
+		// "" ausente), así que ningún control de Layout interno/Variante
+		// tenía efecto visual — confirmado por el usuario probando en
+		// vivo (Container con "Grilla" elegido seguía viéndose igual).
+		$estilo_bloque = is_array( $this->props['_estilo_bloque'] ?? null ) ? $this->props['_estilo_bloque'] : array();
+
+		$variante = (string) ( $estilo_bloque['variante'] ?? '' );
 		$override = self::VARIANTES[ $variante ] ?? array();
 
 		$valores = array();
 		foreach ( array( 'display', 'direccion', 'envolver', 'justificar', 'alinear', 'columnas_grilla', 'gap' ) as $clave ) {
-			$propio = $this->props[ $clave ] ?? '';
+			$propio = $estilo_bloque[ $clave ] ?? '';
 			$valores[ $clave ] = ( '' !== $propio && null !== $propio && false !== $propio )
 				? $propio
 				: ( $override[ $clave ] ?? '' );
