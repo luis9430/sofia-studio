@@ -691,7 +691,13 @@ export function App({ config }) {
           onCerrar={() => setMenuAgregarAbierto(false)}
         />
       )}
-      {panelGlobalAbierto && <PanelEstiloGlobal config={config} onCerrar={() => setPanelGlobalAbierto(false)} />}
+      {panelGlobalAbierto && (
+        <PanelEstiloGlobal
+          config={config}
+          onCerrar={() => setPanelGlobalAbierto(false)}
+          onGuardado={() => iframeRef.current?.contentWindow.location.reload()}
+        />
+      )}
       {panelIAAbierto && (
         <PanelGenerarIA
           config={config}

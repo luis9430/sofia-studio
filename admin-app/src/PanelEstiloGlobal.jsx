@@ -1,5 +1,13 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { CampoTokenVisual } from "./CampoTokenVisual.jsx";
+
+// Debounce del reload del iframe tras guardar — mismo criterio que
+// cambiarCondicionDrawer() en App.jsx: recargar en CADA click individual
+// (el usuario suele cambiar varios roles seguidos: primario, luego
+// secundario, luego radio…) encadenaría reloads que se interrumpen entre
+// sí a mitad de carga, dejando el DOM del iframe a medio construir. Solo
+// el ÚLTIMO cambio de una ráfaga dispara el reload real.
+const RETRASO_RELOAD_MS = 600;
 
 /**
  * Panel de Estilo Global (Nivel 3) — configuración del SITIO completo,
@@ -35,9 +43,10 @@ import { CampoTokenVisual } from "./CampoTokenVisual.jsx";
  * font-family, solo tamaños de texto (ya cubiertos por el rol
  * "tamano_base").
  */
-export function PanelEstiloGlobal({ config, onCerrar }) {
+export function PanelEstiloGlobal({ config, onCerrar, onGuardado }) {
   const [roles, setRoles] = useState(null); // {rol: {variable, categoria, etiqueta, token_fijo?}}
   const [estilo, setEstilo] = useState({ roles: {}, tipografia: {} });
+  const timerReload = useRef(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
@@ -62,11 +71,25 @@ export function PanelEstiloGlobal({ config, onCerrar }) {
     setEstilo(estiloNuevo);
     setGuardando(true);
     try {
-      await fetch(`${config.restUrl}estilo-global`, {
+      const respuesta = await fetch(`${config.restUrl}estilo-global`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
         body: JSON.stringify({ estilo_global: estiloNuevo }),
       });
+      // Recarga el iframe tras guardar — bug real reportado por el
+      // usuario probando en vivo: "los cambios no se reflejan hasta
+      // actualizar" — Sofia_Estilo_Global::imprimir() (PHP) ya emite el
+      // <style> correcto en cada carga NUEVA de la página, pero el
+      // iframe del editor solo carga la página una vez al abrirse; sin
+      // este reload explícito, cambiar un color acá nunca se veía
+      // reflejado en la vista previa hasta que el usuario refrescaba a
+      // mano. Debounced (ver RETRASO_RELOAD_MS) porque este panel
+      // guarda en CADA click de un rol — varios cambios seguidos
+      // encadenarían reloads que se interrumpen entre sí.
+      if (respuesta.ok && onGuardado) {
+        clearTimeout(timerReload.current);
+        timerReload.current = setTimeout(onGuardado, RETRASO_RELOAD_MS);
+      }
     } finally {
       setGuardando(false);
     }
