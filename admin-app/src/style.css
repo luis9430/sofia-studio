@@ -1117,6 +1117,47 @@ body {
   color: var(--gp-panel-text-dim);
 }
 
+/* Progresividad de Container (anexo del plan "50 primitivas", ver la
+   memoria de producto) — "Personalizar" revela los controles avanzados
+   de layout (display/direccion/gap/etc.), mismo patrón visual que
+   .sofia-token-visual__modo (link discreto, no un botón sólido — no
+   compite con los controles reales del drawer). */
+.sofia-drawer-estilo__personalizar {
+  margin: 4px 0 12px;
+  background: none;
+  border: none;
+  color: var(--gp-accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.sofia-drawer-estilo__personalizar:hover {
+  color: var(--gp-panel-text);
+}
+
+.sofia-drawer-estilo__avanzados {
+  padding-top: 8px;
+  border-top: 1px solid var(--gp-panel-border);
+}
+
+/* Aviso de contexto (ej. "necesitás 2+ hijos para ver el efecto") —
+   variante de color de .sofia-drawer-estilo__ayuda-condicion: fondo
+   tenue de acento para que se lea como ESTADO del bloque seleccionado,
+   no como la descripción de un control puntual (que usa el gris neutro
+   de siempre). */
+.sofia-drawer-estilo__aviso-contexto {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--gp-accent-soft);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--gp-accent-text);
+}
+
 .sofia-drawer-estilo__regla {
   display: flex;
   flex-wrap: wrap;

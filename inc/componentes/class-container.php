@@ -86,56 +86,73 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	}
 
 	/**
-	 * atributos_div_interno(): class="..." + style="..." del
-	 * <div class="sofia-container"> interno — Fase 1 de "50 primitivas"
-	 * (ver la memoria de producto) cierra un hueco real encontrado
-	 * releyendo este archivo: schema_propio() ya declaraba display/
-	 * direccion/envolver/justificar/alinear/columnas_grilla/gap como
-	 * controles del drawer desde Fase 2 ("primitivas de layout"), pero
-	 * render() nunca los leía — el usuario podía elegir "Fila" en el
-	 * drawer y el bloque seguía viéndose exactamente igual, porque ningún
-	 * atributo salía al HTML para que el CSS pudiera targetear. Mismo
-	 * patrón que el resto del sistema (utility classes de Core Framework +
-	 * custom properties para valores libres, ver
-	 * Sofia_Componente::clases_utilitarias_bloque()/atributo_estilo_bloque()):
-	 * "display" resuelve a una clase CSS ("sofia-container--fila"), "gap"
-	 * (input libre o token) resuelve a --sofia-container-gap inline.
+	 * atributos_div_interno(): class="..." del <div class="sofia-container">
+	 * interno — Fase 1 de "50 primitivas" (ver la memoria de producto) cerró
+	 * un hueco real (schema declarado pero render() nunca lo leía). Anexo
+	 * posterior de esa misma fase: MIGRADO a las utility classes REALES de
+	 * Core Framework (flex-row, flex-column, row, columns-N, gap-N,
+	 * content-N, space-between, space-around, items-top/middle/bottom) en
+	 * vez de clases propias "sofia-container--*" — investigación real
+	 * (CSS descargado del sitio en vivo con curl) confirmó que Core
+	 * Framework YA trae un sistema de layout completo y equivalente; las
+	 * clases propias duplicaban exactamente eso. Mismo patrón que
+	 * Sofia_Componente::clases_utilitarias_bloque() ya usa para las
+	 * utility classes de ancho/aspecto: agregar la clase real es todo lo
+	 * que hace falta, sin resolver ningún valor propio.
 	 *
-	 * VARIANTE (Fase 1, nueva): un preset que solo cambia los DEFAULTS de
-	 * display/gap/justificar/envolver — nunca agrega un tipo nuevo a la
-	 * Factory (ver Sofia_Componente_Factory::TIPOS_REGISTRADOS). Sigue
-	 * siendo "container" para GoPress/el catálogo de la IA; Stack/Grid/
-	 * Cluster/Split/Inline/Box son simplemente Container con otro punto de
-	 * partida — el usuario puede seguir ajustando cada control suelto
-	 * después de elegir una variante, esta nunca es una restricción.
-	 * valores_con_variante() resuelve variante → overrides ANTES de leer
-	 * cada prop individual, así una variante nunca pisa un control que el
-	 * usuario ya tocó a mano (props reales siempre ganan sobre el default
-	 * de la variante).
+	 * Colisión de nombres CONOCIDA y aceptada (confirmada con el usuario):
+	 * Core Framework usa "items-top / items-middle / items-bottom" con
+	 * sentido align-items (grid/flex) — Sofia Studio YA usa
+	 * "items-left / items-center / items-right / items-top / items-middle
+	 * / items-bottom" con OTRO sentido (alineación de TEXTO en Franja de
+	 * beneficios/Testimonios, ver style.css) en la SECCION de esos
+	 * Componentes. Nunca conviven en el mismo elemento (acá siempre es el
+	 * DIV interno "sofia-container", nunca una sección de lista), así que
+	 * no hay conflicto real de CSS — solo dos usos legítimos del mismo
+	 * nombre en contextos distintos.
+	 *
+	 * VARIANTE (Fase 1): un preset que solo cambia los DEFAULTS de
+	 * display, gap, justificar y envolver — nunca agrega un tipo nuevo a
+	 * la Factory. valores_con_variante() resuelve variante → overrides
+	 * ANTES de leer cada prop individual, así una variante nunca pisa un
+	 * control que el usuario ya tocó a mano.
 	 */
 	private function atributos_div_interno(): string {
 		$valores = $this->valores_con_variante();
 
 		$clases = array( 'sofia-container' );
 
-		$display = $valores['display'] ?? '';
-		if ( isset( self::CLASES_DISPLAY[ $display ] ) ) {
+		$display         = $valores['display'] ?? '';
+		$columnas_grilla = (string) ( $valores['columnas_grilla'] ?? '' );
+
+		// "grilla" con columnas_grilla elegido usa .columns-N (que YA trae
+		// su propio grid-template-columns real) EN VEZ de .row (el display
+		// grid genérico de Core Framework, sin columnas definidas) — .row
+		// solo se usa como respaldo si el usuario elige Grilla sin elegir
+		// un número de columnas todavía.
+		if ( 'grilla' === $display && isset( self::CLASES_COLUMNAS[ $columnas_grilla ] ) ) {
+			$clases[] = self::CLASES_COLUMNAS[ $columnas_grilla ];
+		} elseif ( isset( self::CLASES_DISPLAY[ $display ] ) ) {
 			$clases[] = self::CLASES_DISPLAY[ $display ];
 		}
 
 		// direccion/envolver/justificar/alinear solo tienen sentido real con
-		// display fila/columna (mismo criterio ya documentado en la "ayuda"
-		// de schema_propio()) — igual se resuelven sin condicionar por
-		// display acá: una clase "sofia-container--justificar-centro" sin
-		// display:flex de por medio simplemente no tiene ningún selector
-		// CSS que la consuma con efecto visible, mismo patrón "no rompe,
-		// no hace nada" que ya usa CLASES_UTILITARIAS_BLOQUE con controles
-		// fuera de contexto (ej. aspect_ratio en un Componente sin imagen).
+		// display fila/columna/grilla (mismo criterio ya documentado en la
+		// "ayuda" de schema_propio()) — igual se resuelven sin condicionar
+		// por display acá: una clase ".content-center" sin display:flex/grid
+		// de por medio simplemente no tiene ningún efecto visible, mismo
+		// patrón "no rompe, no hace nada fuera de contexto" que ya usa
+		// CLASES_UTILITARIAS_BLOQUE (clase base) con controles fuera de
+		// contexto (ej. aspect_ratio en un Componente sin imagen).
+		//
+		// "invertida" sigue siendo CSS PROPIO ("sofia-container--invertida",
+		// ver style.css) — Core Framework no trae una utility class
+		// equivalente a flex-direction:row-reverse/column-reverse.
 		if ( 'invertida' === ( $valores['direccion'] ?? '' ) ) {
 			$clases[] = 'sofia-container--invertida';
 		}
 		if ( ! empty( $valores['envolver'] ) ) {
-			$clases[] = 'sofia-container--envolver';
+			$clases[] = 'flex-wrap';
 		}
 		$justificar = $valores['justificar'] ?? '';
 		if ( isset( self::CLASES_JUSTIFICAR[ $justificar ] ) ) {
@@ -145,32 +162,19 @@ class Sofia_Componente_Container extends Sofia_Componente {
 		if ( isset( self::CLASES_ALINEAR[ $alinear ] ) ) {
 			$clases[] = self::CLASES_ALINEAR[ $alinear ];
 		}
-		$columnas_grilla = (string) ( $valores['columnas_grilla'] ?? '' );
-		if ( 'grilla' === $display && in_array( $columnas_grilla, array( '2', '3', '4' ), true ) ) {
-			$clases[] = 'sofia-container--grilla-' . $columnas_grilla;
+
+		// gap: escala FIJA de Core Framework (.gap-4xs..gap-4xl, 11 pasos)
+		// — mismo criterio que columnas_grilla, ya no es input libre (antes
+		// emitía --sofia-container-gap inline con cualquier valor/token; se
+		// migró a clase fija porque Core Framework ya cubre toda la escala
+		// real de espaciado del sistema, sin necesitar un valor fuera de
+		// ella).
+		$gap = (string) ( $valores['gap'] ?? '' );
+		if ( isset( self::CLASES_GAP[ $gap ] ) ) {
+			$clases[] = self::CLASES_GAP[ $gap ];
 		}
 
-		// gap: INPUT LIBRE o token de Core Framework (mismo mecanismo que
-		// "espaciado_vertical" de Nivel 2 genérico, ver
-		// Sofia_Componente::atributo_estilo_bloque()) — nunca una utility
-		// class fija, porque el espacio entre hijos es un valor continuo,
-		// no una opción corta de una lista. --sofia-container-gap (no
-		// "gap:" directo en style, aunque acá SIEMPRE tendría el mismo
-		// efecto): custom property porque el CSS de esta clase necesita
-		// poder tener un fallback propio (ver style.css) cuando la
-		// variante define un gap por defecto sin que el usuario haya
-		// tocado nada.
-		$estilo = '';
-		$gap    = $valores['gap'] ?? '';
-		if ( is_string( $gap ) && '' !== $gap ) {
-			if ( Sofia_Estilo_Global::es_token_con_nombre( $gap ) ) {
-				$estilo = 'style="--sofia-container-gap:' . esc_attr( Sofia_Estilo_Global::resolver_valor( $gap ) ) . '"';
-			} elseif ( preg_match( '/^\d+(\.\d+)?(px|rem|%)$/', $gap ) ) {
-				$estilo = 'style="--sofia-container-gap:' . esc_attr( $gap ) . '"';
-			}
-		}
-
-		return sprintf( 'class="%s" %s', esc_attr( implode( ' ', $clases ) ), $estilo );
+		return sprintf( 'class="%s"', esc_attr( implode( ' ', $clases ) ) );
 	}
 
 	/**
@@ -181,37 +185,87 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	 * tiene entrada acá — sin overrides, el comportamiento es exactamente
 	 * el de Container tal cual venía siendo hasta Fase 1.
 	 */
-	// Tokens "cf:space-{xs|s|m|l|xl}" — escala REAL de Core Framework
-	// (confirmado en Sofia_Estilo_Global::ETIQUETAS_ESCALA, nunca
-	// "space-2"/"space-4"/"space-8": esa numeración no existe en este
-	// sistema de tokens, era una suposición sin verificar descartada
-	// antes de commitear).
+	// "gap" en la escala REAL de Core Framework (4xs/3xs/2xs/xs/s/m/l/xl/
+	// 2xl/3xl/4xl, confirmado con curl contra el CSS real del sitio en
+	// vivo — ver CLASES_GAP abajo) — ya NO tokens "cf:space-*" sueltos
+	// (versión anterior de esta migración, descartada): "gap" pasó de
+	// input libre/token a una escala fija, mismo criterio que
+	// columnas_grilla.
 	private const VARIANTES = array(
-		'stack'   => array( 'display' => 'columna', 'gap' => 'cf:space-m' ),
-		'grid'    => array( 'display' => 'grilla', 'columnas_grilla' => '3', 'gap' => 'cf:space-m' ),
-		'cluster' => array( 'display' => 'fila', 'envolver' => true, 'justificar' => 'start', 'gap' => 'cf:space-s' ),
+		'stack'   => array( 'display' => 'columna', 'gap' => 'm' ),
+		'grid'    => array( 'display' => 'grilla', 'columnas_grilla' => '3', 'gap' => 'm' ),
+		'cluster' => array( 'display' => 'fila', 'envolver' => true, 'justificar' => 'start', 'gap' => 's' ),
 		'split'   => array( 'display' => 'fila', 'justificar' => 'space-between' ),
-		'inline'  => array( 'display' => 'fila', 'gap' => 'cf:space-s' ),
+		'inline'  => array( 'display' => 'fila', 'gap' => 's' ),
 	);
 
+	// CLASES_DISPLAY/CLASES_COLUMNAS/CLASES_JUSTIFICAR/CLASES_ALINEAR/
+	// CLASES_GAP: utility classes REALES de Core Framework (confirmadas
+	// con curl contra core_framework.css del sitio en vivo, nunca
+	// inventadas) — mismo criterio de "agregar la clase es todo lo que
+	// hace falta" que Sofia_Componente::CLASES_UTILITARIAS_BLOQUE (clase
+	// base) ya usa para max-width-*/width-*/aspect-*.
 	private const CLASES_DISPLAY = array(
-		'fila'    => 'sofia-container--fila',
-		'columna' => 'sofia-container--columna',
-		'grilla'  => 'sofia-container--grilla',
-		'ninguno' => 'sofia-container--ninguno',
+		'fila'    => 'flex-row',
+		'columna' => 'flex-column',
+		'grilla'  => 'row', // grid genérico de CF, sin columnas propias — ver CLASES_COLUMNAS para el caso con número elegido.
+		// "ninguno" no tiene clase — sin display:flex/grid, los hijos
+		// simplemente se apilan en flujo normal (comportamiento de
+		// "Bloque (por defecto)" también, mismo resultado visual, pero
+		// "ninguno" es la elección EXPLÍCITA de "no quiero que esto sea un
+		// contenedor de layout").
+	);
+
+	// .columns-2 a .columns-8 — Core Framework trae el rango completo,
+	// aunque el control columnas_grilla hoy solo ofrezca 2/3/4 (ver
+	// schema_propio()) — el mapa cubre las 3 opciones reales del select
+	// actual, ampliable sin tocar este mapa si el control gana más
+	// opciones después.
+	private const CLASES_COLUMNAS = array(
+		'2' => 'columns-2',
+		'3' => 'columns-3',
+		'4' => 'columns-4',
 	);
 
 	private const CLASES_JUSTIFICAR = array(
-		'start'         => 'sofia-container--justificar-inicio',
-		'center'        => 'sofia-container--justificar-centro',
-		'end'           => 'sofia-container--justificar-fin',
-		'space-between' => 'sofia-container--justificar-entre',
+		'start'         => 'content-left',
+		'center'        => 'content-center',
+		'end'           => 'content-right',
+		'space-between' => 'space-between',
+		'space-around'  => 'space-around',
 	);
 
+	// .items-top/-middle/-bottom de Core Framework (align-items) — mismo
+	// NOMBRE que las clases propias del tema ".items-left/-center/-right/
+	// -top/-middle/-bottom" (alineación de TEXTO en Franja de beneficios/
+	// Testimonios, ver style.css), pero NUNCA en el mismo elemento — acá
+	// siempre es el <div class="sofia-container">, jamás una <section> de
+	// lista. Colisión de nombre conocida y aceptada, ver el comentario
+	// largo en atributos_div_interno().
 	private const CLASES_ALINEAR = array(
-		'start'  => 'sofia-container--alinear-inicio',
-		'center' => 'sofia-container--alinear-centro',
-		'end'    => 'sofia-container--alinear-fin',
+		'start'  => 'items-top',
+		'center' => 'items-middle',
+		'end'    => 'items-bottom',
+	);
+
+	// .gap-4xs .. .gap-4xl — escala completa de Core Framework (11 pasos),
+	// confirmada dos veces con curl contra el sitio en vivo antes de
+	// commitear (ver el comentario largo del plan). Mismas 9 claves que
+	// ETIQUETAS_ESCALA ya usa en Sofia_Estilo_Global para el resto del
+	// sistema, más los 2 extremos (4xs/4xl) que ese mapa no necesitaba
+	// nombrar hasta ahora.
+	private const CLASES_GAP = array(
+		'4xs' => 'gap-4xs',
+		'3xs' => 'gap-3xs',
+		'2xs' => 'gap-2xs',
+		'xs'  => 'gap-xs',
+		's'   => 'gap-s',
+		'm'   => 'gap-m',
+		'l'   => 'gap-l',
+		'xl'  => 'gap-xl',
+		'2xl' => 'gap-2xl',
+		'3xl' => 'gap-3xl',
+		'4xl' => 'gap-4xl',
 	);
 
 	/**
@@ -281,43 +335,44 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	/**
 	 * schema_propio(): controles de layout que solo Container tiene.
 	 *
-	 * Historial real (por si el nombre "Fase 1" confunde entre dos planes
-	 * distintos de la memoria de producto): estos controles existían
-	 * desde el plan de "primitivas de layout" (Fase 2 de ESE plan), pero
-	 * render() nunca los leía — display/direccion/gap/etc. se guardaban
-	 * bien pero no tenían NINGÚN efecto visual, un hueco real encontrado
-	 * al arrancar la Fase 1 del plan de "50 primitivas" (memoria de
-	 * producto). atributos_div_interno() (ver render()) ahora sí los
-	 * traduce a clases CSS + custom properties reales.
+	 * "variante" es el ÚNICO control básico (sin 'avanzado') — el resto
+	 * (display/direccion/envolver/justificar/alinear/columnas_grilla/gap)
+	 * lleva 'avanzado' => true: CampoDesdeSchema.jsx los agrupa detrás de
+	 * un botón "Personalizar" (mismo patrón ya validado en
+	 * CampoTokenVisual.jsx, básico + "Avanzado") — el drawer muestra solo
+	 * "Variante" de entrada en vez de 8 controles de una, y la variante
+	 * sigue siendo el punto de partida real: "Personalizar" solo REVELA
+	 * los controles sueltos, nunca oculta ni reemplaza lo que la variante
+	 * ya definió (valores_con_variante() no cambia).
 	 *
-	 * "variante" (nuevo en Fase 1 de "50 primitivas"): preset que cambia
-	 * los DEFAULTS de display/gap/justificar/envolver sin agregar un tipo
-	 * nuevo a la Factory — ver el comentario largo en
-	 * valores_con_variante(). Cubre Stack/Grid/Cluster/Split/Inline del
-	 * catálogo de 50 primitivas pedido por el usuario; "Box" (el catálogo
-	 * también lo pide) es Container SIN variante, ya cubierto por
-	 * "" (Libre).
+	 * Etiquetas de "variante" con el nombre técnico entre paréntesis
+	 * (decisión confirmada con el usuario: sirve de puente para quien ya
+	 * conoce Stack/Cluster/Split de otras herramientas, sin obligar a
+	 * nadie a saberlos) — el VALOR guardado ("stack", "cluster", etc.) no
+	 * cambia, solo la etiqueta visible, cero riesgo de romper contenido
+	 * ya guardado en sitios existentes.
 	 */
 	public static function schema_propio(): array {
 		return array(
 			'variante'   => array(
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Variante', 'sofia-studio' ),
-				'ayuda'    => __( 'Un punto de partida — cambia los valores por defecto de Layout interno/Espacio entre hijos/etc. de abajo, que seguís pudiendo ajustar uno por uno después.', 'sofia-studio' ),
+				'ayuda'    => __( 'Un punto de partida — cambia los valores por defecto de "Personalizar" (abajo), que seguís pudiendo ajustar uno por uno después.', 'sofia-studio' ),
 				'opciones' => array(
-					array( 'valor' => '', 'etiqueta' => __( 'Libre (Box)', 'sofia-studio' ) ),
-					array( 'valor' => 'stack', 'etiqueta' => __( 'Stack (columna, con espacio)', 'sofia-studio' ) ),
-					array( 'valor' => 'grid', 'etiqueta' => __( 'Grid (grilla de 3)', 'sofia-studio' ) ),
-					array( 'valor' => 'cluster', 'etiqueta' => __( 'Cluster (fila que envuelve)', 'sofia-studio' ) ),
-					array( 'valor' => 'split', 'etiqueta' => __( 'Split (extremos separados)', 'sofia-studio' ) ),
-					array( 'valor' => 'inline', 'etiqueta' => __( 'Inline (fila compacta)', 'sofia-studio' ) ),
+					array( 'valor' => '', 'etiqueta' => __( 'Libre', 'sofia-studio' ) ),
+					array( 'valor' => 'stack', 'etiqueta' => __( 'Uno debajo del otro (Stack)', 'sofia-studio' ) ),
+					array( 'valor' => 'grid', 'etiqueta' => __( 'En grilla, 3 columnas (Grid)', 'sofia-studio' ) ),
+					array( 'valor' => 'cluster', 'etiqueta' => __( 'En fila, salta de línea si no entra (Cluster)', 'sofia-studio' ) ),
+					array( 'valor' => 'split', 'etiqueta' => __( 'Extremos separados (Split)', 'sofia-studio' ) ),
+					array( 'valor' => 'inline', 'etiqueta' => __( 'En fila, pegados (Inline)', 'sofia-studio' ) ),
 				),
 			),
 			'display'    => array(
-				'tipo'     => 'select',
-				'etiqueta' => __( 'Layout interno', 'sofia-studio' ),
-				'ayuda'    => __( 'Decide qué controles de abajo tienen efecto — "Fila"/"Columna" habilitan Dirección/Alinear/Justificar, "Grilla" habilita Columnas de grilla.', 'sofia-studio' ),
-				'opciones' => array(
+				'tipo'      => 'select',
+				'etiqueta'  => __( 'Cómo se acomodan los hijos', 'sofia-studio' ),
+				'ayuda'     => __( 'Fila y Columna habilitan Dirección, Alinear y Justificar de abajo. Grilla habilita Columnas de grilla.', 'sofia-studio' ),
+				'avanzado'  => true,
+				'opciones'  => array(
 					array( 'valor' => '', 'etiqueta' => __( 'Bloque (por defecto)', 'sofia-studio' ) ),
 					array( 'valor' => 'fila', 'etiqueta' => __( 'Fila', 'sofia-studio' ) ),
 					array( 'valor' => 'columna', 'etiqueta' => __( 'Columna', 'sofia-studio' ) ),
@@ -329,6 +384,7 @@ class Sofia_Componente_Container extends Sofia_Componente {
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Dirección', 'sofia-studio' ),
 				'ayuda'    => __( 'Solo con Layout interno = Fila o Columna.', 'sofia-studio' ),
+				'avanzado' => true,
 				'opciones' => array(
 					array( 'valor' => '', 'etiqueta' => __( 'Normal', 'sofia-studio' ) ),
 					array( 'valor' => 'invertida', 'etiqueta' => __( 'Invertida', 'sofia-studio' ) ),
@@ -338,21 +394,25 @@ class Sofia_Componente_Container extends Sofia_Componente {
 				'tipo'     => 'toggle',
 				'etiqueta' => __( 'Envolver (flex-wrap)', 'sofia-studio' ),
 				'ayuda'    => __( 'Solo con Layout interno = Fila o Columna.', 'sofia-studio' ),
+				'avanzado' => true,
 			),
 			'justificar' => array(
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Justificar', 'sofia-studio' ),
+				'avanzado' => true,
 				'opciones' => array(
 					array( 'valor' => '', 'etiqueta' => __( 'Por defecto', 'sofia-studio' ) ),
 					array( 'valor' => 'start', 'etiqueta' => __( 'Inicio', 'sofia-studio' ) ),
 					array( 'valor' => 'center', 'etiqueta' => __( 'Centro', 'sofia-studio' ) ),
 					array( 'valor' => 'end', 'etiqueta' => __( 'Fin', 'sofia-studio' ) ),
 					array( 'valor' => 'space-between', 'etiqueta' => __( 'Espacio entre', 'sofia-studio' ) ),
+					array( 'valor' => 'space-around', 'etiqueta' => __( 'Espacio alrededor', 'sofia-studio' ) ),
 				),
 			),
 			'alinear'    => array(
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Alinear', 'sofia-studio' ),
+				'avanzado' => true,
 				'opciones' => array(
 					array( 'valor' => '', 'etiqueta' => __( 'Por defecto', 'sofia-studio' ) ),
 					array( 'valor' => 'start', 'etiqueta' => __( 'Inicio', 'sofia-studio' ) ),
@@ -364,13 +424,36 @@ class Sofia_Componente_Container extends Sofia_Componente {
 				'tipo'     => 'botones_numero',
 				'etiqueta' => __( 'Columnas de grilla', 'sofia-studio' ),
 				'ayuda'    => __( 'Solo con Layout interno = Grilla.', 'sofia-studio' ),
+				'avanzado' => true,
 				'opciones' => array( '2', '3', '4' ),
 			),
+			// "gap" migrado de medida_token (input libre + token) a la
+			// escala FIJA de Core Framework (11 pasos) — mismo criterio
+			// que columnas_grilla, confirmado con el usuario: consistente
+			// con que el resto del control ya viene de clases fijas de
+			// CF, sin inventar un valor fuera de la escala del sistema de
+			// diseño. Etiquetas humanas (no los sufijos técnicos crudos
+			// "xs"/"2xl"), mismo criterio que
+			// Sofia_Estilo_Global::ETIQUETAS_ESCALA ya usa para espaciado
+			// en otros contextos del editor.
 			'gap'        => array(
-				'tipo'       => 'medida_token',
-				'etiqueta'   => __( 'Espacio entre hijos (gap)', 'sofia-studio' ),
-				'categoria'  => 'space',
-				'con_unidad' => true,
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Espacio entre hijos', 'sofia-studio' ),
+				'avanzado' => true,
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Sin espacio', 'sofia-studio' ) ),
+					array( 'valor' => '4xs', 'etiqueta' => __( 'Mínimo', 'sofia-studio' ) ),
+					array( 'valor' => '3xs', 'etiqueta' => __( 'Muy compacto', 'sofia-studio' ) ),
+					array( 'valor' => '2xs', 'etiqueta' => __( 'Compacto', 'sofia-studio' ) ),
+					array( 'valor' => 'xs', 'etiqueta' => __( 'Ajustado', 'sofia-studio' ) ),
+					array( 'valor' => 's', 'etiqueta' => __( 'Chico', 'sofia-studio' ) ),
+					array( 'valor' => 'm', 'etiqueta' => __( 'Base', 'sofia-studio' ) ),
+					array( 'valor' => 'l', 'etiqueta' => __( 'Amplio', 'sofia-studio' ) ),
+					array( 'valor' => 'xl', 'etiqueta' => __( 'Grande', 'sofia-studio' ) ),
+					array( 'valor' => '2xl', 'etiqueta' => __( 'Muy grande', 'sofia-studio' ) ),
+					array( 'valor' => '3xl', 'etiqueta' => __( 'Extra grande', 'sofia-studio' ) ),
+					array( 'valor' => '4xl', 'etiqueta' => __( 'Máximo', 'sofia-studio' ) ),
+				),
 			),
 		);
 	}

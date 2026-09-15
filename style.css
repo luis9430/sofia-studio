@@ -275,55 +275,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Container — Layout interno real (Fase 1, plan "50 primitivas", ver la
-   memoria de producto) — hueco encontrado al arrancar esta fase: el
-   schema de Container (display/direccion/envolver/justificar/alinear/
-   columnas_grilla/gap) existía desde el plan anterior de "primitivas de
-   layout", pero render() nunca lo traducía a HTML real, así que estas
-   props se guardaban en el editor sin ningún efecto visible. Ver
-   Sofia_Componente_Container::atributos_div_interno().
+   memoria de producto). Historial: primero se cerró el hueco de "el
+   schema existía pero render() nunca lo traducía a HTML" con clases
+   propias "sofia-container--*" — anexo posterior de la misma fase migró
+   TODO ese CSS propio a las utility classes REALES de Core Framework
+   (.flex-row/.flex-column/.row/.columns-N/.gap-N/.content-N/
+   .space-between/.space-around/.items-top/-middle/-bottom, ya cargadas en
+   cada página vía el plugin) — investigación real confirmó que Core
+   Framework ya traía un sistema de layout completo y equivalente, este
+   CSS propio quedó eliminado por duplicar exactamente eso (ver
+   Sofia_Componente_Container::atributos_div_interno() para el mapeo
+   completo control → clase real).
 
-   .sofia-container SIN ninguna de estas clases sigue siendo el
+   .sofia-container SIN ninguna clase de layout sigue siendo el
    comportamiento de SIEMPRE (display:block implícito, los hijos se
    apilan uno debajo del otro en flujo normal) — "Bloque (por defecto)"
-   del <select> de Layout interno no necesita ninguna regla CSS propia. */
-.sofia-container--fila {
-	display: flex;
-	flex-direction: row;
-	gap: var(--sofia-container-gap, 0);
-}
+   del <select> de Layout interno no necesita ninguna regla CSS propia,
+   ni antes ni ahora.
 
-.sofia-container--columna {
-	display: flex;
-	flex-direction: column;
-	gap: var(--sofia-container-gap, 0);
-}
-
-.sofia-container--grilla {
-	display: grid;
-	gap: var(--sofia-container-gap, 0);
-}
-
-.sofia-container--grilla-2 { grid-template-columns: repeat(2, 1fr); }
-.sofia-container--grilla-3 { grid-template-columns: repeat(3, 1fr); }
-.sofia-container--grilla-4 { grid-template-columns: repeat(4, 1fr); }
-
-.sofia-container--ninguno > * {
-	display: contents;
-}
-
-.sofia-container--invertida.sofia-container--fila { flex-direction: row-reverse; }
-.sofia-container--invertida.sofia-container--columna { flex-direction: column-reverse; }
-
-.sofia-container--envolver { flex-wrap: wrap; }
-
-.sofia-container--justificar-inicio { justify-content: flex-start; }
-.sofia-container--justificar-centro { justify-content: center; }
-.sofia-container--justificar-fin { justify-content: flex-end; }
-.sofia-container--justificar-entre { justify-content: space-between; }
-
-.sofia-container--alinear-inicio { align-items: flex-start; }
-.sofia-container--alinear-centro { align-items: center; }
-.sofia-container--alinear-fin { align-items: flex-end; }
+   Lo ÚNICO que sigue siendo CSS propio: "invertida" (Dirección) — Core
+   Framework no trae una utility class equivalente a
+   flex-direction:row-reverse/column-reverse, así que se combina con las
+   clases reales de layout (.flex-row/.flex-column) en vez de con las
+   viejas "sofia-container--fila/--columna" (eliminadas). */
+.sofia-container--invertida.flex-row { flex-direction: row-reverse; }
+.sofia-container--invertida.flex-column { flex-direction: column-reverse; }
 
 /* Divider (Fase 1, plan "50 primitivas") — <hr> nativo despojado de su
    estilo default del navegador (que ya trae borde 3D/inset feo en la

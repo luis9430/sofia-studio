@@ -206,6 +206,7 @@ export function DrawerEstilo({
   estilo,
   nivel = "campo",
   condicion,
+  cantidadHijos,
   onCambiarEstilo,
   onCambiarCondicion,
   onAplicarFormato,
@@ -375,7 +376,18 @@ export function DrawerEstilo({
             )}
 
             {nivel === "bloque" && schemaBloque && (
-              <CamposDesdeSchema schema={schemaBloque} estilo={estilo} actualizar={actualizar} restUrl={restUrl} nonce={nonce} />
+              <CamposDesdeSchema
+                schema={schemaBloque}
+                estilo={estilo}
+                actualizar={actualizar}
+                restUrl={restUrl}
+                nonce={nonce}
+                // cantidadHijos: SOLO para Container (anexo del plan "50
+                // primitivas", ver la memoria de producto) — el aviso
+                // "necesitás 2+ hijos" es específico de este tipo, no un
+                // mecanismo genérico para cualquier Componente con hijos.
+                cantidadHijos={tipoBloque === "container" ? cantidadHijos : undefined}
+              />
             )}
 
             {nivel === "bloque" && !schemaBloque && (

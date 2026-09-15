@@ -66,6 +66,25 @@ function todosLosIds(estructura) {
   return ids;
 }
 
+// buscarNodo(estructura, id): encuentra el nodo {id,tipo,hijos} de UN
+// bloque puntual en cualquier profundidad del árbol — anexo del plan "50
+// primitivas" (ver la memoria de producto, rediseño de Container): el
+// aviso "necesitás 2+ hijos para ver el efecto" (mostrarEstiloDeBloque)
+// necesita saber CUÁNTOS hijos tiene el Container seleccionado, y la
+// única fuente de eso es el árbol de estructura — mismo recorrido
+// recursivo que todosLosIds(), pero buscando un id puntual en vez de
+// listarlos todos.
+function buscarNodo(estructura, id) {
+  for (const bloque of estructura) {
+    if (bloque.id === id) return bloque;
+    if (bloque.hijos && bloque.hijos.length) {
+      const encontrado = buscarNodo(bloque.hijos, id);
+      if (encontrado) return encontrado;
+    }
+  }
+  return null;
+}
+
 // extraerListasDe(estructura, contenido): construye {idDeBloque: items[]}
 // leyendo pagina.contenido — paso 3 del rediseño de layout (ver la memoria
 // de producto, eliminación de Muuri). Genérico (no un mapa hardcodeado de
@@ -546,7 +565,16 @@ export function App({ config }) {
       }).then((r) => r.json());
       const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
       const estilo = estiloBloque || pagina.contenido?.[`${id}._estilo_bloque`] || {};
-      setDrawerEstilo({ campo: id, tipoBloque: tipoBloque || "", estilo, condicion: reglas, nivel: "bloque" });
+      // cantidadHijos: anexo del plan "50 primitivas" (ver la memoria de
+      // producto) — el drawer de Container necesita saber cuántos hijos
+      // tiene ESTE bloque puntual para avisar "necesitás 2+ hijos para
+      // ver el efecto" (los controles de layout interno solo acomodan
+      // VARIOS hijos entre sí, con 0-1 no hay nada que acomodar). pagina
+      // YA trae "estructura" completa en esta misma respuesta — buscarNodo()
+      // encuentra el nodo exacto sin pedir nada aparte a PHP.
+      const nodo = buscarNodo(pagina.estructura || [], id);
+      const cantidadHijos = nodo?.hijos?.length ?? 0;
+      setDrawerEstilo({ campo: id, tipoBloque: tipoBloque || "", estilo, condicion: reglas, nivel: "bloque", cantidadHijos });
     } catch {
       setEstado("error");
     }
@@ -955,6 +983,7 @@ export function App({ config }) {
               estilo={drawerEstilo.estilo}
               nivel={drawerEstilo.nivel || "campo"}
               condicion={drawerEstilo.condicion}
+              cantidadHijos={drawerEstilo.cantidadHijos}
               onCambiarEstilo={cambiarEstiloDrawer}
               onCambiarCondicion={cambiarCondicionDrawer}
               onAplicarFormato={aplicarFormato}
