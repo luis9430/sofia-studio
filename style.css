@@ -28,10 +28,50 @@ Text Domain: sofia-studio
 	--sofia-color-texto-suave: #6b6459;
 	--sofia-color-acento: #1c1a17;
 	--sofia-color-fondo: #ffffff;
+	--sofia-color-primario: #1c1a17;
+	--sofia-color-secundario: #6b6459;
+	--sofia-color-borde: #e2ddd3;
 	--sofia-fuente-display: inherit;
 	--sofia-fuente-texto: inherit;
 	--sofia-tamano-base: 1rem;
 	--sofia-espaciado-base: 1rem;
+	--sofia-radio-borde: 6px;
+	--sofia-sombra: none;
+}
+
+/* Roles de Estilo Global (Nivel 3) APLICADOS de verdad — ver la memoria de
+   producto, conversación "¿de verdad nos sirve Estilo Global?": hasta este
+   cambio, Sofia_Estilo_Global::imprimir() ya calculaba/emitía estas custom
+   properties en el <head>, pero NINGÚN selector real del tema las
+   consumía — el panel guardaba bien, pero no se veía ningún efecto en la
+   página pública. Estas reglas son las que faltaban.
+
+   body (no :root) para texto/fondo/tipografía — son propiedades HEREDABLES
+   que necesitan un elemento real en el árbol de renderizado para que la
+   herencia normal de CSS las propague a cada Componente (h1/p/etc.), a
+   diferencia de :root arriba, que solo DECLARA las custom properties sin
+   aplicar ninguna. */
+.sofia-pagina,
+body {
+	color: var(--sofia-color-texto);
+	background-color: var(--sofia-color-fondo);
+	font-family: var(--sofia-fuente-texto);
+	font-size: var(--sofia-tamano-base);
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: var(--sofia-fuente-display);
+}
+
+/* Espaciado base entre secciones de nivel superior — mismo rol que
+   "Espaciado vertical" de Nivel 2 (atributo_estilo_bloque(), padding-top/
+   bottom por INSTANCIA de bloque), pero como DEFAULT del sitio completo
+   cuando esa instancia no configuró nada — el estilo inline de Nivel 2
+   (mayor especificidad, atributo style="") sigue ganando si el usuario lo
+   configuró para un bloque puntual. */
+.sofia-pagina > section {
+	padding-top: var(--sofia-espaciado-base);
+	padding-bottom: var(--sofia-espaciado-base);
 }
 
 /* --sofia-columnas: custom property que el drawer de estilo de BLOQUE
@@ -129,7 +169,7 @@ Text Domain: sofia-studio
 }
 
 .sofia-testimonios__foto--vacia {
-	background: #e2ddd3;
+	background: var(--sofia-color-borde);
 }
 
 .sofia-cta {
@@ -139,16 +179,25 @@ Text Domain: sofia-studio
 .sofia-cta__boton {
 	display: inline-block;
 	padding: 12px 28px;
-	border-radius: 6px;
-	background: #1c1a17;
-	color: #fff;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
 	text-decoration: none;
 	margin-top: 12px;
 }
 
+.sofia-button__enlace {
+	display: inline-block;
+	padding: 12px 28px;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+	text-decoration: none;
+}
+
 .sofia-faq__item {
 	padding: 16px 0;
-	border-bottom: 1px solid #e2ddd3;
+	border-bottom: 1px solid var(--sofia-color-borde);
 }
 
 .sofia-faq__pregunta {
