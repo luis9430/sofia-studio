@@ -459,6 +459,14 @@
 		}
 		if (datos.tipo === "sofia:reemplazar-bloque-html") {
 			alReemplazarBloqueHTML(datos.id, datos.html);
+			return;
+		}
+		if (datos.tipo === "sofia:mover-bloque") {
+			alMoverBloque(datos.id, datos.posicion);
+			return;
+		}
+		if (datos.tipo === "sofia:resaltar-bloque-por-id") {
+			alResaltarBloquePorId(datos.id);
 		}
 	}
 
@@ -497,26 +505,15 @@
 	// producto "Sofia Studio"). Mismo patrón "controles fuera del iframe"
 	// que la barra de formato: este script solo informa posición+nombre,
 	// el panel padre dibuja el overlay.
-	function alMoverMouse(evento) {
-		// Se busca la <section> PRIMERO (no un data-sofia-campo primero) —
-		// bug real encontrado en la práctica: buscar el campo primero hacía
-		// que el overlay "parpadeara" al mover el mouse sobre cualquier
-		// zona de la sección que no fuera exactamente un elemento
-		// editable (el padding entre el título y el borde, por ejemplo),
-		// porque closest("[data-sofia-campo]") devolvía null ahí y se
-		// apagaba el resaltado — aunque el mouse siguiera técnicamente
-		// dentro del bloque completo.
-		var seccion = evento.target.closest ? evento.target.closest("section") : null;
-
-		if (!seccion) {
-			if (seccionResaltada) {
-				seccionResaltada = null;
-				window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
-			}
-			return;
-		}
-		if (seccion === seccionResaltada) return; // evita spam de postMessage en cada pixel de movimiento dentro del mismo bloque.
-
+	// resaltarSeccion(seccion): arma y manda "sofia:bloque-resaltado" para
+	// UNA <section> ya resuelta — extraído de alMoverMouse (que sigue
+	// siendo el caller principal, vía mouseover real) para que
+	// alResaltarBloquePorId (panel de Estructura, ver PanelEstructura.jsx)
+	// pueda disparar el mismo overlay sin pasar por un evento de mouse
+	// real, mismo criterio que mandarMenuContextualDe/contenedorGridDe ya
+	// usan para separar "resolver los datos de una sección" de "cómo se
+	// disparó".
+	function resaltarSeccion(seccion) {
 		seccionResaltada = seccion;
 		// tipo viene de data-sofia-bloque-tipo en la <section> misma (ver
 		// Sofia_Componente::atributos_seccion()) — ya NO se extrae del
@@ -537,6 +534,45 @@
 			},
 			"*"
 		);
+	}
+
+	function alMoverMouse(evento) {
+		// Se busca la <section> PRIMERO (no un data-sofia-campo primero) —
+		// bug real encontrado en la práctica: buscar el campo primero hacía
+		// que el overlay "parpadeara" al mover el mouse sobre cualquier
+		// zona de la sección que no fuera exactamente un elemento
+		// editable (el padding entre el título y el borde, por ejemplo),
+		// porque closest("[data-sofia-campo]") devolvía null ahí y se
+		// apagaba el resaltado — aunque el mouse siguiera técnicamente
+		// dentro del bloque completo.
+		var seccion = evento.target.closest ? evento.target.closest("section") : null;
+
+		if (!seccion) {
+			if (seccionResaltada) {
+				seccionResaltada = null;
+				window.parent.postMessage({ tipo: "sofia:bloque-sin-resaltar" }, "*");
+			}
+			return;
+		}
+		if (seccion === seccionResaltada) return; // evita spam de postMessage en cada pixel de movimiento dentro del mismo bloque.
+
+		resaltarSeccion(seccion);
+	}
+
+	// alResaltarBloquePorId (paso 2 del rediseño de layout, panel de
+	// Estructura): a diferencia de alMoverMouse (que resuelve la sección
+	// bajo el CURSOR), acá no hay ningún evento de mouse real — el click
+	// ocurrió en el árbol, fuera del iframe. scrollIntoView primero: un
+	// bloque fuera del viewport actual del iframe no tendría sentido
+	// resaltar sin antes traerlo a la vista. behavior:"auto" (instantáneo),
+	// no "smooth" — con scroll animado, el getBoundingClientRect() de
+	// resaltarSeccion() se dispararía a mitad de la animación, mandando un
+	// rect que todavía no es la posición final del bloque.
+	function alResaltarBloquePorId(id) {
+		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
+		if (!seccion) return;
+		seccion.scrollIntoView({ block: "center", behavior: "auto" });
+		resaltarSeccion(seccion);
 	}
 
 	// Menú contextual (Nivel 2) — click derecho sobre un bloque, en vez de
@@ -879,6 +915,47 @@
 	// cambiarCondicionDrawer() en App.jsx al guardar Visibilidad) —
 	// distinto de alInsertarBloqueHTML: acá el bloque YA estaba en la
 	// página, solo cambió su marca de "oculto por condición"
+	// instanciaGridDe(grid): mismo patrón "¿nivel superior o dentro de un
+	// container?" repetido en varios lugares (alReemplazarBloqueHTML,
+	// alEliminarBloque, alMoverBloque) — resuelve la instancia Muuri real a
+	// partir del resultado de contenedorGridDe(), sin duplicar el
+	// condicional en cada función.
+	function instanciaGridDe(grid) {
+		return grid.containerId ? instanciasContainers.get(grid.contenedor) : gridNivelSuperior;
+	}
+
+	// alMoverBloque (paso 2 del rediseño de layout a 3 zonas fijas, ver la
+	// memoria de producto): reordena un bloque a $posicion SIN un drag real
+	// del mouse — el panel de estructura/árbol de bloques (App.jsx) manda
+	// este mensaje cuando el usuario arrastra un nodo del árbol, ya que ese
+	// árbol vive FUERA del iframe y no tiene acceso al mouse real dentro de
+	// él. Mismo alcance que el drag de Muuri en el canvas (decisión
+	// explícita, Fase 3): solo reordena DENTRO del mismo padre — el árbol
+	// nunca manda un containerId destino distinto de donde el bloque ya
+	// está, así que grid.move() (misma instancia origen y destino) alcanza,
+	// sin necesitar remove+insertar-HTML como si fuera un bloque nuevo.
+	// grid.move() con action:"move" (no "swap"): desplaza el resto de los
+	// items, mismo comportamiento que un drag real de Muuri.
+	function alMoverBloque(id, posicion) {
+		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
+		if (!seccion) return;
+
+		var grid = contenedorGridDe(seccion);
+		var instanciaGrid = instanciaGridDe(grid);
+		if (!instanciaGrid) return;
+
+		instanciaGrid.move(seccion, posicion, { action: "move" });
+		actualizarZIndexSecciones(grid.contenedor);
+		activarLineasInsertar();
+		window.parent.postMessage(
+			{
+				tipo: "sofia:estructura-reordenada",
+				bloques: leerBloquesDeNivelSuperior(document.querySelector(".sofia-pagina")),
+			},
+			"*"
+		);
+	}
+
 	// (data-sofia-oculto-condicion, ver Sofia_Componente::atributos_seccion()).
 	// Mismo motivo de UX que agregar/eliminar: evita recargar la página
 	// ENTERA del iframe por actualizar UNA sección.
@@ -901,7 +978,7 @@
 
 		var grid = contenedorGridDe(seccionVieja);
 		if (grid.indice < 0) return;
-		var instanciaGrid = grid.containerId ? instanciasContainers.get(grid.contenedor) : gridNivelSuperior;
+		var instanciaGrid = instanciaGridDe(grid);
 		if (!instanciaGrid) return;
 
 		var itemViejo = instanciaGrid.getItems(seccionVieja);
@@ -961,7 +1038,7 @@
 		// inconsistentes (getItems() de un grid ajeno no encuentra nada,
 		// pero tampoco avisa del error).
 		var grid = contenedorGridDe(seccion);
-		var instanciaGrid = grid.containerId ? instanciasContainers.get(grid.contenedor) : gridNivelSuperior;
+		var instanciaGrid = instanciaGridDe(grid);
 		if (!instanciaGrid) return;
 
 		// remove() de Muuri toma INSTANCIAS de Item (getItems(seccion)), no

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { DrawerEstilo } from "./DrawerEstilo.jsx";
+import { PanelEstructura } from "./PanelEstructura.jsx";
 import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
 import { MenuContextualBloque } from "./MenuContextualBloque.jsx";
@@ -65,6 +66,23 @@ function todosLosIds(estructura) {
   return ids;
 }
 
+// conNombres: copia $estructura agregando `nombre` (legible) a cada nodo, a
+// partir del catálogo real de Componentes (ver catalogoBloques en App) —
+// paso 2 del rediseño de layout, alimenta PanelEstructura.jsx. El árbol que
+// llega del REST/iframe solo trae {id, tipo, hijos?} (mismo shape liviano
+// que ya usa el resto del sistema, ver leerBloquesDesde en
+// editor-iframe.js) — el nombre humano ("Hero", "Franja de beneficios") se
+// resuelve acá en vez de viajar en cada mensaje, mismo criterio que ya usa
+// nombresBloque dentro del iframe (un solo mapeo tipo→nombre, pedido una
+// vez al catálogo real).
+function conNombres(estructura, catalogo) {
+  return estructura.map((bloque) => ({
+    ...bloque,
+    nombre: catalogo.find((c) => c.tipo === bloque.tipo)?.nombre || bloque.tipo,
+    hijos: bloque.hijos && bloque.hijos.length ? conNombres(bloque.hijos, catalogo) : bloque.hijos,
+  }));
+}
+
 /**
  * App es el panel completo del editor in-place, con layout de 3 zonas
  * fijas (paso 1 de la migración, ver la memoria de producto — el resto de
@@ -113,6 +131,17 @@ export function App({ config }) {
   const [drawerEstilo, setDrawerEstilo] = useState(null);
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [catalogoBloques, setCatalogoBloques] = useState([]);
+  // estructura: árbol COMPLETO {id, tipo, hijos?} de la página — paso 2 del
+  // rediseño de layout a 3 zonas fijas (ver la memoria de producto),
+  // alimenta el panel de Estructura (PanelEstructura.jsx) a la izquierda
+  // del canvas. Antes de este paso, App.jsx nunca mantenía el árbol
+  // completo en estado (cada operación lo pedía bajo demanda y lo
+  // descartaba) — ahora también queda en estado para poder DIBUJAR el
+  // árbol, pero sigue sin ser la fuente de verdad de nada: cada operación
+  // que cambia bloques (agregar/eliminar/mover/generar por IA) sigue
+  // escribiendo en GoPress primero y recién después refresca este estado,
+  // nunca al revés.
+  const [estructura, setEstructura] = useState([]);
   const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
   // Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
   // (paleta/tipografía), sin relación con ningún campo/bloque seleccionado
@@ -161,6 +190,27 @@ export function App({ config }) {
     otras: [],
   });
 
+  // recargarEstructura: releer paginas/{slug} y quedarse solo con
+  // `estructura` — mismo fetch que ya usan agregarBloque/aplicarArbolGenerado
+  // PorIA/mostrarEstiloDeBloque para leer el árbol actual, pero acá el
+  // resultado se GUARDA en estado (ver arriba) para alimentar
+  // PanelEstructura.jsx. No reemplaza esos otros fetch puntuales (cada uno
+  // necesita ADEMÁS comparar contra el árbol anterior o leer un campo
+  // específico) — es una llamada más, después de que cualquiera de ellos
+  // termina de cambiar algo.
+  async function recargarEstructura() {
+    try {
+      const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => r.json());
+      setEstructura(pagina.estructura || []);
+    } catch {
+      // Silencioso: un fallo acá solo deja el árbol del panel desactualizado
+      // un momento, no bloquea ninguna otra operación del editor — el
+      // próximo cambio de estructura vuelve a intentar.
+    }
+  }
+
   // Catálogo real de Componentes del tema (mismo endpoint que ya usa
   // editor-iframe.js para los nombres del overlay de resaltado) — se pide
   // una sola vez al montar el panel, nunca una lista curada aparte que
@@ -170,6 +220,8 @@ export function App({ config }) {
       .then((resp) => (resp.ok ? resp.json() : []))
       .then(setCatalogoBloques)
       .catch(() => setCatalogoBloques([]));
+
+    recargarEstructura();
 
     fetch(`${config.restUrl}core-framework/variables`, { headers: { "X-WP-Nonce": config.nonce } })
       .then((resp) => (resp.ok ? resp.json() : {}))
@@ -251,6 +303,13 @@ export function App({ config }) {
         return;
       }
       if (datos.tipo === "sofia:estructura-reordenada") {
+        // El iframe YA manda el árbol resultante completo (ver
+        // leerBloquesDeNivelSuperior en editor-iframe.js) — se usa directo
+        // para refrescar el panel de Estructura, sin roundtrip extra a
+        // paginas/{slug} (a diferencia de agregar/eliminar, que sí
+        // necesitan releer porque un bloque nuevo no trae su ID hasta que
+        // GoPress se lo asigna al guardar).
+        setEstructura(datos.bloques);
         guardarEstructura(datos.bloques);
       }
     }
@@ -353,6 +412,7 @@ export function App({ config }) {
         throw new Error("No se pudo guardar la estructura generada por IA.");
       }
       setEstado("guardado");
+      setEstructura(estructuraFinal);
       iframeRef.current?.contentWindow.location.reload();
     } catch (error) {
       setEstado("error");
@@ -377,10 +437,18 @@ export function App({ config }) {
   // más abajo (click simple sobre un bloque, ver alHacerClickIzquierdo en
   // editor-iframe.js) — "Estilo del bloque" del menú contextual se
   // eliminó (ver MenuContextualBloque.jsx), el click simple lo reemplaza
-  // por completo. La condición de Visibilidad NO se refleja en ningún
-  // atributo del DOM inspeccionable (solo la marca visual de "oculto", no
-  // las reglas en sí), así que hay que pedirle el contenido completo de
-  // la página al proxy REST, mismo fetch que ya usa agregarBloque() para
+  // por completo. También es el camino que usa un click en el panel de
+  // Estructura (PanelEstructura.jsx, paso 2 del rediseño): sus nodos solo
+  // traen {id, tipo, hijos} (mismo shape liviano que ya manda el iframe en
+  // "sofia:estructura-reordenada"), sin el estilo del bloque — a
+  // diferencia del click en canvas (que SÍ lo lee del DOM real, ver
+  // estiloBloqueActualDe en editor-iframe.js), acá $estiloBloque llega
+  // undefined y hay que leerlo del contenido de la página, mismo mecanismo
+  // que ya usa la condición de Visibilidad un poco más abajo. La condición
+  // de Visibilidad NUNCA se refleja en ningún atributo del DOM
+  // inspeccionable (solo la marca visual de "oculto", no las reglas en
+  // sí), así que hay que pedirle el contenido completo de la página al
+  // proxy REST de todos modos, mismo fetch que ya usa agregarBloque() para
   // leer la estructura actual.
   async function mostrarEstiloDeBloque(id, tipoBloque, estiloBloque) {
     if (!id) return;
@@ -389,10 +457,35 @@ export function App({ config }) {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
       const reglas = pagina.contenido?.[`${id}._condicion_bloque`] || [];
-      setDrawerEstilo({ campo: id, tipoBloque: tipoBloque || "", estilo: estiloBloque || {}, condicion: reglas, nivel: "bloque" });
+      const estilo = estiloBloque || pagina.contenido?.[`${id}._estilo_bloque`] || {};
+      setDrawerEstilo({ campo: id, tipoBloque: tipoBloque || "", estilo, condicion: reglas, nivel: "bloque" });
     } catch {
       setEstado("error");
     }
+  }
+
+  // Click en un nodo del panel de Estructura (paso 2 del rediseño de
+  // layout, ver PanelEstructura.jsx): mismo resultado que un click directo
+  // sobre el bloque en el canvas (mostrarEstiloDeBloque), pero además
+  // resalta el bloque dentro del iframe — sin esto, seleccionar desde el
+  // árbol dejaría el usuario sin ninguna pista visual de A CUÁL bloque del
+  // canvas corresponde el nodo que acaba de tocar, justo lo que este panel
+  // debía resolver (encontrar el Container correcto sin adivinar).
+  function seleccionarDesdeEstructura(nodo) {
+    mostrarEstiloDeBloque(nodo.id, nodo.tipo);
+    iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:resaltar-bloque-por-id", id: nodo.id }, "*");
+  }
+
+  // Reordenar desde el panel de Estructura: el árbol vive FUERA del
+  // iframe, así que no puede mover el nodo real por su cuenta — le pide al
+  // iframe que lo haga (ver alMoverBloque en editor-iframe.js, que
+  // resuelve la instancia Muuri dueña del bloque y llama grid.move()) y
+  // ese mensaje ya responde con "sofia:estructura-reordenada" para
+  // refrescar tanto el estado local (setEstructura) como GoPress
+  // (guardarEstructura) — mismo flujo que ya dispara un drag real sobre el
+  // canvas, el árbol solo cambia CÓMO se originó el movimiento.
+  function moverBloqueDesdeEstructura(id, posicion) {
+    iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:mover-bloque", id, posicion }, "*");
   }
 
   // El iframe aplica el estilo al elemento/sección real Y notifica el
@@ -603,6 +696,7 @@ export function App({ config }) {
       const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
         headers: { "X-WP-Nonce": config.nonce },
       }).then((r) => r.json());
+      setEstructura(pagina.estructura || []);
       const idsDespues = todosLosIds(pagina.estructura || []);
       const idNuevo = idsDespues.find((id) => !idsAntes.has(id));
       if (!idNuevo) {
@@ -700,6 +794,19 @@ export function App({ config }) {
         />
       )}
       <div className="sofia-lienzo-wrap">
+        {/* PanelEstructura — paso 2 del rediseño de layout a 3 zonas fijas
+            (ver la memoria de producto): columna SIEMPRE montada a la
+            izquierda del canvas, hermana de .sofia-sitio-frame, mismo
+            criterio que .sofia-zona-propiedades a la derecha (paso 1).
+            conNombres() resuelve el nombre humano de cada nodo recién acá,
+            en el render — `estructura` en estado sigue guardando solo
+            {id,tipo,hijos}, el shape liviano que ya viaja en cada mensaje. */}
+        <PanelEstructura
+          estructura={conNombres(estructura, catalogoBloques)}
+          seleccionado={drawerEstilo?.nivel === "bloque" ? drawerEstilo.campo : null}
+          onSeleccionar={seleccionarDesdeEstructura}
+          onMover={moverBloqueDesdeEstructura}
+        />
         <div className="sofia-sitio-frame">
           <div className="sofia-sitio-chrome">
             <div className="sofia-sitio-chrome__trafico">
