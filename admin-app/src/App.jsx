@@ -5,7 +5,7 @@ import { ResaltadoBloque } from "./ResaltadoBloque.jsx";
 import { MenuAgregarBloque } from "./MenuAgregarBloque.jsx";
 import { MenuContextualBloque } from "./MenuContextualBloque.jsx";
 import { PanelEstiloGlobal } from "./PanelEstiloGlobal.jsx";
-import { PanelGenerarIA } from "./PanelGenerarIA.jsx";
+import { FranjaGenerarIA } from "./FranjaGenerarIA.jsx";
 import { ListaVariablesCoreFramework } from "./CampoConToken.jsx";
 
 // debounce simple: junta ediciones rápidas del mismo campo (ej. varias
@@ -144,11 +144,12 @@ function conNombres(estructura, catalogo, listasPorBloque) {
 }
 
 /**
- * App es el panel completo del editor in-place, con layout de 3 zonas
- * fijas (paso 1 de la migración, ver la memoria de producto — el resto de
- * zonas, catálogo arrastrable y chat de IA in-context, quedan para pasos
- * siguientes): el sitio (iframe, ver Sofia_Panel_Editor::ocultar_chrome_admin
- * en el tema) al centro, y la zona de Propiedades (DrawerEstilo.jsx)
+ * App es el panel completo del editor in-place, con el layout de 3 zonas
+ * fijas ya completo (4 pasos, ver la memoria de producto): Estructura
+ * (árbol de bloques + catálogo para agregar, PanelEstructura.jsx) a la
+ * izquierda, el sitio (iframe, ver Sofia_Panel_Editor::ocultar_chrome_admin
+ * en el tema) al centro con la franja de IA anclada a su pie
+ * (FranjaGenerarIA.jsx), y la zona de Propiedades (DrawerEstilo.jsx)
  * SIEMPRE montada a la derecha — nunca un panel flotante que hay que abrir
  * ni cerrar, un click en cualquier campo/bloque simplemente cambia qué
  * muestra. Todo control de un campo (negrita/cursiva, alineación, color)
@@ -212,16 +213,11 @@ export function App({ config }) {
   // de estos arrays (nunca vienen en pagina.estructura, que solo trae
   // {id,tipo,hijos} de BLOQUES).
   const [listasPorBloque, setListasPorBloque] = useState({});
-  const [menuAgregarAbierto, setMenuAgregarAbierto] = useState(false);
   // Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
   // (paleta/tipografía), sin relación con ningún campo/bloque seleccionado
   // — vive detrás de su propio botón en la barra superior, ver
   // PanelEstiloGlobal.jsx.
   const [panelGlobalAbierto, setPanelGlobalAbierto] = useState(false);
-  // Panel "Generar con IA" (Fase 4, ver PanelGenerarIA.jsx) — mismo
-  // criterio que panelGlobalAbierto: un booleano simple, sin relación con
-  // ningún campo/bloque seleccionado del iframe.
-  const [panelIAAbierto, setPanelIAAbierto] = useState(false);
   // Menú contextual de un bloque (click derecho, ver
   // alHacerClickDerecho en editor-iframe.js) — reemplaza un primer intento
   // con un botón "✕" flotante en el overlay de resaltado, que tenía un bug
@@ -234,10 +230,12 @@ export function App({ config }) {
   const [menuContextual, setMenuContextual] = useState(null); // { indice, item, x, y } | null
   // Menú "agregar bloque" abierto desde una LÍNEA de inserción entre dos
   // bloques (click en el "+" dentro del iframe, ver
-  // activarLineasInsertar() en editor-iframe.js) — distinto del botón fijo
-  // de la barra superior (menuAgregarAbierto, siempre agrega al final):
-  // este guarda EN QUÉ POSICIÓN insertar y las coordenadas donde dibujar
-  // el menú, igual que menuContextual.
+  // activarLineasInsertar() en editor-iframe.js) — distinto de la pestaña
+  // "Agregar" del panel de Estructura (paso 4 del rediseño, siempre agrega
+  // al FINAL de la página): este guarda EN QUÉ POSICIÓN insertar y las
+  // coordenadas donde dibujar el menú, igual que menuContextual — sigue
+  // siendo un menú flotante puntual porque insertar EN una posición del
+  // medio de la página no tiene equivalente en la pestaña.
   const [menuAgregarEnPosicion, setMenuAgregarEnPosicion] = useState(null); // { posicion, x, y } | null
   // Nombres reales leídos del CSS de Core Framework, YA AGRUPADOS por
   // categoría (ver Sofia_Estilo_Global::variables_core_framework_por_
@@ -459,8 +457,8 @@ export function App({ config }) {
     }
   }
 
-  // aplicarArbolGeneradoPorIA (Fase 4, ver PanelGenerarIA.jsx): "Aplicar a
-  // la página" del panel de IA — el árbol YA viene reparado/confirmado por
+  // aplicarArbolGeneradoPorIA (Fase 4, ver FranjaGenerarIA.jsx): "Agregar a
+  // la página" de la franja de IA — el árbol YA viene reparado/confirmado por
   // el usuario después de ver el preview. AGREGA el árbol generado al
   // FINAL de la estructura ya existente (nunca la reemplaza) — mismo
   // comportamiento que "+ Agregar bloque" manual (ver agregarBloque() más
@@ -769,7 +767,6 @@ export function App({ config }) {
   // árbol hasta encontrar el nodo container correcto, en cualquier
   // profundidad.
   async function agregarBloque(tipo, posicion, containerId) {
-    setMenuAgregarAbierto(false);
     setMenuAgregarEnPosicion(null);
     setEstado("guardando");
     try {
@@ -860,40 +857,12 @@ export function App({ config }) {
         >
           Estilo global
         </button>
-        <button
-          type="button"
-          className="sofia-editor-admin__generar-ia"
-          onClick={() => setPanelIAAbierto(true)}
-        >
-          ✨ Generar con IA
-        </button>
-        <button
-          type="button"
-          className="sofia-editor-admin__agregar-bloque"
-          onClick={() => setMenuAgregarAbierto((abierto) => !abierto)}
-        >
-          + Agregar bloque
-        </button>
       </div>
-      {menuAgregarAbierto && (
-        <MenuAgregarBloque
-          catalogo={catalogoBloques}
-          onElegir={(tipo) => agregarBloque(tipo)}
-          onCerrar={() => setMenuAgregarAbierto(false)}
-        />
-      )}
       {panelGlobalAbierto && (
         <PanelEstiloGlobal
           config={config}
           onCerrar={() => setPanelGlobalAbierto(false)}
           onGuardado={() => iframeRef.current?.contentWindow.location.reload()}
-        />
-      )}
-      {panelIAAbierto && (
-        <PanelGenerarIA
-          config={config}
-          onCerrar={() => setPanelIAAbierto(false)}
-          onAplicar={aplicarArbolGeneradoPorIA}
         />
       )}
       <div className="sofia-lienzo-wrap">
@@ -917,6 +886,8 @@ export function App({ config }) {
               ? moverItemDesdeEstructura(nodo.campoLista, nodo.indiceItem, posicion)
               : moverBloqueDesdeEstructura(id, posicion)
           }
+          catalogo={catalogoBloques}
+          onAgregar={(tipo) => agregarBloque(tipo)}
         />
         <div className="sofia-sitio-frame">
           <div className="sofia-sitio-chrome">
@@ -960,6 +931,13 @@ export function App({ config }) {
               />
             )}
           </div>
+          {/* FranjaGenerarIA — paso 4 del rediseño de layout (ver la
+              memoria de producto): reemplaza el modal "✨ Generar con IA"
+              que antes vivía detrás de un botón en la barra superior.
+              SIEMPRE montada acá, hermana del viewport dentro del mismo
+              "marco de navegador" — retraída por defecto, se expande sola
+              hacia arriba al generar (ver FranjaGenerarIA.jsx). */}
+          <FranjaGenerarIA config={config} onAplicar={aplicarArbolGeneradoPorIA} />
         </div>
 
         {/* ZonaPropiedades — paso 1 del rediseño de layout a 3 zonas fijas

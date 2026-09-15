@@ -1,13 +1,54 @@
 import { useState } from "preact/hooks";
 
 /**
+ * CatalogoAgregar — pestaña "Agregar" del panel de Estructura (paso 4 del
+ * rediseño de layout a 3 zonas fijas, ver la memoria de producto):
+ * reemplaza el botón "+ Agregar bloque" de la barra superior y el menú
+ * desplegable que abría (MenuAgregarBloque.jsx, que sigue existiendo tal
+ * cual para las líneas "+" del canvas — esas sí necesitan un menú flotante
+ * puntual, insertar EN una posición del medio de la página, algo que esta
+ * pestaña no resuelve). Mismo catálogo real (Sofia_Componente_Factory,
+ * ver catalogoBloques en App.jsx), sin lista curada aparte.
+ *
+ * Solo click, agrega siempre al FINAL de la página (decisión explícita:
+ * arrastrar un item del catálogo hasta una posición puntual del canvas
+ * cruzaría el límite del iframe — dos documentos DOM distintos — algo que
+ * ninguna otra pieza del editor hace hoy; para una posición puntual, las
+ * líneas "+" entre bloques siguen siendo el camino, sin cambios).
+ */
+function CatalogoAgregar({ catalogo, onAgregar }) {
+  if (!catalogo.length) {
+    return <p className="sofia-zona-estructura__vacio">Cargando catálogo…</p>;
+  }
+  return (
+    <div className="sofia-catalogo-agregar">
+      {catalogo.map((bloque) => (
+        <button
+          key={bloque.tipo}
+          type="button"
+          className="sofia-catalogo-agregar__item"
+          onClick={() => onAgregar(bloque.tipo)}
+          title={`Agregar "${bloque.nombre}" al final de la página`}
+        >
+          <span className="sofia-catalogo-agregar__nombre">{bloque.nombre}</span>
+          <span className="sofia-catalogo-agregar__mas">+</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
  * PanelEstructura — paso 2 del rediseño de layout a 3 zonas fijas (ver la
  * memoria de producto): columna SIEMPRE montada a la IZQUIERDA del canvas,
  * hermana de .sofia-zona-propiedades (que quedó a la derecha desde el paso
- * 1) — árbol de TODOS los bloques de la página, en cualquier profundidad de
- * anidamiento (un bloque dentro de un Container aparece indentado bajo él).
+ * 1). Gana pestañas en el paso 4: "Árbol" (todo lo que ya hacía, sin
+ * cambios) y "Agregar" (catálogo de Componentes, ver CatalogoAgregar
+ * arriba) — un solo panel angosto con varios modos, en vez de sumar una
+ * 4ta columna que angostara más el canvas (decisión confirmada con el
+ * usuario tras ver un mockup comparando ambas opciones).
  *
- * Resuelve 2 problemas reales a la vez:
+ * El árbol de bloques resuelve 2 problemas reales a la vez:
  * 1. "Seleccionar el padre" ya no depende de "Seleccionar contenedor" del
  *    menú contextual (click derecho sobre un hijo, reabrir el menú apuntando
  *    al padre) — un click directo en el nodo del Container en este árbol
@@ -40,7 +81,9 @@ import { useState } from "preact/hooks";
  * visualmente (una fila por nodo), así que el mecanismo nativo del
  * navegador alcanza sin dependencias extra.
  */
-export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover }) {
+export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover, catalogo, onAgregar }) {
+  const [tab, setTab] = useState("arbol");
+
   // arrastrando: { nodo, padreId } del nodo que se está arrastrando —
   // padreId es null a nivel superior. Se usa para bloquear el drop sobre
   // un nodo de OTRO padre (ver alSoltar) sin tener que recalcular el
@@ -50,15 +93,6 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
   // mensaje mandarle al iframe.
   const [arrastrando, setArrastrando] = useState(null);
   const [sobreId, setSobreId] = useState(null);
-
-  if (!estructura || !estructura.length) {
-    return (
-      <div className="sofia-zona-estructura">
-        <div className="sofia-zona-estructura__cabecera">Estructura</div>
-        <p className="sofia-zona-estructura__vacio">Sin bloques todavía</p>
-      </div>
-    );
-  }
 
   function alEmpezarArrastre(evento, nodo, padreId) {
     setArrastrando({ nodo, padreId });
@@ -131,9 +165,30 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
 
   return (
     <div className="sofia-zona-estructura">
-      <div className="sofia-zona-estructura__cabecera">Estructura</div>
+      <div className="sofia-zona-estructura__tabs">
+        <button
+          type="button"
+          className={`sofia-zona-estructura__tab ${tab === "arbol" ? "sofia-zona-estructura__tab--activo" : ""}`}
+          onClick={() => setTab("arbol")}
+        >
+          Árbol
+        </button>
+        <button
+          type="button"
+          className={`sofia-zona-estructura__tab ${tab === "agregar" ? "sofia-zona-estructura__tab--activo" : ""}`}
+          onClick={() => setTab("agregar")}
+        >
+          Agregar
+        </button>
+      </div>
       <div className="sofia-zona-estructura__lista">
-        {estructura.map((nodo, indice) => renderNodo(nodo, null, indice, 0))}
+        {tab === "arbol" &&
+          (estructura && estructura.length ? (
+            estructura.map((nodo, indice) => renderNodo(nodo, null, indice, 0))
+          ) : (
+            <p className="sofia-zona-estructura__vacio">Sin bloques todavía</p>
+          ))}
+        {tab === "agregar" && <CatalogoAgregar catalogo={catalogo} onAgregar={onAgregar} />}
       </div>
     </div>
   );

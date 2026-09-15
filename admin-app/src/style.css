@@ -106,15 +106,31 @@ body {
   flex-direction: column;
 }
 
-.sofia-zona-estructura__cabecera {
+/* Tabs "Árbol"/"Agregar" — paso 4 del rediseño de layout (ver la memoria
+   de producto): mismo patrón visual exacto que .sofia-drawer-estilo__tab
+   (borde inferior de acento en el activo), la pestaña "Agregar" reemplaza
+   el botón "+ Agregar bloque" que antes vivía en la barra superior. */
+.sofia-zona-estructura__tabs {
   flex: 0 0 auto;
-  padding: 12px 16px;
+  display: flex;
   border-bottom: 1px solid var(--gp-panel-border);
+}
+
+.sofia-zona-estructura__tab {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text-dim);
   font-size: 12px;
   font-weight: 600;
-  color: var(--gp-panel-text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.sofia-zona-estructura__tab--activo {
+  color: var(--gp-panel-text);
+  border-bottom-color: var(--gp-accent);
 }
 
 .sofia-zona-estructura__lista {
@@ -124,11 +140,7 @@ body {
 }
 
 .sofia-zona-estructura__vacio {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 24px;
+  padding: 32px 16px;
   text-align: center;
   color: var(--gp-panel-text-dim);
   font-size: 13px;
@@ -198,6 +210,52 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Catálogo de Componentes — pestaña "Agregar" (paso 4 del rediseño de
+   layout, ver la memoria de producto). Fila similar a un nodo del árbol
+   (mismo radio/padding), pero sin handle de arrastre — el gesto acá es
+   solo click, agrega al final de la página (ver el comentario largo en
+   CatalogoAgregar, PanelEstructura.jsx). El "+" a la derecha aparece solo
+   al hover, mismo criterio de "affordance discreta" que ya usa el resto
+   del editor (ej. las líneas de inserción del canvas). */
+.sofia-catalogo-agregar__item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text);
+  font-size: 12.5px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sofia-catalogo-agregar__item:hover {
+  background: var(--gp-panel-2);
+}
+
+.sofia-catalogo-agregar__nombre {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sofia-catalogo-agregar__mas {
+  flex: 0 0 auto;
+  color: var(--gp-accent-text);
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0;
+}
+
+.sofia-catalogo-agregar__item:hover .sofia-catalogo-agregar__mas {
+  opacity: 1;
 }
 
 .sofia-zona-propiedades__vacio {
@@ -349,9 +407,7 @@ body {
   color: var(--gp-danger);
 }
 
-.sofia-editor-admin__agregar-bloque,
-.sofia-editor-admin__estilo-global,
-.sofia-editor-admin__generar-ia {
+.sofia-editor-admin__estilo-global {
   border: 1px solid var(--gp-panel-border);
   background: var(--gp-panel-2);
   color: var(--gp-panel-text-dim);
@@ -362,26 +418,9 @@ body {
   cursor: pointer;
 }
 
-.sofia-editor-admin__agregar-bloque:hover,
-.sofia-editor-admin__estilo-global:hover,
-.sofia-editor-admin__generar-ia:hover {
+.sofia-editor-admin__estilo-global:hover {
   border-color: #4a453e;
   color: var(--gp-panel-text);
-}
-
-/* Botón "Generar con IA" destacado con el color de acento (distinto de
-   Estilo global/+ Agregar bloque, que son grises neutros) — es la entrada
-   a un mecanismo nuevo (Fase 4, ver PanelGenerarIA.jsx) que vale la pena
-   que se note más que las acciones ya conocidas. */
-.sofia-editor-admin__generar-ia {
-  border-color: var(--gp-accent);
-  color: var(--gp-accent-text);
-}
-
-.sofia-editor-admin__generar-ia:hover {
-  background: var(--gp-accent-soft);
-  border-color: var(--gp-accent);
-  color: var(--gp-accent-text);
 }
 
 /* Panel de Estilo Global (Nivel 3) — modal centrado, distinto del drawer
@@ -1278,124 +1317,119 @@ body {
   color: var(--gp-danger);
 }
 
-/* Panel "Generar con IA" (Fase 4 — generador de árboles de bloques por IA,
-   ver PanelGenerarIA.jsx) — mismo patrón de modal centrado que
-   .sofia-panel-global__* (Estilo global), reglas propias en vez de
-   reusar esas clases porque el contenido es bien distinto (textarea +
-   iframe de preview vs. controles de color/tipografía), pero MISMOS
-   tokens/dimensiones generales para que se sienta parte del mismo sistema
-   visual. Un poco más ancho que el panel global (600px vs 480px) — necesita
-   espacio real para el iframe de preview, que se ve mal angosto. */
-.sofia-panel-ia__fondo {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sofia-panel-ia {
-  width: 600px;
-  max-width: calc(100vw - 40px);
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
+/* FranjaGenerarIA (paso 4 del rediseño de layout, ver la memoria de
+   producto) — reemplaza el modal centrado que tenía el generador de
+   árboles por IA (PanelGenerarIA.jsx, eliminado). Tercer hijo de
+   .sofia-sitio-frame (flex-direction:column, ver arriba), hermana de
+   .sofia-sitio-viewport — flex:0 0 auto en su estado retraído (una sola
+   línea) y crece hacia ARRIBA al expandirse (empuja el viewport, que sí
+   tiene flex:1 y se achica solo) en vez de superponerse como hacía el
+   modal. margin:12px (no pegada al borde de la tarjeta) — mismo aire que
+   ya usa .sofia-sitio-chrome/.sofia-sitio-viewport alrededor. */
+.sofia-franja-ia {
+  flex: 0 0 auto;
+  margin: 0 12px 12px;
   background: var(--gp-panel);
   border: 1px solid var(--gp-panel-border);
-  border-radius: 14px;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.sofia-panel-ia__cabecera {
+.sofia-franja-ia--expandida {
+  max-height: 340px;
+}
+
+.sofia-franja-ia__cabecera {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.sofia-franja-ia--expandida .sofia-franja-ia__cabecera {
   border-bottom: 1px solid var(--gp-panel-border);
 }
 
-.sofia-panel-ia__cabecera h2 {
-  margin: 0;
-  font-size: 15px;
-  color: var(--gp-panel-text);
+.sofia-franja-ia__icono {
+  flex: 0 0 auto;
+  color: var(--gp-accent-text);
+  font-size: 14px;
 }
 
-.sofia-panel-ia__cerrar {
-  width: 32px;
-  height: 32px;
-  border: none;
+.sofia-franja-ia__input {
+  flex: 1;
+  min-width: 0;
   background: transparent;
-  color: var(--gp-panel-text-dim);
-  font-size: 18px;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.sofia-panel-ia__cerrar:hover {
-  background: var(--gp-panel-2);
-  color: var(--gp-panel-text);
-}
-
-.sofia-panel-ia__cuerpo {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.sofia-panel-ia__campo-prompt {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--gp-panel-text);
-}
-
-.sofia-panel-ia__campo-prompt textarea {
-  background: var(--gp-panel-2);
-  border: 1px solid var(--gp-panel-border);
-  border-radius: 8px;
+  border: none;
   color: var(--gp-panel-text);
   font-family: inherit;
-  font-size: 13px;
-  padding: 10px 12px;
-  resize: vertical;
+  font-size: 12.5px;
+  outline: none;
 }
 
-.sofia-panel-ia__acciones {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.sofia-franja-ia__input::placeholder {
+  color: var(--gp-panel-text-dim);
 }
 
-.sofia-panel-ia__generar {
+.sofia-franja-ia__generar {
+  flex: 0 0 auto;
   border: 1px solid var(--gp-accent);
   background: var(--gp-accent-soft);
   color: var(--gp-accent-text);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  padding: 9px 18px;
-  border-radius: 8px;
+  padding: 7px 14px;
+  border-radius: 7px;
   cursor: pointer;
 }
 
-.sofia-panel-ia__generar:disabled {
-  opacity: 0.5;
+.sofia-franja-ia__generar:disabled {
+  opacity: 0.4;
   cursor: default;
 }
 
-.sofia-panel-ia__generar:not(:disabled):hover {
+.sofia-franja-ia__generar:not(:disabled):hover {
   background: var(--gp-accent);
   color: #1c1a17;
 }
 
-.sofia-panel-ia__aviso-lento {
-  font-size: 11.5px;
+.sofia-franja-ia__cerrar {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--gp-panel-text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sofia-franja-ia__cerrar:hover {
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text);
+}
+
+.sofia-franja-ia__cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sofia-franja-ia__estado {
+  margin: 0;
+  font-size: 12px;
   color: var(--gp-panel-text-dim);
 }
 
-.sofia-panel-ia__error {
+.sofia-franja-ia__error {
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
@@ -1404,7 +1438,7 @@ body {
   font-size: 12.5px;
 }
 
-.sofia-panel-ia__avisos {
+.sofia-franja-ia__avisos {
   padding: 10px 12px;
   border-radius: 8px;
   background: var(--gp-panel-2);
@@ -1413,68 +1447,76 @@ body {
   color: var(--gp-panel-text-dim);
 }
 
-.sofia-panel-ia__avisos strong {
+.sofia-franja-ia__avisos strong {
   color: var(--gp-panel-text);
   font-size: 12.5px;
 }
 
-.sofia-panel-ia__avisos ul {
+.sofia-franja-ia__avisos ul {
   margin: 6px 0 0;
   padding-left: 18px;
 }
 
-.sofia-panel-ia__preview {
+/* preview + acciones lado a lado (a diferencia del modal viejo, apilados
+   verticalmente) — la franja crece más en ANCHO que en alto, así que un
+   layout horizontal aprovecha mejor el espacio disponible sin necesitar
+   una altura excesiva. */
+.sofia-franja-ia__preview {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.sofia-panel-ia__preview-titulo {
-  margin: 0;
-  font-size: 12px;
-  color: var(--gp-panel-text-dim);
-}
-
-.sofia-panel-ia__preview-iframe {
-  width: 100%;
-  height: 360px;
+.sofia-franja-ia__preview-iframe {
+  flex: 1;
+  min-width: 0;
   border: 1px solid var(--gp-panel-border);
   border-radius: 8px;
   background: #fff;
 }
 
-.sofia-panel-ia__confirmar {
+.sofia-franja-ia__acciones {
+  flex: 0 0 160px;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
 }
 
-.sofia-panel-ia__aplicar {
+.sofia-franja-ia__aplicar {
   border: 1px solid var(--gp-accent);
   background: var(--gp-accent);
   color: #1c1a17;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  padding: 9px 18px;
+  padding: 9px 14px;
   border-radius: 8px;
   cursor: pointer;
 }
 
-.sofia-panel-ia__aplicar:disabled {
+.sofia-franja-ia__aplicar:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.sofia-panel-ia__cancelar {
+.sofia-franja-ia__cancelar {
   border: 1px solid var(--gp-panel-border);
   background: transparent;
   color: var(--gp-panel-text-dim);
-  font-size: 13px;
-  padding: 9px 18px;
+  font-size: 12.5px;
+  padding: 9px 14px;
   border-radius: 8px;
   cursor: pointer;
 }
 
-.sofia-panel-ia__cancelar:hover {
+.sofia-franja-ia__cancelar:hover {
   border-color: #4a453e;
   color: var(--gp-panel-text);
+}
+
+.sofia-franja-ia__aviso-lento {
+  font-size: 10.5px;
+  color: var(--gp-panel-text-dim);
+  line-height: 1.4;
 }
