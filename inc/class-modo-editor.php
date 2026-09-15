@@ -1,20 +1,62 @@
 <?php
 /**
  * Sofia_Modo_Editor activa la edición in-place dentro del iframe del panel
- * de admin (ver inc/js/editor-iframe.js) — SOLO cuando la visita trae
- * "?sofia_editor=1" Y el usuario tiene permiso real de edición. Un
- * visitante normal jamás carga este JS ni ve ningún elemento
- * contenteditable: la query var por sí sola no alcanza, current_user_can()
- * es lo que de verdad protege esto (sin sesión de wp-admin, WordPress
- * nunca reporta ese permiso, sin importar qué traiga la URL).
+ * de admin (ver inc/js/editor-iframe.js) — cuando la visita trae
+ * "?sofia_editor=1" Y el usuario tiene permiso real de edición, O cuando la
+ * petición actual es la REST API propia de Sofia Studio (namespace
+ * "sofia/v1") con ese mismo permiso. Un visitante normal jamás carga este
+ * JS ni ve ningún elemento contenteditable: ninguna de las dos condiciones
+ * por sí sola alcanza, current_user_can() es lo que de verdad protege esto
+ * en ambos casos (sin sesión de wp-admin, WordPress nunca reporta ese
+ * permiso, sin importar qué traiga la URL o la ruta REST).
+ *
+ * Bug real que agregó la rama REST (reportado por el usuario probando
+ * Video/Embed/Avatar recién insertados: "no sale nada, no se puede
+ * cambiar"): el HTML de un bloque recién agregado no se pinta recargando
+ * el iframe completo, se inyecta puntual vía
+ * "sofia/v1/paginas/{slug}/bloque/{id}" (ver
+ * Sofia_REST_Editor::obtener_html_de_bloque(), invocado desde
+ * admin-app/src/App.jsx) — esa petición NUNCA trae "?sofia_editor=1" en su
+ * URL, así que activo() daba false ahí, sin importar que el usuario
+ * estuviera autenticado y editando activamente. imagen_o_placeholder()
+ * (ver class-componente.php) depende de este método para decidir si
+ * imprime el placeholder clickeable — sin la rama REST, cualquier
+ * Componente cuyo ÚNICO contenido visible en vacío sea ese placeholder
+ * (Video, Avatar) quedaba con una <section> completamente vacía, sin nada
+ * clickeable, la primera vez que se insertaba. Ya afectaba a Image/Hero
+ * también (mismo mecanismo), solo que ahí nunca se notó porque ambos se
+ * prueban casi siempre ya con una imagen cargada.
+ *
+ * defined('REST_REQUEST') — constante que WordPress define true durante
+ * CUALQUIER petición a wp-json (ver wp-includes/rest-api.php core), no
+ * específica de Sofia Studio por sí sola — por eso se combina con chequear
+ * el namespace real de la ruta actual (rest_get_url_prefix() + "sofia/v1"),
+ * para no ensanchar el modo editor a peticiones REST de otros plugins.
  */
 class Sofia_Modo_Editor {
 
 	public static function activo(): bool {
-		if ( ! isset( $_GET['sofia_editor'] ) ) {
+		if ( isset( $_GET['sofia_editor'] ) ) {
+			return current_user_can( 'edit_pages' );
+		}
+		return self::es_peticion_rest_propia() && current_user_can( 'edit_pages' );
+	}
+
+	/**
+	 * es_peticion_rest_propia(): true solo durante una petición REST real
+	 * hacia el namespace "sofia/v1" — nunca durante una carga normal de
+	 * página (REST_REQUEST no definida ahí) ni durante la REST API de
+	 * outro plugin/core de WordPress (ese "sofia/v1" en la URL no
+	 * matchea). $_SERVER['REQUEST_URI'] (no $_GET['rest_route'], que solo
+	 * existe con pretty permalinks desactivados) es la forma real de leer
+	 * la ruta pedida en ambos modos de permalink de WordPress.
+	 */
+	private static function es_peticion_rest_propia(): bool {
+		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
 			return false;
 		}
-		return current_user_can( 'edit_pages' );
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+		return false !== strpos( $uri, '/' . rest_get_url_prefix() . '/sofia/v1/' );
 	}
 
 	/**
