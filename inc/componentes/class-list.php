@@ -1,0 +1,67 @@
+<?php
+/**
+ * List — primitiva de Datos/UI (Fase 4, plan "50 primitivas", ver la
+ * memoria de producto): lista simple de items de texto, cada uno con un
+ * ícono opcional (check por defecto) — mismo mecanismo de lista repetible
+ * que Sofia_Componente_Franja_Beneficios (data-sofia-lista/data-sofia-item/
+ * boton_agregar_item()), pero cada item es UN campo de texto (no título+
+ * texto) — el caso más simple de lista, pensado para viñetas de
+ * características/beneficios en una sola línea cada una.
+ */
+class Sofia_Componente_List extends Sofia_Componente {
+
+	public function nombre(): string {
+		return __( 'Lista', 'sofia-studio' );
+	}
+
+	protected function props_por_defecto(): array {
+		return array(
+			'items' => array(
+				array( 'texto' => __( 'Primer elemento', 'sofia-studio' ) ),
+				array( 'texto' => __( 'Segundo elemento', 'sofia-studio' ) ),
+				array( 'texto' => __( 'Tercer elemento', 'sofia-studio' ) ),
+			),
+		);
+	}
+
+	public static function schema_contenido(): array {
+		return array(
+			'items' => array(
+				'tipo'     => 'lista',
+				'etiqueta' => __( 'Elementos', 'sofia-studio' ),
+				'campos'   => array(
+					'texto' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	/**
+	 * claves_estilo_relevantes(): PERFIL_LISTA — mismo criterio que Franja
+	 * de beneficios: tiene lista de items propia, Columnas/Alineación
+	 * tienen efecto real acá.
+	 */
+	public static function claves_estilo_relevantes(): array {
+		return parent::PERFIL_LISTA;
+	}
+
+	public function render(): string {
+		$items       = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
+		$campo_lista = $this->id . '.items';
+		$path_check  = Sofia_Componente_Icon::ICONOS_PERMITIDOS['check'];
+
+		$html  = '<section ' . $this->atributos_seccion( 'sofia-list' ) . '>';
+		$html .= '<ul class="sofia-list__lista" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
+		foreach ( array_values( $items ) as $indice => $item ) {
+			$texto = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
+			$html .= '<li class="sofia-list__item" data-sofia-item="' . (int) $indice . '">';
+			$html .= '<svg class="sofia-list__icono" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $path_check . '</svg>';
+			$html .= '<span ' . $this->atributo_editable( "items.{$indice}.texto" ) . ' ' . $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</span>';
+			$html .= '</li>';
+		}
+		$html .= '</ul>';
+		$html .= $this->boton_agregar_item( 'items' );
+		$html .= '</section>';
+		return $html;
+	}
+}

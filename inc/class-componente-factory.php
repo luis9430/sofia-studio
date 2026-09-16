@@ -74,6 +74,18 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Surface( $tipo, $id, $props, $hijos );
 			case 'callout':
 				return new Sofia_Componente_Callout( $tipo, $id, $props, $hijos );
+			case 'list':
+				return new Sofia_Componente_List( $tipo, $id, $props, $hijos );
+			case 'nav':
+				return new Sofia_Componente_Nav( $tipo, $id, $props, $hijos );
+			case 'breadcrumb':
+				return new Sofia_Componente_Breadcrumb( $tipo, $id, $props, $hijos );
+			case 'stat':
+				return new Sofia_Componente_Stat( $tipo, $id, $props, $hijos );
+			case 'progress':
+				return new Sofia_Componente_Progress( $tipo, $id, $props, $hijos );
+			case 'rating':
+				return new Sofia_Componente_Rating( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -116,7 +128,7 @@ class Sofia_Componente_Factory {
 	 * agregar tipos nuevos acá — son presets de este mismo Componente, no
 	 * clases separadas.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout', 'list', 'nav', 'breadcrumb', 'stat', 'progress', 'rating' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por

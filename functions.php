@@ -38,6 +38,12 @@ require_once __DIR__ . '/inc/componentes/class-icon-button.php';
 require_once __DIR__ . '/inc/componentes/class-card.php';
 require_once __DIR__ . '/inc/componentes/class-surface.php';
 require_once __DIR__ . '/inc/componentes/class-callout.php';
+require_once __DIR__ . '/inc/componentes/class-list.php';
+require_once __DIR__ . '/inc/componentes/class-nav.php';
+require_once __DIR__ . '/inc/componentes/class-breadcrumb.php';
+require_once __DIR__ . '/inc/componentes/class-stat.php';
+require_once __DIR__ . '/inc/componentes/class-progress.php';
+require_once __DIR__ . '/inc/componentes/class-rating.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en

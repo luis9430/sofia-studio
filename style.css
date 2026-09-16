@@ -592,3 +592,131 @@ h1, h2, h3, h4, h5, h6 {
 	background: color-mix(in srgb, var(--sofia-color-error) 15%, transparent);
 	color: var(--sofia-color-error);
 }
+
+/* List (Fase 4) — lista vertical simple, ícono check + texto en fila. */
+.sofia-list__lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.sofia-list__item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sofia-list__icono {
+	flex-shrink: 0;
+	color: var(--sofia-color-primario);
+}
+
+/* Nav (Fase 4) — fila horizontal de links, envuelve si no entra (mismo
+   criterio que Cluster de Container). */
+.sofia-nav__lista {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 24px;
+}
+
+.sofia-nav__enlace {
+	color: var(--sofia-color-texto);
+	text-decoration: none;
+}
+
+.sofia-nav__enlace:hover {
+	color: var(--sofia-color-primario);
+}
+
+/* Breadcrumb (Fase 4) — mismo patrón de datos que Nav, separador "/" entre
+   items en vez de espaciado suelto. */
+.sofia-breadcrumb__lista {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.9rem;
+}
+
+.sofia-breadcrumb__item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sofia-breadcrumb__enlace {
+	color: var(--sofia-color-texto-suave);
+	text-decoration: none;
+}
+
+.sofia-breadcrumb__enlace:hover {
+	color: var(--sofia-color-primario);
+}
+
+.sofia-breadcrumb__separador {
+	color: var(--sofia-color-borde);
+}
+
+/* Stat (Fase 4) — número grande + etiqueta chica debajo. */
+.sofia-stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 4px;
+}
+
+.sofia-stat__numero {
+	font-size: 2.5rem;
+	font-weight: 700;
+	font-family: var(--sofia-fuente-display);
+	color: var(--sofia-color-primario);
+}
+
+.sofia-stat__etiqueta {
+	color: var(--sofia-color-texto-suave);
+	font-size: 0.9rem;
+}
+
+/* Progress (Fase 4) — pista fija (color de borde del sitio) + barra sólida
+   (color primario), ancho real vía style="width:N%" inline (Sofia_Componente_Progress::render()). */
+.sofia-progress__etiqueta {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 0.9rem;
+	color: var(--sofia-color-texto-suave);
+}
+
+.sofia-progress__pista {
+	width: 100%;
+	height: 8px;
+	border-radius: 999px;
+	background: var(--sofia-color-borde);
+	overflow: hidden;
+}
+
+.sofia-progress__barra {
+	height: 100%;
+	border-radius: 999px;
+	background: var(--sofia-color-primario);
+}
+
+/* Rating (Fase 4) — 5 estrellas en fila, las "llenas" (según el valor) con
+   color primario, el resto en gris suave (borde del sitio). */
+.sofia-rating {
+	display: flex;
+	gap: 2px;
+}
+
+.sofia-rating__estrella {
+	color: var(--sofia-color-borde);
+}
+
+.sofia-rating__estrella--llena {
+	color: var(--sofia-color-primario);
+	fill: var(--sofia-color-primario);
+}
