@@ -31,6 +31,16 @@ Text Domain: sofia-studio
 	--sofia-color-primario: #1c1a17;
 	--sofia-color-secundario: #6b6459;
 	--sofia-color-borde: #e2ddd3;
+	/* exito/error (Fase 3, "50 primitivas"): fallback vía los tokens
+	   REALES de Core Framework (--success/--error, siempre cargados en
+	   cualquier sitio con el plugin activo) en vez de un hex propio —
+	   mismo criterio que el resto de este :root ya rompe para colores
+	   (son hex fijos, no tokens, decisión previa a esta sesión), pero acá
+	   sí hay un token real disponible así que se usa, sin inventar nada
+	   nuevo. Sofia_Estilo_Global::imprimir() pisa esto con el rol
+	   asignado por el sitio en cuanto exista uno guardado. */
+	--sofia-color-exito: var(--success, #2e7d32);
+	--sofia-color-error: var(--error, #c62828);
 	--sofia-fuente-display: inherit;
 	--sofia-fuente-texto: inherit;
 	--sofia-tamano-base: 1rem;
@@ -444,13 +454,12 @@ h1, h2, h3, h4, h5, h6 {
 	font-weight: 600;
 }
 
-/* Badge (Fase 2) — sin variantes semánticas de color todavía (ver el
-   comentario largo en Sofia_Componente_Badge): un único color neutro
-   (--sofia-color-secundario) hasta que la Fase 3 agregue los roles
-   éxito/advertencia/error/info a Sofia_Estilo_Global::ROLES_SITIO.
-   --sofia-badge--tag baja el radius a algo apenas redondeado en vez de
-   la pastilla completa por defecto — la única diferencia real de forma
-   entre Badge y su variante Tag. */
+/* Badge (Fase 2, colores agregados en Fase 3) — dos ejes independientes
+   (ver Sofia_Componente_Badge::schema_propio()): forma (--sofia-badge--tag
+   baja el radius a algo apenas redondeado) y color (--exito/--error, los
+   2 roles semánticos reales del sitio, ver Sofia_Estilo_Global::
+   ROLES_SITIO) — combinables entre sí, cada uno su propia clase
+   modificadora sobre el mismo .sofia-badge base. */
 .sofia-badge {
 	display: inline-block;
 	padding: 4px 12px;
@@ -463,4 +472,123 @@ h1, h2, h3, h4, h5, h6 {
 
 .sofia-badge--tag {
 	border-radius: 4px;
+}
+
+.sofia-badge--exito {
+	background: var(--sofia-color-exito);
+}
+
+.sofia-badge--error {
+	background: var(--sofia-color-error);
+}
+
+/* Link (Fase 3) — texto subrayado, sin fondo/padding de botón (a
+   diferencia de .sofia-button__enlace) — la diferencia visual real entre
+   Link y Button. */
+.sofia-link__enlace {
+	color: var(--sofia-color-primario);
+	text-decoration: underline;
+}
+
+/* IconButton (Fase 3) — mismo botón sólido que .sofia-button__enlace, con
+   el ícono antes del texto (flex + gap chico entre ambos). */
+.sofia-icon-button__enlace {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 28px;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+	text-decoration: none;
+}
+
+.sofia-icon-button__svg {
+	flex-shrink: 0;
+}
+
+/* Card (Fase 3) — imagen arriba, cuerpo con espaciado interno propio
+   (padding fijo, no configurable desde Nivel 2 todavía — mismo límite ya
+   documentado en otras primitivas simples del catálogo). El botón hereda
+   el mismo estilo sólido que Button/CTA para consistencia visual. */
+.sofia-card {
+	overflow: hidden;
+}
+
+.sofia-card__imagen {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 10;
+	object-fit: cover;
+}
+
+.sofia-card__cuerpo {
+	padding: var(--sofia-espaciado-base);
+}
+
+.sofia-card__titulo {
+	margin: 0 0 8px 0;
+}
+
+.sofia-card__texto {
+	margin: 0 0 var(--sofia-espaciado-base) 0;
+	color: var(--sofia-color-texto-suave);
+}
+
+.sofia-card__boton {
+	display: inline-block;
+	padding: 10px 22px;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+	text-decoration: none;
+}
+
+/* Surface (Fase 3) — caja visual simple para envolver hijos; Panel (su
+   variante) baja sombra/radius para un aspecto más sutil, pensado para ir
+   DENTRO de otra Surface/sección sin competir visualmente con ella. */
+.sofia-surface--panel {
+	border-radius: 4px;
+	box-shadow: none;
+	border: 1px solid var(--sofia-color-borde);
+}
+
+/* Callout (Fase 3) — caja de aviso con ícono + texto en fila. Fondo/borde
+   por variante con la misma familia de color que Badge (--sofia-color-
+   exito/--error), a una opacidad baja fija (no configurable) para que el
+   texto siga siendo legible encima sin necesitar un color de texto
+   distinto por variante. */
+.sofia-callout {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: var(--sofia-espaciado-base);
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-secundario);
+}
+
+.sofia-callout__icono {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.sofia-callout__texto {
+	margin: 0;
+}
+
+/* color-mix() (soporte nativo en todos los navegadores evergreen desde
+   2023, sin precedente todavía en este archivo): la única forma de aclarar
+   un color arbitrario del sitio (--sofia-color-exito/--error, asignado por
+   Estilo Global, nunca un valor fijo conocido de antemano) sin necesitar
+   una segunda variable de "tono claro" por rol — evita duplicar cada rol
+   semántico en 2 variables (uno para fondo sólido de Badge, otro aclarado
+   para fondo de Callout). */
+.sofia-callout--exito {
+	background: color-mix(in srgb, var(--sofia-color-exito) 15%, transparent);
+	color: var(--sofia-color-exito);
+}
+
+.sofia-callout--error {
+	background: color-mix(in srgb, var(--sofia-color-error) 15%, transparent);
+	color: var(--sofia-color-error);
 }

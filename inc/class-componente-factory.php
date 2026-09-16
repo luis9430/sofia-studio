@@ -64,6 +64,16 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Avatar( $tipo, $id, $props, $hijos );
 			case 'badge':
 				return new Sofia_Componente_Badge( $tipo, $id, $props, $hijos );
+			case 'link':
+				return new Sofia_Componente_Link( $tipo, $id, $props, $hijos );
+			case 'icon_button':
+				return new Sofia_Componente_Icon_Button( $tipo, $id, $props, $hijos );
+			case 'card':
+				return new Sofia_Componente_Card( $tipo, $id, $props, $hijos );
+			case 'surface':
+				return new Sofia_Componente_Surface( $tipo, $id, $props, $hijos );
+			case 'callout':
+				return new Sofia_Componente_Callout( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -106,7 +116,7 @@ class Sofia_Componente_Factory {
 	 * agregar tipos nuevos acá — son presets de este mismo Componente, no
 	 * clases separadas.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por

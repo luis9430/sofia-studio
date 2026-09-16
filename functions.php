@@ -33,6 +33,11 @@ require_once __DIR__ . '/inc/componentes/class-video.php';
 require_once __DIR__ . '/inc/componentes/class-embed.php';
 require_once __DIR__ . '/inc/componentes/class-avatar.php';
 require_once __DIR__ . '/inc/componentes/class-badge.php';
+require_once __DIR__ . '/inc/componentes/class-link.php';
+require_once __DIR__ . '/inc/componentes/class-icon-button.php';
+require_once __DIR__ . '/inc/componentes/class-card.php';
+require_once __DIR__ . '/inc/componentes/class-surface.php';
+require_once __DIR__ . '/inc/componentes/class-callout.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en

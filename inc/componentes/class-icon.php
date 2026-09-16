@@ -27,13 +27,20 @@ class Sofia_Componente_Icon extends Sofia_Componente {
 	 * silencio (mismo criterio que cualquier otra whitelist del sistema,
 	 * ej. FUENTES_PERMITIDAS) — nunca se imprime un <path> arbitrario que
 	 * no haya sido revisado y agregado acá a mano.
+	 *
+	 * public (no private, Fase 3): reusada tal cual por
+	 * Sofia_Componente_Icon_Button (mismo set de íconos para el botón con
+	 * ícono) y Sofia_Componente_Callout (ícono automático según variante)
+	 * — un solo lugar de verdad para el whitelist de SVGs, en vez de
+	 * duplicar la lista en cada Componente que necesita un ícono.
 	 */
-	private const ICONOS_PERMITIDOS = array(
+	public const ICONOS_PERMITIDOS = array(
 		'arrow-right'      => '<path d="M5 12l14 0" /><path d="M13 18l6 -6" /><path d="M13 6l6 6" />',
 		'arrow-left'       => '<path d="M5 12l14 0" /><path d="M5 12l6 6" /><path d="M5 12l6 -6" />',
 		'arrow-up'         => '<path d="M12 5l0 14" /><path d="M18 11l-6 -6" /><path d="M6 11l6 -6" />',
 		'arrow-down'       => '<path d="M12 5l0 14" /><path d="M18 13l-6 6" /><path d="M6 13l6 6" />',
 		'check'            => '<path d="M5 12l5 5l10 -10" />',
+		'info-circle'      => '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" />',
 		'x'                => '<path d="M18 6l-12 12" /><path d="M6 6l12 12" />',
 		'menu-2'           => '<path d="M4 6l16 0" /><path d="M4 12l16 0" /><path d="M4 18l16 0" />',
 		'plus'             => '<path d="M12 5l0 14" /><path d="M5 12l14 0" />',

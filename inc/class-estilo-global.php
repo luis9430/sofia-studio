@@ -63,6 +63,15 @@ class Sofia_Estilo_Global {
 		'primario'               => array( 'variable' => '--sofia-color-primario', 'categoria' => 'color', 'etiqueta' => 'Primario / Acento' ),
 		'secundario'             => array( 'variable' => '--sofia-color-secundario', 'categoria' => 'color', 'etiqueta' => 'Secundario' ),
 		'borde'                  => array( 'variable' => '--sofia-color-borde', 'categoria' => 'color', 'etiqueta' => 'Borde' ),
+		// exito/error (Fase 3, "50 primitivas" — Badge/Callout): SOLO estos
+		// 2 roles semánticos, no los 4 originalmente imaginados
+		// (advertencia/info) — Core Framework no trae tokens de color reales
+		// para esos 2 (confirmado con curl contra el CSS real del sitio:
+		// solo existen --primary/--secondary/--tertiary/--success/--error),
+		// y la regla del sistema completo es no inventar un hex suelto sin
+		// respaldo de token. Se amplía el día que haga falta de verdad.
+		'exito'                  => array( 'variable' => '--sofia-color-exito', 'categoria' => 'color', 'etiqueta' => 'Éxito' ),
+		'error'                  => array( 'variable' => '--sofia-color-error', 'categoria' => 'color', 'etiqueta' => 'Error' ),
 		'tamano_base'            => array( 'variable' => '--sofia-tamano-base', 'categoria' => 'texto', 'etiqueta' => 'Tamaño de texto base' ),
 		'radio_borde'            => array( 'variable' => '--sofia-radio-borde', 'categoria' => 'radius', 'etiqueta' => 'Radio de borde por defecto' ),
 		'sombra'                 => array( 'variable' => '--sofia-sombra', 'categoria' => 'shadow', 'etiqueta' => 'Sombra por defecto' ),
