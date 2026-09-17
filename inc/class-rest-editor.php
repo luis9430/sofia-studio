@@ -956,9 +956,81 @@ class Sofia_REST_Editor {
 				$avisos[] = sprintf( 'Un bloque tipo "%s" tenía un control de estilo "%s" que no está disponible para la IA — se descartó.', $tipo, (string) $clave );
 				continue;
 			}
+			if ( ! self::valor_valido_para_control( $schema_estilo[ $clave ], $valor ) ) {
+				$avisos[] = sprintf(
+					'Un bloque tipo "%s" tenía el valor "%s" en "%s", que ese control no acepta — se descartó.',
+					$tipo,
+					is_scalar( $valor ) ? (string) $valor : gettype( $valor ),
+					(string) $clave
+				);
+				continue;
+			}
 			$estilo_valido[ $clave ] = $valor;
 		}
 		return $estilo_valido;
+	}
+
+	/**
+	 * valor_valido_para_control(): ¿este control acepta este valor?
+	 *
+	 * Hasta que existió esta función la reparación validaba solo las
+	 * CLAVES: un valor inventado pasaba entero, se guardaba en la base, y
+	 * moría en silencio al renderizar (render() hace isset() contra su
+	 * mapa de clases y simplemente no emite nada). El caso real que lo
+	 * destapó: el prompt sugería 'gap: "2rem"' cuando el control usa la
+	 * escala fija de Core Framework. El usuario veía un container sin
+	 * separación y ningún aviso explicaba por qué.
+	 *
+	 * Cada tipo de control declara de forma distinta qué acepta, así que
+	 * hay que preguntarle a cada uno. Los que no declaran nada (texto
+	 * libre, medidas) aceptan cualquier string: no hay contra qué
+	 * comparar, y rechazar por las dudas sería peor que dejar pasar.
+	 */
+	private static function valor_valido_para_control( array $definicion, $valor ): bool {
+		// Vaciar un control siempre es válido: es cómo se vuelve al
+		// valor por defecto.
+		if ( '' === $valor || null === $valor ) {
+			return true;
+		}
+
+		$tipo_control = $definicion['tipo'] ?? '';
+
+		if ( 'select' === $tipo_control ) {
+			foreach ( $definicion['opciones'] ?? array() as $opcion ) {
+				if ( (string) ( $opcion['valor'] ?? '' ) === (string) $valor ) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		if ( 'botones_numero' === $tipo_control ) {
+			// Sus opciones son una lista plana de strings, no {valor,etiqueta}.
+			return in_array( (string) $valor, array_map( 'strval', $definicion['opciones'] ?? array() ), true );
+		}
+
+		if ( 'toggle' === $tipo_control ) {
+			return in_array( (string) $valor, array( 'true', '1', '' ), true );
+		}
+
+		if ( 'numero' === $tipo_control ) {
+			if ( ! is_numeric( $valor ) ) {
+				return false;
+			}
+			$n = (float) $valor;
+			return $n >= (float) ( $definicion['min'] ?? -INF ) && $n <= (float) ( $definicion['max'] ?? INF );
+		}
+
+		if ( 'color_token' === $tipo_control || 'medida_token' === $tipo_control ) {
+			// Un token ("cf:algo") o una medida CSS. No se valida contra el
+			// catálogo real de Core Framework: ese catálogo depende de la
+			// configuración del plugin en CADA sitio, así que una lista fija
+			// acá se desincronizaría. Un token inexistente resuelve a una
+			// custom property vacía, que el navegador ignora sin romper.
+			return is_string( $valor );
+		}
+
+		return true;
 	}
 
 	/**

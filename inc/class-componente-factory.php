@@ -260,17 +260,41 @@ class Sofia_Componente_Factory {
 	 * contenido — así que cualquier variación de layout era literalmente
 	 * imposible de generar, sin importar qué tan bueno fuera el prompt.
 	 *
-	 * Deliberadamente ACOTADO a "ancho"/"alineacion_bloque" en esta primera
-	 * pasada — decisión explícita con el usuario: layout esencial primero
-	 * (lo mínimo que ya habilita las variantes de composición reales que
-	 * motivaron esta conversación), color/sombra/radius/z-index/aspect-
-	 * ratio/etc. quedan para una vuelta posterior. Sumar los 15 campos de
-	 * una sola vez alarga el prompt y multiplica la superficie de error de
-	 * un modelo que todavía no probamos con NINGÚN campo de estilo — mejor
-	 * validar el mecanismo acotado primero (mismo criterio de alcance
-	 * incremental que ya usó todo el resto de este plan, Fase 1/2/3).
+	 * La primera pasada dejó solo "ancho"/"alineacion_bloque", con el
+	 * criterio de validar el mecanismo antes de ampliarlo. Esta es la
+	 * ampliación, y ahora hay dos cosas que entonces no había:
+	 *
+	 * 1. La reparación valida VALORES contra las "opciones" del schema
+	 *    (ver Sofia_REST_Editor::valor_valido_para_control), no solo las
+	 *    claves. Antes, un valor inventado se guardaba y moría en silencio
+	 *    al renderizar; ahora se descarta con un aviso.
+	 * 2. Los Componentes tienen su propia capa de apariencia, así que el
+	 *    modelo ya no depende solo de estos campos genéricos para variar.
+	 *
+	 * Qué se suma y por qué: color de fondo y espaciado vertical son los
+	 * dos que más separan "una página compuesta" de "bloques apilados" —
+	 * sin poder alternar fondos, toda página generada sale de un solo
+	 * color. Radius y sombra dan acabado sin riesgo de romper el layout.
+	 * max_width acota el ancho de lectura, que es composición real.
+	 *
+	 * Qué queda afuera, a propósito:
+	 * - columnas/alineacion_contenido/alineacion_vertical_contenido: su
+	 *   CSS existe solo para Franja de beneficios y Testimonios (ver
+	 *   PERFIL_LISTA), así que en el resto no harían nada.
+	 * - offset_x y z_index: desplazar o superponer exige entender el
+	 *   contexto visual completo para no tapar contenido.
+	 * - aspect_ratio/object_fit: dependen de la imagen real que se cargue,
+	 *   y el modelo nunca sabe cuál va a ser (siempre deja el campo vacío).
 	 */
-	private const CLAVES_ESTILO_GENERICO_IA = array( 'ancho', 'alineacion_bloque' );
+	private const CLAVES_ESTILO_GENERICO_IA = array(
+		'ancho',
+		'max_width',
+		'alineacion_bloque',
+		'color_fondo',
+		'espaciado_vertical',
+		'radius',
+		'sombra',
+	);
 
 	/**
 	 * schema_estilo_ia_de( $tipo ): subconjunto de schema_de($tipo) que el
