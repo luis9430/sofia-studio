@@ -262,6 +262,14 @@ export function App({ config }) {
   const [drawerEstilo, setDrawerEstilo] = useState(null);
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
   const [vistaCanvas, setVistaCanvas] = useState("escritorio");
+  // Zonas laterales contraídas — para trabajar sobre el canvas con todo
+  // el ancho disponible. No se ocultan del todo: queda una franja con el
+  // botón para volver a abrirlas.
+  const [zonasContraidas, setZonasContraidas] = useState({ estructura: false, propiedades: false });
+
+  function alternarZona(clave) {
+    setZonasContraidas((actual) => ({ ...actual, [clave]: !actual[clave] }));
+  }
   const [catalogoBloques, setCatalogoBloques] = useState([]);
   // estructura: árbol COMPLETO {id, tipo, hijos?} de la página — paso 2 del
   // rediseño de layout a 3 zonas fijas (ver la memoria de producto),
@@ -1057,7 +1065,20 @@ export function App({ config }) {
             cada mensaje. onSeleccionar/onMover despachan según
             nodo.esItem: un bloque real sigue el camino ya construido en
             el paso 2, un item de lista usa su propio mensaje. */}
+        {zonasContraidas.estructura ? (
+          <div className="sofia-zona-estructura sofia-zona-estructura--contraida">
+            <button
+              type="button"
+              className="sofia-zona-colapsar"
+              onClick={() => alternarZona("estructura")}
+              title="Mostrar estructura"
+            >
+              ›
+            </button>
+          </div>
+        ) : (
         <PanelEstructura
+          onContraer={() => alternarZona("estructura")}
           estructura={conNombres(estructura, catalogoBloques, listasPorBloque, pendientesPorBloque)}
           seleccionado={drawerEstilo?.nivel === "bloque" ? drawerEstilo.campo : null}
           onSeleccionar={(nodo) => (nodo.esItem ? undefined : seleccionarDesdeEstructura(nodo))}
@@ -1069,6 +1090,8 @@ export function App({ config }) {
           catalogo={catalogoBloques}
           onAgregar={(tipo) => agregarBloque(tipo)}
         />
+        )}
+        <div className="sofia-lienzo-wrap__canvas">
         <div
           className="sofia-sitio-frame"
           style={anchoVistaCanvas ? { maxWidth: `${anchoVistaCanvas}px` } : undefined}
@@ -1140,6 +1163,7 @@ export function App({ config }) {
               hacia arriba al generar (ver FranjaGenerarIA.jsx). */}
           <FranjaGenerarIA config={config} onAplicar={aplicarArbolGeneradoPorIA} />
         </div>
+        </div>
 
         {/* ZonaPropiedades — paso 1 del rediseño de layout a 3 zonas fijas
             (ver la memoria de producto): columna SIEMPRE montada, hermana
@@ -1148,8 +1172,20 @@ export function App({ config }) {
             sin abrir/cerrar; con drawerEstilo=null muestra un estado vacío
             en vez de desmontarse, así la columna nunca "parpadea" de
             ancho. */}
-        <div className="sofia-zona-propiedades">
-          {drawerEstilo ? (
+        <div
+          className={`sofia-zona-propiedades ${
+            zonasContraidas.propiedades ? "sofia-zona-propiedades--contraida" : ""
+          }`}
+        >
+          <button
+            type="button"
+            className="sofia-zona-colapsar"
+            onClick={() => alternarZona("propiedades")}
+            title={zonasContraidas.propiedades ? "Mostrar propiedades" : "Contraer"}
+          >
+            {zonasContraidas.propiedades ? "‹" : "›"}
+          </button>
+          {zonasContraidas.propiedades ? null : drawerEstilo ? (
             <DrawerEstilo
               campo={drawerEstilo.campo}
               tipoBloque={drawerEstilo.tipoBloque}

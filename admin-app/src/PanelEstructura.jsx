@@ -117,7 +117,7 @@ function CatalogoAgregar({ catalogo, onAgregar }) {
  * visualmente (una fila por nodo), así que el mecanismo nativo del
  * navegador alcanza sin dependencias extra.
  */
-export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover, catalogo, onAgregar }) {
+export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover, catalogo, onAgregar, onContraer }) {
   const [tab, setTab] = useState("arbol");
 
   // arrastrando: { nodo, padreId } del nodo que se está arrastrando —
@@ -231,6 +231,11 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
         >
           Agregar
         </button>
+        {onContraer && (
+          <button type="button" className="sofia-zona-estructura__contraer" onClick={onContraer} title="Contraer">
+            ‹
+          </button>
+        )}
       </div>
       <div className="sofia-zona-estructura__lista">
         {tab === "arbol" &&

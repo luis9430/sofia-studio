@@ -51,14 +51,14 @@ body {
    hidden (no auto) — el SCROLL real de contenido largo vive DENTRO del
    iframe (ver .sofia-editor-admin__iframe, height:100%), este wrapper
    solo centra la tarjeta, nunca scrollea un doble scrollbar. */
+/* Los paneles van pegados a los bordes, sin gap ni padding alrededor:
+   cada píxel que no gastan acá lo gana el canvas. El aire vive DENTRO
+   del lienzo (ver .sofia-lienzo-wrap__canvas), no entre las zonas. */
 .sofia-lienzo-wrap {
   flex: 1;
   overflow: hidden;
   display: flex;
-  justify-content: center;
   align-items: stretch;
-  gap: 16px;
-  padding: 20px 24px 20px 56px;
   position: relative;
   /* Fondo neutro liso: lo que tiene que destacar es la página, no el
      lienzo. La trama de puntos que había antes competía con el contenido
@@ -75,12 +75,10 @@ body {
    cómodo para controles, igual que la referencia visual que confirmó este
    layout. */
 .sofia-zona-propiedades {
-  width: 400px;
+  width: 340px;
   flex: 0 0 auto;
   background: var(--gp-panel);
-  border: 1px solid var(--gp-panel-border);
-  border-radius: 10px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  border-left: 1px solid var(--gp-panel-border);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -97,15 +95,48 @@ body {
    angosta que Propiedades (300px vs 400px): una fila de árbol solo necesita
    lugar para un ícono + una etiqueta corta, no controles de formulario. */
 .sofia-zona-estructura {
-  width: 300px;
+  width: 260px;
   flex: 0 0 auto;
   background: var(--gp-panel);
-  border: 1px solid var(--gp-panel-border);
-  border-radius: 10px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  border-right: 1px solid var(--gp-panel-border);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* Zona contraída: queda una franja con el botón para volver a abrirla.
+   No desaparece del todo — una zona que se esfuma sin dejar rastro es
+   difícil de recuperar si no se sabe dónde estaba. */
+.sofia-zona-estructura--contraida,
+.sofia-zona-propiedades--contraida {
+  width: 34px;
+}
+
+.sofia-zona-colapsar {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  padding: 8px 11px;
+  border: 0;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Contraída, el botón toma toda la franja: es lo único que queda de la
+   zona, así que su área clickeable tiene que ser la franja entera. */
+.sofia-zona-propiedades--contraida .sofia-zona-colapsar,
+.sofia-zona-estructura--contraida .sofia-zona-colapsar {
+  align-self: stretch;
+  padding: 12px 0;
+  text-align: center;
+}
+
+.sofia-zona-colapsar:hover {
+  color: var(--gp-panel-text);
+  background: var(--gp-panel-2);
 }
 
 /* Tabs "Árbol"/"Agregar" — paso 4 del rediseño de layout (ver la memoria
@@ -133,6 +164,23 @@ body {
 .sofia-zona-estructura__tab--activo {
   color: var(--gp-panel-text);
   border-bottom-color: var(--gp-accent);
+}
+
+/* Botón de contraer, en la misma fila que las tabs para no gastar otra
+   franja de alto. */
+.sofia-zona-estructura__contraer {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sofia-zona-estructura__contraer:hover {
+  color: var(--gp-panel-text);
 }
 
 .sofia-zona-estructura__lista {
@@ -317,6 +365,19 @@ body {
   color: var(--gp-panel-text-dim);
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* Columna del canvas: toma todo el ancho que dejan las zonas laterales.
+   El padding va acá y no en el wrapper, así los paneles pueden quedar
+   pegados a los bordes de la ventana. */
+.sofia-lienzo-wrap__canvas {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  overflow: hidden;
 }
 
 /* sofia-sitio-frame: la tarjeta que simula el sitio real — SOLO el marco
