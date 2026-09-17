@@ -322,12 +322,26 @@ function AVISOS_CANTIDAD_HIJOS(cantidadHijos) {
  * UNA sola vez arriba del grupo de avanzados — nunca repetido por cada
  * uno de los 7 controles, que sería ruido.
  */
-export function CamposDesdeSchema({ schema, estilo, actualizar, restUrl, nonce, cantidadHijos }) {
+export function CamposDesdeSchema({
+  schema,
+  estilo,
+  actualizar,
+  seccionesAbiertas,
+  onAlternarSeccion,
+  restUrl,
+  nonce,
+  cantidadHijos,
+}) {
   const [personalizarAbierto, setPersonalizarAbierto] = useState(false);
 
   const entradas = Object.entries(schema);
-  const basicas = entradas.filter(([, definicion]) => !definicion.avanzado);
-  const avanzadas = entradas.filter(([, definicion]) => definicion.avanzado);
+  // requiere_render distingue APARIENCIA (lo propio de este tipo de
+  // bloque, que resuelve render() en PHP) de CAJA (lo genérico
+  // transversal: ancho, fondo, espaciado). La marca la pone schema_de()
+  // del lado PHP, así el panel no mantiene una lista de qué prop es de
+  // quién.
+  const apariencia = entradas.filter(([, d]) => d.requiere_render === true);
+  const caja = entradas.filter(([, d]) => d.requiere_render !== true);
 
   function renderCampo([nombre, definicion]) {
     return (
@@ -336,9 +350,6 @@ export function CamposDesdeSchema({ schema, estilo, actualizar, restUrl, nonce, 
         nombre={nombre}
         definicion={definicion}
         valor={estilo[nombre]}
-        // requiere_render (lo marca schema_de() del lado PHP): esta prop
-        // la resuelve render() en PHP, no es CSS que el iframe pueda
-        // aplicar solo — el panel tiene que pedir el bloque de nuevo.
         onCambiar={(valorNuevo) => actualizar({ [nombre]: valorNuevo }, definicion.requiere_render === true)}
         restUrl={restUrl}
         nonce={nonce}
@@ -346,30 +357,60 @@ export function CamposDesdeSchema({ schema, estilo, actualizar, restUrl, nonce, 
     );
   }
 
-  if (avanzadas.length === 0) {
-    // Ningún Componente aparte de Container declara "avanzado" hoy — sin
-    // grupo que ocultar, se muestra el schema entero tal cual (mismo
-    // comportamiento de siempre para el resto del catálogo).
-    return basicas.map(renderCampo);
+  // Cuántos valores hay puestos en un grupo — se muestra en el
+  // encabezado cuando la sección está cerrada, para que algo
+  // personalizado ahí dentro no quede invisible.
+  function conValor(grupo) {
+    return grupo.filter(([nombre]) => estilo[nombre]).length;
   }
 
+  const basicas = apariencia.filter(([, d]) => !d.avanzado);
+  const avanzadas = apariencia.filter(([, d]) => d.avanzado);
   const aviso = cantidadHijos !== undefined ? AVISOS_CANTIDAD_HIJOS(cantidadHijos) : null;
 
   return (
     <>
-      {basicas.map(renderCampo)}
-      <button
-        type="button"
-        className="sofia-drawer-estilo__personalizar"
-        onClick={() => setPersonalizarAbierto((abierto) => !abierto)}
-      >
-        {personalizarAbierto ? "Ocultar personalización" : "Personalizar"}
-      </button>
-      {personalizarAbierto && (
-        <div className="sofia-drawer-estilo__avanzados">
-          {aviso && <p className="sofia-drawer-estilo__aviso-contexto">{aviso}</p>}
-          {avanzadas.map(renderCampo)}
-        </div>
+      {apariencia.length > 0 && (
+        <SeccionPanel
+          titulo="Apariencia"
+          abierta={seccionesAbiertas?.apariencia ?? true}
+          onAlternar={() => onAlternarSeccion?.("apariencia")}
+          cantidad={conValor(apariencia)}
+        >
+          {basicas.map(renderCampo)}
+          {avanzadas.length > 0 && (
+            <>
+              {/* "Personalizar" sigue existiendo DENTRO de Apariencia y
+                  no se reemplaza por la sección: cumple otra función —
+                  revelar los controles sueltos que la variante ya definió
+                  como punto de partida (hoy solo Container). */}
+              <button
+                type="button"
+                className="sofia-drawer-estilo__personalizar"
+                onClick={() => setPersonalizarAbierto((abierto) => !abierto)}
+              >
+                {personalizarAbierto ? "Ocultar personalización" : "Personalizar"}
+              </button>
+              {personalizarAbierto && (
+                <div className="sofia-drawer-estilo__avanzados">
+                  {aviso && <p className="sofia-drawer-estilo__aviso-contexto">{aviso}</p>}
+                  {avanzadas.map(renderCampo)}
+                </div>
+              )}
+            </>
+          )}
+        </SeccionPanel>
+      )}
+
+      {caja.length > 0 && (
+        <SeccionPanel
+          titulo="Caja y posición"
+          abierta={seccionesAbiertas?.caja ?? false}
+          onAlternar={() => onAlternarSeccion?.("caja")}
+          cantidad={conValor(caja)}
+        >
+          {caja.map(renderCampo)}
+        </SeccionPanel>
       )}
     </>
   );
@@ -396,19 +437,51 @@ export function CamposContenido({ schema, contenido, onCambiarCampo, restUrl, no
   const entradas = Object.entries(schema || {}).filter(([, definicion]) => definicion.tipo !== "lista");
   if (entradas.length === 0) return null;
 
+  // Devuelve el array directo, sin envolver en un fragmento: mismo
+  // criterio que CamposDesdeSchema. Envolverlo fue un bug real — la
+  // sección aparecía con su encabezado pero sin ningún campo adentro.
+  return entradas.map(([nombre, definicion]) => (
+    <CampoDesdeSchema
+      key={nombre}
+      nombre={nombre}
+      definicion={definicion}
+      valor={contenido[nombre]}
+      onCambiar={(valorNuevo) => onCambiarCampo(nombre, valorNuevo)}
+      restUrl={restUrl}
+      nonce={nonce}
+    />
+  ));
+}
+
+/**
+ * SeccionPanel — un grupo colapsable del panel de bloque ("Contenido",
+ * "Apariencia", "Caja y posición").
+ *
+ * Colapsable y no una lista corrida porque el panel mezcla tres cosas de
+ * naturaleza distinta, y la que más se toca —lo propio del bloque— queda
+ * sepultada bajo controles genéricos que casi nunca se cambian. Plegadas,
+ * las tres caben en una pantalla y se ve de un vistazo qué ofrece el
+ * bloque.
+ *
+ * `cantidad` marca cuántos valores hay puestos en el grupo, para que algo
+ * personalizado dentro de una sección cerrada no quede invisible.
+ */
+export function SeccionPanel({ titulo, abierta, onAlternar, cantidad, children }) {
   return (
-    <>
-      {entradas.map(([nombre, definicion]) => (
-        <CampoDesdeSchema
-          key={nombre}
-          nombre={nombre}
-          definicion={definicion}
-          valor={contenido[nombre]}
-          onCambiar={(valorNuevo) => onCambiarCampo(nombre, valorNuevo)}
-          restUrl={restUrl}
-          nonce={nonce}
-        />
-      ))}
-    </>
+    <div className="sofia-panel-seccion">
+      <button
+        type="button"
+        className={`sofia-panel-seccion__titulo ${abierta ? "sofia-panel-seccion__titulo--abierta" : ""}`}
+        onClick={onAlternar}
+        aria-expanded={abierta}
+      >
+        <span className="sofia-panel-seccion__flecha" aria-hidden="true">
+          {abierta ? "⌄" : "›"}
+        </span>
+        {titulo}
+        {!abierta && cantidad > 0 && <span className="sofia-panel-seccion__cuenta">{cantidad}</span>}
+      </button>
+      {abierta && <div className="sofia-panel-seccion__cuerpo">{children}</div>}
+    </div>
   );
 }

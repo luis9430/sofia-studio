@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { CampoConToken } from "./CampoConToken.jsx";
-import { CamposDesdeSchema, CamposContenido } from "./CampoDesdeSchema.jsx";
+import { CamposDesdeSchema, CamposContenido, SeccionPanel } from "./CampoDesdeSchema.jsx";
 
 /**
  * Drawer de estilo — panel lateral con pestañas (Estilo | Visibilidad |
@@ -229,6 +229,15 @@ export function DrawerEstilo({
   // del lado PHP). Se pide junto al de estilo y por el mismo criterio: el
   // Componente declara qué campos tiene, el panel solo los dibuja.
   const [schemaContenido, setSchemaContenido] = useState(null);
+  // Qué secciones arrancan abiertas: Contenido (lo que más se toca) y
+  // Apariencia (lo propio del bloque). "Caja y posición" plegada — son
+  // los controles genéricos que casi nunca se cambian y que, abiertos,
+  // empujaban lo importante fuera de la pantalla.
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState({ contenido: true, apariencia: true, caja: false });
+
+  function alternarSeccion(clave) {
+    setSeccionesAbiertas((actual) => ({ ...actual, [clave]: !actual[clave] }));
+  }
 
   useEffect(() => {
     if (nivel !== "bloque" || !tipoBloque || !restUrl) {
@@ -401,8 +410,12 @@ export function DrawerEstilo({
             )}
 
             {nivel === "bloque" && schemaContenido && Object.keys(schemaContenido).length > 0 && (
-              <>
-                <p className="sofia-drawer-estilo__seccion">Contenido</p>
+              <SeccionPanel
+                titulo="Contenido"
+                abierta={seccionesAbiertas.contenido}
+                onAlternar={() => alternarSeccion("contenido")}
+                cantidad={Object.keys(schemaContenido).length}
+              >
                 <CamposContenido
                   schema={schemaContenido}
                   contenido={contenido || {}}
@@ -410,8 +423,7 @@ export function DrawerEstilo({
                   restUrl={restUrl}
                   nonce={nonce}
                 />
-                <p className="sofia-drawer-estilo__seccion">Apariencia</p>
-              </>
+              </SeccionPanel>
             )}
 
             {nivel === "bloque" && schemaBloque && (
@@ -419,6 +431,8 @@ export function DrawerEstilo({
                 schema={schemaBloque}
                 estilo={estilo}
                 actualizar={actualizar}
+                seccionesAbiertas={seccionesAbiertas}
+                onAlternarSeccion={alternarSeccion}
                 restUrl={restUrl}
                 nonce={nonce}
                 // cantidadHijos: SOLO para Container (anexo del plan "50

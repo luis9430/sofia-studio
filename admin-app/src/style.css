@@ -60,6 +60,10 @@ body {
   gap: 16px;
   padding: 20px 24px 20px 56px;
   position: relative;
+  /* Fondo neutro liso: lo que tiene que destacar es la página, no el
+     lienzo. La trama de puntos que había antes competía con el contenido
+     y hacía más difícil juzgar el diseño real. */
+  background: #46423c;
 }
 
 /* ZonaPropiedades — REDISEÑO (paso 1, layout de 3 zonas fijas, ver la
@@ -71,7 +75,7 @@ body {
    cómodo para controles, igual que la referencia visual que confirmó este
    layout. */
 .sofia-zona-propiedades {
-  width: 300px;
+  width: 340px;
   flex: 0 0 auto;
   background: var(--gp-panel);
   border: 1px solid var(--gp-panel-border);
@@ -84,16 +88,16 @@ body {
 
 /* Estado vacío — decisión explícita: sin nada seleccionado, un mensaje
    neutro en vez de vaciar la columna entera (que la haría "parpadear" de
-   ancho 0 a 300px cada vez que el usuario deselecciona algo). */
+   ancho 0 al ancho completo cada vez que el usuario deselecciona algo). */
 /* PanelEstructura — paso 2 del rediseño de layout a 3 zonas fijas (ver la
    memoria de producto): mismo tratamiento visual que .sofia-zona-propiedades
    (ancho fijo, tarjeta con borde/sombra), hermana a la izquierda del canvas
    en vez de a la derecha — juntas arman el layout de 3 columnas confirmado
    por el usuario a partir de la referencia visual compartida. Un poco más
-   angosta que Propiedades (240px vs 300px): una fila de árbol solo necesita
+   angosta que Propiedades (260px vs 340px): una fila de árbol solo necesita
    lugar para un ícono + una etiqueta corta, no controles de formulario. */
 .sofia-zona-estructura {
-  width: 240px;
+  width: 260px;
   flex: 0 0 auto;
   background: var(--gp-panel);
   border: 1px solid var(--gp-panel-border);
@@ -266,13 +270,6 @@ body {
   color: var(--gp-panel-text-dim);
   font-size: 13px;
   line-height: 1.5;
-}
-
-/* El lienzo es un fondo neutro liso: lo que tiene que destacar es la
-   página, no el fondo. La trama de puntos que había antes competía con
-   el contenido y hacía más difícil juzgar el diseño real. */
-.sofia-lienzo-wrap {
-  background: #46423c;
 }
 
 /* sofia-sitio-frame: la tarjeta que simula el sitio real — SOLO el marco
@@ -829,23 +826,68 @@ body {
   color: var(--gp-panel-text-dim);
 }
 
-/* Encabezado de sección del panel de bloque ("Contenido" / "Apariencia").
-   Más peso que una etiqueta de campo: separa grupos, no nombra un control. */
-.sofia-drawer-estilo__seccion {
-  margin: 18px 0 10px;
-  padding-top: 14px;
-  border-top: 1px solid var(--gp-panel-border);
+/* Secciones colapsables del panel de bloque (Contenido / Apariencia /
+   Caja y posición). El panel mezcla tres cosas de naturaleza distinta, y
+   sin plegarlas lo propio del bloque quedaba sepultado bajo los
+   controles genéricos que casi nunca se tocan. */
+.sofia-panel-seccion {
+  border-bottom: 1px solid var(--gp-panel-border);
+}
+
+.sofia-panel-seccion:last-child {
+  border-bottom: 0;
+}
+
+.sofia-panel-seccion__titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font: inherit;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gp-panel-text-dim);
+  text-align: left;
+  cursor: pointer;
 }
 
-.sofia-drawer-estilo__seccion:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+.sofia-panel-seccion__titulo:hover {
+  color: var(--gp-panel-text);
+}
+
+.sofia-panel-seccion__titulo--abierta {
+  color: var(--gp-panel-text);
+}
+
+.sofia-panel-seccion__flecha {
+  width: 10px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Cuenta de valores puestos: lo único que delata que hay algo
+   personalizado dentro de una sección cerrada. */
+.sofia-panel-seccion__cuenta {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--gp-accent-soft);
+  color: var(--gp-accent-text);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.sofia-panel-seccion__cuerpo {
+  padding-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* Campos de contenido (texto, texto largo, url) */
