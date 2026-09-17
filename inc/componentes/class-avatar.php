@@ -45,6 +45,30 @@ class Sofia_Componente_Avatar extends Sofia_Componente {
 	 * avatar" en el vocabulario de schema, mismo límite ya documentado en
 	 * Button para "enlace no editable desde Nivel 1/2".
 	 */
+	/**
+	 * Capa 2 — APARIENCIA. El tamaño era un 48px fijo en CSS, documentado
+	 * como límite conocido: un avatar de testimonio y uno de firma al pie
+	 * de un artículo no tienen por qué medir lo mismo.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'tamano' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Tamaño', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Base', 'sofia-studio' ) ),
+					array( 'valor' => 'chico', 'etiqueta' => __( 'Chico', 'sofia-studio' ) ),
+					array( 'valor' => 'grande', 'etiqueta' => __( 'Grande', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_TAMANO = array(
+		'chico'  => 'sofia-avatar--chico',
+		'grande' => 'sofia-avatar--grande',
+	);
+
 	public static function claves_estilo_relevantes(): array {
 		return parent::PERFIL_PRIMITIVA;
 	}
@@ -81,7 +105,12 @@ class Sofia_Componente_Avatar extends Sofia_Componente {
 		$nombre = (string) ( $this->props['nombre'] ?? '' );
 		$en_editor = class_exists( 'Sofia_Modo_Editor' ) && Sofia_Modo_Editor::activo();
 
-		$html = '<section ' . $this->atributos_seccion( 'sofia-avatar' ) . '>';
+		$clases = array_filter( array(
+			'sofia-avatar',
+			$this->clase_de_variante( self::CLASES_TAMANO, 'tamano' ),
+		) );
+
+		$html = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		if ( $imagen || $en_editor ) {
 			$src = $this->imagen_o_placeholder( $imagen );
 			$html .= '<img class="sofia-avatar__imagen" ' . $this->atributo_editable( 'imagen' ) . ' src="' . $src . '" alt="' . esc_attr( $nombre ) . '">';

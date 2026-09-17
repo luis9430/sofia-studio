@@ -225,6 +225,32 @@ h1, h2, h3, h4, h5, h6 {
 	margin: 0;
 }
 
+/* Jerarquía del botón: una página con dos acciones necesita que una
+   pese más que la otra. El secundario conserva la forma y cambia el
+   peso; el discreto renuncia a la caja y queda como texto accionable. */
+.sofia-button--secundario {
+	background: transparent;
+	color: var(--sofia-color-primario);
+	box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.sofia-button--discreto {
+	background: transparent;
+	color: var(--sofia-color-primario);
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.sofia-button--chico {
+	padding: 8px 18px;
+	font-size: 0.9rem;
+}
+
+.sofia-button--grande {
+	padding: 16px 36px;
+	font-size: 1.1rem;
+}
+
 .sofia-faq__item {
 	padding: 16px 0;
 	border-bottom: 1px solid var(--sofia-color-borde);
@@ -527,6 +553,23 @@ h1, h2, h3, h4, h5, h6 {
 	object-fit: cover;
 }
 
+/* Tamaños del avatar: el mismo valor gobierna la foto y las iniciales,
+   así que se declara una vez en el contenedor y lo heredan las dos
+   formas del bloque. */
+.sofia-avatar--chico .sofia-avatar__imagen,
+.sofia-avatar--chico .sofia-avatar__iniciales {
+	width: 32px;
+	height: 32px;
+	font-size: 0.7rem;
+}
+
+.sofia-avatar--grande .sofia-avatar__imagen,
+.sofia-avatar--grande .sofia-avatar__iniciales {
+	width: 72px;
+	height: 72px;
+	font-size: 1.1rem;
+}
+
 .sofia-avatar__iniciales {
 	display: flex;
 	align-items: center;
@@ -796,6 +839,13 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-stat__etiqueta {
 	color: var(--sofia-color-texto-suave);
 	font-size: 0.9rem;
+}
+
+/* Stat alineado a la izquierda: en una columna de métricas junto a texto
+   alineado a la izquierda, el centrado por defecto se ve fuera de lugar. */
+.sofia-stat--izquierda {
+	align-items: flex-start;
+	text-align: left;
 }
 
 /* Progress (Fase 4) — pista fija (color de borde del sitio) + barra sólida

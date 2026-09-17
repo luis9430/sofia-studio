@@ -47,6 +47,45 @@ class Sofia_Componente_Button extends Sofia_Componente {
 	 * botón (eso lo maneja el estilo de Nivel 1 del texto/enlace en sí),
 	 * solo su posición/tamaño dentro de la página.
 	 */
+	/**
+	 * Capa 2 — APARIENCIA. La jerarquía entre acciones es la variación
+	 * más básica de cualquier botón: una página con dos acciones
+	 * necesita que una pese más que la otra. Hasta ahora todos los
+	 * botones se veían igual de importantes.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'jerarquia' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Jerarquía', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Principal', 'sofia-studio' ) ),
+					array( 'valor' => 'secundario', 'etiqueta' => __( 'Secundario (contorno)', 'sofia-studio' ) ),
+					array( 'valor' => 'discreto', 'etiqueta' => __( 'Discreto (solo texto)', 'sofia-studio' ) ),
+				),
+			),
+			'tamano'    => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Tamaño', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Base', 'sofia-studio' ) ),
+					array( 'valor' => 'chico', 'etiqueta' => __( 'Chico', 'sofia-studio' ) ),
+					array( 'valor' => 'grande', 'etiqueta' => __( 'Grande', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_JERARQUIA = array(
+		'secundario' => 'sofia-button--secundario',
+		'discreto'   => 'sofia-button--discreto',
+	);
+
+	private const CLASES_TAMANO = array(
+		'chico'  => 'sofia-button--chico',
+		'grande' => 'sofia-button--grande',
+	);
+
 	public static function claves_estilo_relevantes(): array {
 		return parent::PERFIL_PRIMITIVA;
 	}
@@ -56,7 +95,12 @@ class Sofia_Componente_Button extends Sofia_Componente {
 		$enlace = esc_url( $this->props['enlace'] );
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-button' ) . '>';
-		$html .= '<a class="sofia-button__enlace" href="' . $enlace . '" ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</a>';
+		$clases = array_filter( array(
+			'sofia-button__enlace',
+			$this->clase_de_variante( self::CLASES_JERARQUIA, 'jerarquia' ),
+			$this->clase_de_variante( self::CLASES_TAMANO, 'tamano' ),
+		) );
+		$html .= '<a class="' . esc_attr( implode( ' ', $clases ) ) . '" href="' . $enlace . '" ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</a>';
 		$html .= '</section>';
 		return $html;
 	}
