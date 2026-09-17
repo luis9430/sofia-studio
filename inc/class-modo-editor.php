@@ -296,6 +296,27 @@ class Sofia_Modo_Editor {
 				outline: 1px dashed #d97a4d;
 			}
 
+			/* Modal en el editor: su contenido NO va dentro del <dialog>
+			   (un dialog cerrado es invisible e inalcanzable, así que su
+			   texto no se podría editar nunca). Se muestra como una caja
+			   abierta, marcada para que se entienda que en el sitio
+			   aparece solo al clickear el botón. */
+			.sofia-modal__ventana--editor {
+				position: relative;
+				margin-top: 24px;
+				border: 1px dashed #d97a4d;
+			}
+			.sofia-modal__ventana--editor::before {
+				content: attr(data-sofia-nota);
+				position: absolute; top: 0; left: 0; z-index: 3;
+				transform: translateY(-100%);
+				background: #d97a4d; color: #fff;
+				font-size: 10px; font-weight: 600; line-height: 1.6;
+				padding: 1px 7px; border-radius: 4px 4px 0 0;
+				font-family: "Inter", -apple-system, sans-serif;
+				white-space: nowrap; pointer-events: none;
+			}
+
 			/* Bloque SELECCIONADO — el que el panel derecho está
 			   editando. Distinto del resaltado de hover (que vive en el
 			   documento padre como overlay y se apaga al mover el mouse):

@@ -920,3 +920,133 @@ h1, h2, h3, h4, h5, h6 {
 	color: var(--sofia-color-primario);
 	fill: var(--sofia-color-primario);
 }
+
+/* Tabs — sin JS, todas las pestañas y paneles quedan visibles (el script
+   oculta los no activos al cargar). Eso mantiene el contenido indexable y
+   editable en el canvas, donde el script no corre. */
+.sofia-tabs__lista {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	border-bottom: 1px solid var(--sofia-color-borde);
+	margin-bottom: var(--sofia-espaciado-base);
+}
+
+.sofia-tabs__pestana {
+	padding: 10px 16px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	background: none;
+	color: var(--sofia-color-texto-suave);
+	font: inherit;
+	cursor: pointer;
+}
+
+.sofia-tabs__pestana[aria-selected="true"] {
+	color: var(--sofia-color-primario);
+	border-bottom-color: var(--sofia-color-primario);
+}
+
+/* Píldoras: la pestaña activa se rellena en vez de subrayarse. */
+.sofia-tabs--pildoras .sofia-tabs__lista {
+	border-bottom: 0;
+	gap: 6px;
+}
+
+.sofia-tabs--pildoras .sofia-tabs__pestana {
+	border-radius: 999px;
+	border-bottom: 0;
+	margin-bottom: 0;
+}
+
+.sofia-tabs--pildoras .sofia-tabs__pestana[aria-selected="true"] {
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+}
+
+/* Accordion — <details> nativo. El marcador por defecto del navegador se
+   reemplaza por uno propio para que siga la tipografía del sitio. */
+.sofia-accordion__item {
+	border-bottom: 1px solid var(--sofia-color-borde);
+}
+
+.sofia-accordion__titulo {
+	padding: 14px 0;
+	cursor: pointer;
+	font-weight: 600;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.sofia-accordion__titulo::-webkit-details-marker {
+	display: none;
+}
+
+.sofia-accordion__titulo::after {
+	content: "+";
+	flex: 0 0 auto;
+	color: var(--sofia-color-texto-suave);
+	font-weight: 400;
+}
+
+.sofia-accordion__item[open] > .sofia-accordion__titulo::after {
+	content: "−";
+}
+
+.sofia-accordion__texto {
+	padding-bottom: 14px;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* Modal — <dialog> nativo: el navegador ya da el fondo, el foco atrapado
+   y el cierre con Escape. */
+.sofia-modal__disparador {
+	display: inline-block;
+	padding: 12px 28px;
+	border: 0;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+	font: inherit;
+	cursor: pointer;
+}
+
+.sofia-modal__ventana {
+	width: min(560px, calc(100vw - 32px));
+	padding: var(--sofia-espaciado-base);
+	border: 0;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-fondo);
+	color: var(--sofia-color-texto);
+}
+
+.sofia-modal__ventana--chica {
+	width: min(400px, calc(100vw - 32px));
+}
+
+.sofia-modal__ventana--grande {
+	width: min(800px, calc(100vw - 32px));
+}
+
+.sofia-modal__ventana::backdrop {
+	background: rgba(0, 0, 0, 0.5);
+}
+
+.sofia-modal__titulo {
+	margin: 0 0 10px;
+}
+
+.sofia-modal__cerrar {
+	margin-top: var(--sofia-espaciado-base);
+	padding: 8px 18px;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+	background: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}

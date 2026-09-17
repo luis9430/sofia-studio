@@ -44,6 +44,9 @@ require_once __DIR__ . '/inc/componentes/class-breadcrumb.php';
 require_once __DIR__ . '/inc/componentes/class-stat.php';
 require_once __DIR__ . '/inc/componentes/class-progress.php';
 require_once __DIR__ . '/inc/componentes/class-rating.php';
+require_once __DIR__ . '/inc/componentes/class-tabs.php';
+require_once __DIR__ . '/inc/componentes/class-accordion.php';
+require_once __DIR__ . '/inc/componentes/class-modal.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en
@@ -59,12 +62,42 @@ const SOFIA_LIBRERIAS_JS = array(
 );
 
 /**
+ * SOFIA_SCRIPTS_PROPIOS: igual que SOFIA_LIBRERIAS_JS pero para archivos
+ * del PROPIO tema, no URLs de CDN. La versión sale de filemtime(), así
+ * que editar el archivo invalida la caché del navegador sin tocar nada
+ * más.
+ *
+ * "interacciones" es un solo archivo para los ocho patrones que necesitan
+ * comportamiento (Tabs, Accordion, Dropdown, Tooltip, Popover, Modal,
+ * Toast, Stepper) — nunca un archivo por Componente, que es exactamente
+ * el spaghetti que la regla 4 del contrato existe para evitar. Como
+ * Sofia_Pagina::dependencias_js() deduplica, se encola una sola vez por
+ * página, y nunca en una página que no tenga ninguno de esos bloques.
+ */
+const SOFIA_SCRIPTS_PROPIOS = array(
+	'interacciones' => 'inc/js/sofia-interacciones.js',
+);
+
+/**
  * sofia_encolar_dependencias encola SOLO las librerías que $pagina
  * realmente necesita — ver Sofia_Pagina::dependencias_js(). Una página sin
- * ningún bloque animado nunca carga GSAP.
+ * ningún bloque animado nunca carga GSAP, y una sin bloques interactivos
+ * no carga el JS de interacciones.
  */
 function sofia_encolar_dependencias( Sofia_Pagina $pagina ): void {
 	foreach ( $pagina->dependencias_js() as $slug ) {
+		if ( isset( SOFIA_SCRIPTS_PROPIOS[ $slug ] ) ) {
+			$ruta = SOFIA_SCRIPTS_PROPIOS[ $slug ];
+			$abs  = get_stylesheet_directory() . '/' . $ruta;
+			wp_enqueue_script(
+				'sofia-' . $slug,
+				get_stylesheet_directory_uri() . '/' . $ruta,
+				array(),
+				file_exists( $abs ) ? filemtime( $abs ) : wp_get_theme()->get( 'Version' ),
+				true
+			);
+			continue;
+		}
 		if ( ! isset( SOFIA_LIBRERIAS_JS[ $slug ] ) ) {
 			continue;
 		}

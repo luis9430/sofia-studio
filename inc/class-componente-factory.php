@@ -86,6 +86,12 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Progress( $tipo, $id, $props, $hijos );
 			case 'rating':
 				return new Sofia_Componente_Rating( $tipo, $id, $props, $hijos );
+			case 'tabs':
+				return new Sofia_Componente_Tabs( $tipo, $id, $props, $hijos );
+			case 'accordion':
+				return new Sofia_Componente_Accordion( $tipo, $id, $props, $hijos );
+			case 'modal':
+				return new Sofia_Componente_Modal( $tipo, $id, $props, $hijos );
 			default:
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
@@ -128,7 +134,7 @@ class Sofia_Componente_Factory {
 	 * agregar tipos nuevos acá — son presets de este mismo Componente, no
 	 * clases separadas.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout', 'list', 'nav', 'breadcrumb', 'stat', 'progress', 'rating' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout', 'list', 'nav', 'breadcrumb', 'stat', 'progress', 'rating', 'tabs', 'accordion', 'modal' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por
