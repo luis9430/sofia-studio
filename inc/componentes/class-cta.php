@@ -36,13 +36,40 @@ class Sofia_Componente_CTA extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * Capa 2 — APARIENCIA. El CSS centra el bloque entero siempre. Un CTA
+	 * ancho al pie de página se ve bien centrado, pero uno dentro de una
+	 * columna angosta junto a texto alineado a la izquierda, no.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'alineacion' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Alineación', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Centrado', 'sofia-studio' ) ),
+					array( 'valor' => 'izquierda', 'etiqueta' => __( 'Izquierda', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_ALINEACION = array(
+		'izquierda' => 'sofia-cta--izquierda',
+	);
+
 	public function render(): string {
 		$titulo       = $this->texto_enriquecido( $this->props['titulo'] );
 		$texto        = $this->texto_enriquecido( $this->props['texto'] );
 		$boton_texto  = $this->texto_enriquecido( $this->props['boton_texto'] );
 		$boton_enlace = esc_url( $this->props['boton_enlace'] );
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-cta' ) . '>';
+		$clases = array_filter( array(
+			'sofia-cta',
+			$this->clase_de_variante( self::CLASES_ALINEACION, 'alineacion' ),
+		) );
+
+		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		$html .= '<h2 ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h2>';
 		$html .= '<p ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</p>';
 		// El enlace del botón (href) NO es contenteditable — es un

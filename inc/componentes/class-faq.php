@@ -41,11 +41,38 @@ class Sofia_Componente_FAQ extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * Capa 2 — APARIENCIA. Las preguntas se separan hoy con una línea
+	 * fija. En tarjetas, cada pregunta se lee como una unidad propia —
+	 * mejor cuando las respuestas son largas.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'estilo' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Estilo', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Separadas por línea', 'sofia-studio' ) ),
+					array( 'valor' => 'tarjetas', 'etiqueta' => __( 'En tarjetas', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_ESTILO = array(
+		'tarjetas' => 'sofia-faq--tarjetas',
+	);
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-faq' ) . '>';
+		$clases = array_filter( array(
+			'sofia-faq',
+			$this->clase_de_variante( self::CLASES_ESTILO, 'estilo' ),
+		) );
+
+		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		$html .= '<div class="sofia-faq__lista" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$pregunta  = $this->texto_enriquecido( (string) ( $item['pregunta'] ?? '' ) );

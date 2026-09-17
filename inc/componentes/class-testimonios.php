@@ -61,6 +61,28 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		return parent::PERFIL_LISTA;
 	}
 
+	/**
+	 * Capa 2 — APARIENCIA. Sin fotos, el bloque queda como una fila de
+	 * citas — útil cuando no hay fotos reales de los clientes y los
+	 * placeholders grises quedan peor que nada.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'fotos' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Fotos', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Mostrar', 'sofia-studio' ) ),
+					array( 'valor' => 'ocultas', 'etiqueta' => __( 'Ocultar', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_FOTOS = array(
+		'ocultas' => 'sofia-testimonios--sin-fotos',
+	);
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 
@@ -69,7 +91,12 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		// bloques Testimonios en la misma página nunca compartan selector
 		// ni contenido.
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-testimonios' ) . '>';
+		$clases = array_filter( array(
+			'sofia-testimonios',
+			$this->clase_de_variante( self::CLASES_FOTOS, 'fotos' ),
+		) );
+
+		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		$html .= '<div class="sofia-testimonios__grid" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$foto   = esc_url( (string) ( $item['foto'] ?? '' ) );

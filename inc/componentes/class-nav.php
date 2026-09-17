@@ -49,11 +49,41 @@ class Sofia_Componente_Nav extends Sofia_Componente {
 		return parent::PERFIL_SECCION;
 	}
 
+	/**
+	 * Capa 2 — APARIENCIA. La separación entre enlaces cambia por
+	 * completo el carácter del bloque: una nav principal necesita aire,
+	 * una lista de enlaces al pie se lee mejor compacta. Usa las clases
+	 * de gap de Core Framework (regla 3 del contrato), no CSS propio.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'separacion' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Separación', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Base', 'sofia-studio' ) ),
+					array( 'valor' => 'compacta', 'etiqueta' => __( 'Compacta', 'sofia-studio' ) ),
+					array( 'valor' => 'amplia', 'etiqueta' => __( 'Amplia', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_SEPARACION = array(
+		'compacta' => 'gap-s',
+		'amplia'   => 'gap-2xl',
+	);
+
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-nav' ) . '>';
-		$html .= '<nav class="sofia-nav__lista" ' . $this->atributo_lista( 'items' ) . '>';
+		$clases_lista = array_filter( array(
+			'sofia-nav__lista',
+			$this->clase_de_variante( self::CLASES_SEPARACION, 'separacion' ),
+		) );
+
+		$html .= '<nav class="' . esc_attr( implode( ' ', $clases_lista ) ) . '" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$texto  = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
 			$enlace = esc_url( (string) ( $item['enlace'] ?? '#' ) );

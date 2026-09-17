@@ -159,6 +159,15 @@ h1, h2, h3, h4, h5, h6 {
 	justify-content: flex-end;
 }
 
+/* Testimonios sin fotos: display:none y no visibility/opacity — el
+   espacio de la foto también tiene que desaparecer, no quedar en blanco.
+   En modo editor las fotos siguen visibles aunque estén ocultas, porque
+   si no no habría forma de volver a activarlas ni de cargar una imagen:
+   un elemento con display:none no se puede clickear. */
+.sofia-testimonios--sin-fotos .sofia-testimonios__foto {
+	display: none;
+}
+
 .sofia-testimonios__grid {
 	display: grid;
 	grid-template-columns: repeat(var(--sofia-columnas, 3), 1fr);
@@ -184,6 +193,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .sofia-cta {
 	text-align: center;
+}
+
+/* CTA alineado a la izquierda: dentro de una columna angosta junto a
+   texto alineado a la izquierda, el centrado por defecto desentona. */
+.sofia-cta--izquierda {
+	text-align: left;
+}
+
+.sofia-cta--izquierda .sofia-cta__boton {
+	margin-left: 0;
+	margin-right: auto;
 }
 
 .sofia-cta__boton {
@@ -402,6 +422,20 @@ h1, h2, h3, h4, h5, h6 {
    viejas "sofia-container--fila/--columna" (eliminadas). */
 .sofia-container--invertida.flex-row { flex-direction: row-reverse; }
 .sofia-container--invertida.flex-column { flex-direction: column-reverse; }
+
+/* FAQ en tarjetas: cada pregunta se lee como una unidad propia, útil
+   cuando las respuestas son largas y la línea divisoria no alcanza para
+   separarlas visualmente. */
+.sofia-faq--tarjetas .sofia-faq__item {
+	padding: var(--sofia-espaciado-base);
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+	margin-bottom: 8px;
+}
+
+.sofia-faq--tarjetas .sofia-faq__item:last-child {
+	margin-bottom: 0;
+}
 
 /* Divider (Fase 1, plan "50 primitivas") — <hr> nativo despojado de su
    estilo default del navegador (que ya trae borde 3D/inset feo en la

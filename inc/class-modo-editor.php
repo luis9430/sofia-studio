@@ -278,6 +278,17 @@ class Sofia_Modo_Editor {
 			.sofia-linea-insertar:hover .sofia-linea-insertar__boton { opacity: 1; transform: scale(1); }
 			.sofia-linea-insertar__boton:hover { background: #d97a4d; color: #fff; }
 
+			/* Un elemento oculto por una prop de apariencia sigue siendo
+			   editable en el canvas: con display:none no se podría
+			   clickear para cargarle una imagen ni para volver a
+			   mostrarlo. Se muestra atenuado y marcado, para que se
+			   entienda que el visitante no lo va a ver. */
+			.sofia-testimonios--sin-fotos .sofia-testimonios__foto {
+				display: block !important;
+				opacity: 0.35;
+				outline: 1px dashed #d97a4d;
+			}
+
 			/* Bloque SELECCIONADO — el que el panel derecho está
 			   editando. Distinto del resaltado de hover (que vive en el
 			   documento padre como overlay y se apaga al mover el mouse):
