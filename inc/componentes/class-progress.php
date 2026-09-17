@@ -23,7 +23,7 @@ class Sofia_Componente_Progress extends Sofia_Componente {
 
 	public static function schema_contenido(): array {
 		return array(
-			'valor'    => array( 'tipo' => 'texto', 'etiqueta' => __( 'Valor (0-100)', 'sofia-studio' ) ),
+			'valor'    => array( 'tipo' => 'numero', 'etiqueta' => __( 'Valor', 'sofia-studio' ), 'min' => 0, 'max' => 100 ),
 			'etiqueta' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Etiqueta', 'sofia-studio' ) ),
 		);
 	}

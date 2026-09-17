@@ -57,6 +57,29 @@ function CampoTexto({ valor, onCambiar, multilinea, placeholder }) {
 }
 
 /**
+ * CampoNumero — un valor numérico dentro de un rango, con deslizador.
+ *
+ * El deslizador es el control honesto para un rango cerrado: comunica el
+ * mínimo y el máximo sin explicarlos, y no deja escribir un valor
+ * inválido. El número al lado queda para cuando se quiere precisión.
+ */
+function CampoNumero({ valor, onCambiar, min = 0, max = 100 }) {
+  const actual = Math.max(min, Math.min(max, parseInt(valor, 10) || 0));
+  return (
+    <div className="sofia-drawer-estilo__numero">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={actual}
+        onInput={(evento) => onCambiar(String(evento.currentTarget.value))}
+      />
+      <span className="sofia-drawer-estilo__numero-valor">{actual}</span>
+    </div>
+  );
+}
+
+/**
  * CampoImagen — abre el selector de medios de WordPress, el mismo que ya
  * usa el click sobre una <img> del canvas (activarImagen en
  * editor-iframe.js). Acá corre en la página de admin, así que depende de
@@ -194,6 +217,7 @@ function CampoIcono({ valor, onCambiar, restUrl, nonce }) {
  * - "texto_largo": textarea, mismo debounce.
  * - "imagen": selector de medios de WordPress con miniatura.
  * - "icono": grilla visual del set de íconos del sistema.
+ * - "numero": deslizador con rango (min/max del propio schema).
  * - "lista": no se edita acá — los items de una lista repetible se
  *   agregan, reordenan y eliminan desde el árbol de Estructura y el
  *   canvas, que ya resuelven ese gesto mejor que un control de panel.
@@ -274,6 +298,10 @@ export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar, restUrl
 
       {tipo === "icono" && (
         <CampoIcono valor={valor} onCambiar={onCambiar} restUrl={restUrl} nonce={nonce} />
+      )}
+
+      {tipo === "numero" && (
+        <CampoNumero valor={valor} onCambiar={onCambiar} min={definicion.min} max={definicion.max} />
       )}
     </div>
   );

@@ -279,6 +279,59 @@ h1, h2, h3, h4, h5, h6 {
    mide su contenido (incluida la imagen), así que height:100% no recorta
    nada. Con aspect-ratio, la sección ya tiene una altura fija propia y
    object-fit sí puede recortar la imagen dentro de esa caja. */
+/* Composición del Hero. "lado" lo resuelven las utility classes de Core
+   Framework que agrega el PHP (flex-row + gap + items-middle); acá va
+   solo lo que CF no cubre. */
+
+/* Invertido: mismo layout en fila, con la imagen primero. CF no trae una
+   utility de row-reverse. */
+.sofia-hero--invertido {
+	flex-direction: row-reverse;
+}
+
+.sofia-hero.flex-row > h1,
+.sofia-hero.flex-row > img {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* Fondo: el texto va encima de la imagen. Es superposición, no layout de
+   caja, así que no hay utility de CF que lo resuelva.
+   El degradado no es decoración — sin él, un título claro sobre una foto
+   clara queda ilegible, y no hay forma de saber de antemano qué imagen
+   va a cargar el usuario. */
+.sofia-hero--fondo {
+	position: relative;
+	display: grid;
+	overflow: hidden;
+	border-radius: var(--sofia-radio-borde);
+}
+
+.sofia-hero--fondo > img {
+	grid-area: 1 / 1;
+	width: 100%;
+	height: 100%;
+	min-height: 320px;
+	object-fit: cover;
+}
+
+.sofia-hero--fondo > h1 {
+	grid-area: 1 / 1;
+	align-self: end;
+	position: relative;
+	z-index: 1;
+	margin: 0;
+	padding: var(--sofia-espaciado-base);
+	color: #fff;
+}
+
+.sofia-hero--fondo::after {
+	content: "";
+	grid-area: 1 / 1;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent 60%);
+	pointer-events: none;
+}
+
 .sofia-hero.fit-cover > img {
 	width: 100%;
 	height: 100%;
@@ -393,6 +446,26 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-heading h4, .sofia-heading h5, .sofia-heading h6 {
 	margin: 0;
 	font-family: var(--sofia-fuente-display);
+}
+
+/* Tamaño visual independiente del nivel semántico: un h2 puede necesitar
+   verse discreto sin degradarse a h4 y romper la jerarquía del documento
+   (que es lo que leen el SEO y los lectores de pantalla). Los valores
+   salen de la escala de texto de Core Framework, no de píxeles sueltos. */
+.sofia-heading--chico h1, .sofia-heading--chico h2, .sofia-heading--chico h3,
+.sofia-heading--chico h4, .sofia-heading--chico h5, .sofia-heading--chico h6 {
+	font-size: var(--text-m, 1rem);
+}
+
+.sofia-heading--grande h1, .sofia-heading--grande h2, .sofia-heading--grande h3,
+.sofia-heading--grande h4, .sofia-heading--grande h5, .sofia-heading--grande h6 {
+	font-size: var(--text-2xl, 2rem);
+}
+
+.sofia-heading--display h1, .sofia-heading--display h2, .sofia-heading--display h3,
+.sofia-heading--display h4, .sofia-heading--display h5, .sofia-heading--display h6 {
+	font-size: var(--text-4xl, 3rem);
+	line-height: 1.1;
 }
 
 /* RichText (Fase 2) — espaciado real entre párrafos, lo único que lo

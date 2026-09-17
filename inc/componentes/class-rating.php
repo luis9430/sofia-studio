@@ -27,7 +27,7 @@ class Sofia_Componente_Rating extends Sofia_Componente {
 
 	public static function schema_contenido(): array {
 		return array(
-			'valor' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Valor (0-5)', 'sofia-studio' ) ),
+			'valor' => array( 'tipo' => 'numero', 'etiqueta' => __( 'Estrellas', 'sofia-studio' ), 'min' => 0, 'max' => self::MAXIMO ),
 		);
 	}
 

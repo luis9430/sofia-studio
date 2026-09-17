@@ -24,23 +24,58 @@ class Sofia_Componente_Heading extends Sofia_Componente {
 
 	protected function props_por_defecto(): array {
 		return array(
-			'texto'  => __( 'Título de sección', 'sofia-studio' ),
-			'nivel'  => 'h2',
+			'texto' => __( 'Título de sección', 'sofia-studio' ),
+		);
+	}
+
+	/** Capa 1 — CONTENIDO. */
+	public static function schema_contenido(): array {
+		return array(
+			'texto' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
 		);
 	}
 
 	/**
-	 * schema_contenido(): "nivel" es tipo "texto" (mismo criterio que
-	 * "icono" en Sofia_Componente_Icon — el generador de IA recibe la
-	 * whitelist real vía el schema de estilo del drawer si hiciera falta
-	 * exponerlo ahí más adelante; hoy "nivel" vive como prop de CONTENIDO,
-	 * no de Nivel 2, porque decide la SEMÁNTICA del elemento —jerarquía de
-	 * la página—, no su apariencia visual).
+	 * Capa 2 — APARIENCIA. "nivel" vivía en Contenido con el argumento de
+	 * que decide la SEMÁNTICA (la jerarquía de la página), no la
+	 * apariencia. El argumento es cierto pero el criterio del contrato es
+	 * otro: una lista cerrada de opciones que cambia cómo se renderiza el
+	 * bloque es apariencia, vaya o no acompañada de un significado. Y en
+	 * la práctica importa: como texto libre se editaba escribiendo "h3" de
+	 * memoria, sin que nada validara; como select, las seis opciones están
+	 * a la vista y no se puede elegir una inválida.
+	 *
+	 * "tamano" existe aparte porque el nivel semántico y el tamaño visual
+	 * no tienen por qué coincidir: un h2 puede necesitar verse discreto en
+	 * una sección secundaria sin por eso degradarse a h4 y romper la
+	 * jerarquía del documento.
 	 */
-	public static function schema_contenido(): array {
+	public static function schema_propio(): array {
 		return array(
-			'texto' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
-			'nivel' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Nivel (h1-h6)', 'sofia-studio' ) ),
+			'nivel'  => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Nivel', 'sofia-studio' ),
+				'ayuda'    => __( 'La jerarquía del título en la página. Afecta al SEO y a los lectores de pantalla, no al tamaño.', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Título de sección (h2)', 'sofia-studio' ) ),
+					array( 'valor' => 'h1', 'etiqueta' => __( 'Título de la página (h1)', 'sofia-studio' ) ),
+					array( 'valor' => 'h3', 'etiqueta' => __( 'Subtítulo (h3)', 'sofia-studio' ) ),
+					array( 'valor' => 'h4', 'etiqueta' => __( 'Subtítulo menor (h4)', 'sofia-studio' ) ),
+					array( 'valor' => 'h5', 'etiqueta' => __( 'Nivel 5 (h5)', 'sofia-studio' ) ),
+					array( 'valor' => 'h6', 'etiqueta' => __( 'Nivel 6 (h6)', 'sofia-studio' ) ),
+				),
+			),
+			'tamano' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Tamaño', 'sofia-studio' ),
+				'ayuda'    => __( 'Independiente del nivel: un título puede ser h2 y verse chico.', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'El del nivel', 'sofia-studio' ) ),
+					array( 'valor' => 'chico', 'etiqueta' => __( 'Chico', 'sofia-studio' ) ),
+					array( 'valor' => 'grande', 'etiqueta' => __( 'Grande', 'sofia-studio' ) ),
+					array( 'valor' => 'display', 'etiqueta' => __( 'Display (muy grande)', 'sofia-studio' ) ),
+				),
+			),
 		);
 	}
 
@@ -55,20 +90,30 @@ class Sofia_Componente_Heading extends Sofia_Componente {
 		return parent::PERFIL_PRIMITIVA;
 	}
 
+	private const CLASES_TAMANO = array(
+		'chico'   => 'sofia-heading--chico',
+		'grande'  => 'sofia-heading--grande',
+		'display' => 'sofia-heading--display',
+	);
+
 	/**
-	 * render(): la etiqueta HTML real sale de NIVELES_PERMITIDOS — un
-	 * "nivel" corrupto/desconocido cae a "h2" (el default de
-	 * props_por_defecto(), nivel de título de sección más común) en vez
-	 * de romper con una etiqueta inválida.
+	 * render(): la etiqueta HTML sale de NIVELES_PERMITIDOS — un nivel
+	 * corrupto o de una versión más nueva del tema cae a "h2" en vez de
+	 * emitir una etiqueta inválida.
 	 */
 	public function render(): string {
 		$texto = $this->texto_enriquecido( (string) ( $this->props['texto'] ?? '' ) );
-		$nivel = (string) ( $this->props['nivel'] ?? '' );
+		$nivel = (string) ( $this->estilo_bloque()['nivel'] ?? '' );
 		if ( ! in_array( $nivel, self::NIVELES_PERMITIDOS, true ) ) {
 			$nivel = 'h2';
 		}
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-heading' ) . '>';
+		$clases = array_filter( array(
+			'sofia-heading',
+			$this->clase_de_variante( self::CLASES_TAMANO, 'tamano' ),
+		) );
+
+		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		$html .= '<' . $nivel . ' ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</' . $nivel . '>';
 		$html .= '</section>';
 		return $html;

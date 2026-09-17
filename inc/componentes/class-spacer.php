@@ -31,23 +31,25 @@ class Sofia_Componente_Spacer extends Sofia_Componente {
 	}
 
 	/**
-	 * schema_contenido() (Fase 4 — generador de árboles por IA): "alto" es
-	 * el único campo real — tipo "texto" porque acepta tanto un token
-	 * ("cf:space-8") como una medida libre ("4rem"), mismo criterio que
-	 * cualquier otro campo de medida_token del sistema (no existe un tipo
-	 * de schema_contenido dedicado a "medida", solo texto/texto_largo/
-	 * imagen/url/lista — ver Sofia_Componente::schema_contenido()).
-	 *
-	 * PENDIENTE: desde que el panel de contenido existe, esto se ve como un
-	 * input donde hay que escribir "cf:space-xl" de memoria, cuando el
-	 * sistema ya tiene un selector visual de tokens de espaciado
-	 * (CampoTokenVisual con categoria="space"). Al migrar este Componente
-	 * al contrato de tres capas, "alto" debería pasar a la capa de
-	 * apariencia como medida_token, que es lo que realmente es.
+	 * Sin schema_contenido(): un Spacer no dice nada, solo ocupa lugar.
+	 * Su único campo es una MEDIDA, y una medida es apariencia — ver
+	 * schema_propio().
 	 */
-	public static function schema_contenido(): array {
+
+	/**
+	 * Capa 2 — APARIENCIA. "alto" vivía en Contenido como texto libre, así
+	 * que en el panel había que escribir "cf:space-xl" de memoria. Como
+	 * medida_token usa el selector visual de espaciado que el sistema ya
+	 * tiene (Compacto/Base/Amplio con su preview), el mismo que cualquier
+	 * otro control de medida del editor.
+	 */
+	public static function schema_propio(): array {
 		return array(
-			'alto' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Alto', 'sofia-studio' ) ),
+			'alto' => array(
+				'tipo'      => 'medida_token',
+				'categoria' => 'space',
+				'etiqueta'  => __( 'Alto', 'sofia-studio' ),
+			),
 		);
 	}
 
@@ -72,7 +74,10 @@ class Sofia_Componente_Spacer extends Sofia_Componente {
 	 * control genérico de Nivel 2 que cualquier Componente pudiera tener.
 	 */
 	public function render(): string {
-		$alto = (string) ( $this->props['alto'] ?? '' );
+		// El valor puede venir del schema_propio() (Nivel 2) o, en
+		// contenido guardado antes de la migración, de props directo —
+		// se leen los dos para no romper páginas ya publicadas.
+		$alto = (string) ( $this->estilo_bloque()['alto'] ?? $this->props['alto'] ?? '' );
 
 		$estilo = '';
 		if ( '' !== $alto ) {

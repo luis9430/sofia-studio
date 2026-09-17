@@ -32,6 +32,38 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 	}
 
 	/**
+	 * Capa 2 — APARIENCIA. Un Hero es la apertura de la página y su
+	 * variación más evidente es dónde va la imagen respecto del título:
+	 * apilada, al costado, o de fondo con el texto encima. Hasta ahora la
+	 * única forma era siempre la primera.
+	 *
+	 * Las dos primeras se resuelven con utility classes de Core Framework
+	 * (regla 3 del contrato); "fondo" sí necesita CSS propio, porque
+	 * superponer texto sobre imagen no es layout de caja sino
+	 * posicionamiento — ver style.css.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'composicion' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Composición', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Título arriba, imagen abajo', 'sofia-studio' ) ),
+					array( 'valor' => 'lado', 'etiqueta' => __( 'Imagen al costado', 'sofia-studio' ) ),
+					array( 'valor' => 'lado-invertido', 'etiqueta' => __( 'Imagen al costado, a la izquierda', 'sofia-studio' ) ),
+					array( 'valor' => 'fondo', 'etiqueta' => __( 'Imagen de fondo, título encima', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	private const CLASES_COMPOSICION = array(
+		'lado'           => 'flex-row gap-l items-middle',
+		'lado-invertido' => 'flex-row gap-l items-middle sofia-hero--invertido',
+		'fondo'          => 'sofia-hero--fondo',
+	);
+
+	/**
 	 * claves_estilo_relevantes() (Nivel 2, revisión de arquitectura tras
 	 * fricción real de edición — ver la memoria de producto): Hero es una
 	 * SECCIÓN completa (título + imagen, con su propio fondo/borde/
@@ -55,7 +87,12 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 		// método.
 		$imagen = $this->imagen_o_placeholder( esc_url( $this->props['imagen'] ) );
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-hero' ) . '>';
+		$clases = array_filter( array(
+			'sofia-hero',
+			$this->clase_de_variante( self::CLASES_COMPOSICION, 'composicion' ),
+		) );
+
+		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		$html .= '<h1 ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h1>';
 		if ( $imagen ) {
 			$html .= '<img ' . $this->atributo_editable( 'imagen' ) . ' src="' . $imagen . '" alt="' . wp_strip_all_tags( $titulo ) . '">';

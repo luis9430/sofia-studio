@@ -1017,6 +1017,29 @@ body {
   border-color: var(--gp-accent);
 }
 
+/* Número acotado: deslizador + valor. El deslizador comunica el rango
+   sin explicarlo y no deja escribir un valor inválido. */
+.sofia-drawer-estilo__numero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sofia-drawer-estilo__numero input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--gp-accent);
+}
+
+.sofia-drawer-estilo__numero-valor {
+  flex: 0 0 auto;
+  min-width: 28px;
+  text-align: right;
+  color: var(--gp-panel-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Campo de imagen: la miniatura ES el botón de cambiar — ver la imagen
    dice más que leer su URL. */
 .sofia-drawer-estilo__imagen {
