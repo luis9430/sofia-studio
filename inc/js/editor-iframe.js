@@ -126,10 +126,16 @@
 	// font-family crudo, así que estiloActualDe necesita este mapa para
 	// reconstruir la clave a partir del font-family ya aplicado al
 	// elemento (ver alAplicarEstilo, que sí conoce la clave directo).
-	var FUENTES_PERMITIDAS = {
-		display: "'Fraunces', serif",
-		texto: "'Inter', sans-serif",
-	};
+	// Config que PHP inyecta con wp_localize_script (ver
+	// Sofia_Modo_Editor::encolar_script y
+	// Sofia_Componente::constantes_para_editor). Estos tres valores
+	// estaban copiados a mano acá, con un comentario que los llamaba
+	// "espejo EXACTO" de PHP — un espejo que fallaba en silencio: agregar
+	// una opción de ancho del lado PHP no rompía nada visible, el editor
+	// simplemente dejaba de reconocer esa clase.
+	var CONFIG = window.SofiaEditorIframeConfig || {};
+
+	var FUENTES_PERMITIDAS = CONFIG.fuentes || {};
 
 	function claveDeFuente(fontFamily) {
 		for (var clave in FUENTES_PERMITIDAS) {
@@ -138,19 +144,17 @@
 		return "";
 	}
 
-	// PREFIJO_TOKEN_CORE_FRAMEWORK/resolverValorConToken: espejo EXACTO de
-	// Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK/resolver_valor()
-	// del lado PHP — necesario acá porque este script aplica el color EN
-	// VIVO (feedback inmediato, antes de guardar/recargar), y el valor
-	// crudo guardado ("cf:border-primary") NO es un color CSS válido por
-	// sí solo: sin resolverlo a var(--border-primary), el navegador lo
-	// ignora en silencio (bug real reportado por el usuario: "el color no
-	// se aplica"). Nunca duplicar la lógica de emisión, solo espejarla acá
-	// porque JS no puede llamar directo al método PHP.
-	var PREFIJO_TOKEN_CORE_FRAMEWORK = "cf:";
+	// El valor guardado ("cf:border-primary") no es un color CSS válido
+	// por sí solo: hay que resolverlo a var(--border-primary) o el
+	// navegador lo ignora en silencio. Este script lo aplica EN VIVO,
+	// antes de guardar, así que necesita hacer esa resolución acá.
+	var PREFIJO_TOKEN_CORE_FRAMEWORK = CONFIG.prefijoToken || "cf:";
 
-	// esTokenConNombre: espejo EXACTO de
-	// Sofia_Estilo_Global::es_token_con_nombre() del lado PHP — rechaza
+	// esTokenConNombre: misma regla que
+	// Sofia_Estilo_Global::es_token_con_nombre() del lado PHP. Esta sí se
+	// replica (a diferencia de las constantes, que ahora viajan en
+	// CONFIG): son tres líneas de lógica, no una lista que crezca, y
+	// pasarla por la config obligaría a serializar una función. Rechaza
 	// "cf:" solo (sin nombre después del prefijo), que puede quedar en el
 	// estado del drawer si el usuario activa el botón "CF" y cambia de
 	// campo sin llegar a escribir un nombre. Sin esto, resolverValorConToken
@@ -249,21 +253,10 @@
 		sombra: ["boxShadow", "data-sofia-estilo-sombra"],
 	};
 
-	// CLASES_UTILITARIAS_BLOQUE: espejo EXACTO de
-	// Sofia_Componente::CLASES_UTILITARIAS_BLOQUE del lado PHP — a
-	// diferencia de PROPIEDADES_TOKEN_BLOQUE (un VALOR de estilo), acá cada
-	// opción es una utility class YA COMPLETA de Core Framework; aplicarla
-	// es agregarla al classList de la <section>, no escribir en su style.
-	var CLASES_UTILITARIAS_BLOQUE = {
-		max_width: { 10: "max-width-10", 20: "max-width-20", 30: "max-width-30", 40: "max-width-40", 50: "max-width-50", 60: "max-width-60", 70: "max-width-70", 80: "max-width-80", 90: "max-width-90", 100: "max-width-100", site: "max-site-width" },
-		ancho: { 10: "width-10", 20: "width-20", 30: "width-30", 40: "width-40", 50: "width-50", 60: "width-60", 70: "width-70", 80: "width-80", 90: "width-90", full: "full-width", auto: "auto-width" },
-		aspect_ratio: { 1: "aspect-1", "4-3": "aspect-4-3", "3-4": "aspect-3-4", "3-2": "aspect-3-2", "2-3": "aspect-2-3", "16-9": "aspect-16-9", "9-16": "aspect-9-16" },
-		object_fit: { contain: "fit-contain", cover: "fit-cover", fill: "fit-fill" },
-		z_index: { "-1": "z--1", 0: "z-0", 1: "z-1", 10: "z-10", 100: "z-100", 1000: "z-1000", 10000: "z-10000" },
-		alineacion_bloque: { left: "self-left", center: "self-center", right: "self-right" },
-		alineacion_contenido: { left: "items-left", center: "items-center", right: "items-right" },
-		alineacion_vertical_contenido: { top: "items-top", middle: "items-middle", bottom: "items-bottom" },
-	};
+	// Cada opción es una utility class YA COMPLETA de Core Framework:
+	// aplicarla es agregarla al classList de la <section>, no escribir en
+	// su style (a diferencia de PROPIEDADES_TOKEN_BLOQUE, que son valores).
+	var CLASES_UTILITARIAS_BLOQUE = CONFIG.clasesUtilitarias || {};
 
 	// claveUtilitariaActual: recorre las clases posibles de UNA categoría
 	// (ej. todas las de aspect_ratio) y devuelve el valor guardado ("16-9")

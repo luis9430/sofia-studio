@@ -94,7 +94,14 @@ class Sofia_Modo_Editor {
 		wp_localize_script(
 			'sofia-editor-iframe',
 			'SofiaEditorIframeConfig',
-			array( 'nonce' => wp_create_nonce( 'wp_rest' ) )
+			array_merge(
+				array( 'nonce' => wp_create_nonce( 'wp_rest' ) ),
+				// Fuentes, clases utilitarias y prefijo de token: el script
+				// los necesita para aplicar estilo en vivo, y hasta ahora
+				// los tenía copiados a mano. Ver
+				// Sofia_Componente::constantes_para_editor().
+				Sofia_Componente::constantes_para_editor()
+			)
 		);
 	}
 

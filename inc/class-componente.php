@@ -361,6 +361,31 @@ abstract class Sofia_Componente {
 	);
 
 	/**
+	 * constantes_para_editor(): los valores que el script del iframe
+	 * necesita conocer para aplicar estilo EN VIVO, antes de guardar.
+	 *
+	 * Hasta que existió este método, editor-iframe.js los tenía copiados a
+	 * mano, con un comentario que decía "espejo EXACTO" de cada uno — tres
+	 * listas duplicadas, una de ellas con unos 55 pares. Ese tipo de
+	 * espejo falla en el peor modo posible: agregar una opción de ancho
+	 * acá no rompe nada visible, el editor simplemente deja de reconocer
+	 * esa clase y el control se comporta raro sin ningún error.
+	 *
+	 * Ahora viajan por wp_localize_script (ver
+	 * Sofia_Modo_Editor::encolar_script), así que PHP sigue siendo la
+	 * única fuente de verdad y el JS no puede desincronizarse.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function constantes_para_editor(): array {
+		return array(
+			'fuentes'           => self::FUENTES_PERMITIDAS,
+			'clasesUtilitarias' => self::CLASES_UTILITARIAS_BLOQUE,
+			'prefijoToken'      => Sofia_Estilo_Global::PREFIJO_TOKEN_CORE_FRAMEWORK,
+		);
+	}
+
+	/**
 	 * PATRON_MEDIDA_CSS valida un valor de tamaño de fuente/espaciado antes
 	 * de emitirlo — necesario porque, a diferencia de alineación/color
 	 * (opciones fijas elegidas por el drawer), "tamano_fuente" (Nivel 1) y
