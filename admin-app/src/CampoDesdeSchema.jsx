@@ -218,9 +218,9 @@ function CampoIcono({ valor, onCambiar, restUrl, nonce }) {
  * - "imagen": selector de medios de WordPress con miniatura.
  * - "icono": grilla visual del set de íconos del sistema.
  * - "numero": deslizador con rango (min/max del propio schema).
- * - "lista": no se edita acá — los items de una lista repetible se
- *   agregan, reordenan y eliminan desde el árbol de Estructura y el
- *   canvas, que ya resuelven ese gesto mejor que un control de panel.
+ * - "lista": ver CampoLista. Los items se agregan, reordenan y eliminan
+ *   desde el árbol y el canvas; el panel solo muestra los subcampos que
+ *   el canvas no sabe editar (una URL no es contenteditable).
  */
 export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar, restUrl, nonce }) {
   const { tipo, etiqueta, ayuda, opciones } = definicion;
@@ -446,6 +446,61 @@ export function CamposDesdeSchema({
 }
 
 /**
+ * CampoLista — los items de una lista repetible, con sus subcampos.
+ *
+ * Los items se reordenan desde el árbol de Estructura y su TEXTO se edita
+ * en el canvas, así que el panel no los mostraba. Pero un item puede
+ * tener campos que el canvas no sabe editar: el enlace de cada ítem de
+ * Navegación y Breadcrumb es una URL, y una URL no es contenteditable.
+ * Eran los últimos campos del sistema sin ninguna forma de editarse.
+ *
+ * Solo muestra los subcampos que el canvas NO cubre. Duplicar acá los de
+ * texto sería ofrecer dos lugares para lo mismo, con el riesgo de que se
+ * pisen entre sí mientras se escribe.
+ */
+function CampoLista({ definicion, valor, onCambiar, restUrl, nonce }) {
+  const items = Array.isArray(valor) ? valor : [];
+  const subcampos = Object.entries(definicion.campos || {}).filter(
+    ([, d]) => d.tipo === "url" || d.tipo === "imagen"
+  );
+
+  if (subcampos.length === 0 || items.length === 0) return null;
+
+  function cambiarSubcampo(indice, nombre, valorNuevo) {
+    onCambiar(items.map((item, i) => (i === indice ? { ...item, [nombre]: valorNuevo } : item)));
+  }
+
+  // La etiqueta de cada item sale de su primer campo de texto con
+  // contenido — mismo criterio que el árbol de Estructura, para que el
+  // usuario reconozca de cuál está editando el enlace.
+  function etiqueta(item, indice) {
+    const texto = Object.values(item || {}).find((v) => typeof v === "string" && v.trim() && !v.startsWith("http"));
+    return texto ? texto.replace(/<[^>]+>/g, "").trim().slice(0, 40) : `Item ${indice + 1}`;
+  }
+
+  return (
+    <div className="sofia-drawer-estilo__lista">
+      {items.map((item, indice) => (
+        <div key={indice} className="sofia-drawer-estilo__lista-item">
+          <span className="sofia-drawer-estilo__lista-nombre">{etiqueta(item, indice)}</span>
+          {subcampos.map(([nombre, d]) => (
+            <CampoDesdeSchema
+              key={nombre}
+              nombre={nombre}
+              definicion={d}
+              valor={item[nombre]}
+              onCambiar={(v) => cambiarSubcampo(indice, nombre, v)}
+              restUrl={restUrl}
+              nonce={nonce}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
  * CamposContenido — la sección "Contenido" del panel de bloque: un control
  * por cada campo que el Componente declara en schema_contenido() del lado
  * PHP.
@@ -458,28 +513,38 @@ export function CamposDesdeSchema({
  * Breadcrumb) no se podían editar desde ningún lado, y Embed —cuyo único
  * campo ES la URL— era un bloque inusable a mano.
  *
- * Las listas repetibles se omiten a propósito (ver el comentario de tipos
- * en CampoDesdeSchema): sus items ya se editan en el canvas y se
- * reordenan desde el árbol de Estructura.
+ * De las listas repetibles solo se muestran los subcampos que el canvas
+ * no puede editar (ver CampoLista): el resto ya se edita ahí.
  */
 export function CamposContenido({ schema, contenido, onCambiarCampo, restUrl, nonce }) {
-  const entradas = Object.entries(schema || {}).filter(([, definicion]) => definicion.tipo !== "lista");
+  const entradas = Object.entries(schema || {});
   if (entradas.length === 0) return null;
 
   // Devuelve el array directo, sin envolver en un fragmento: mismo
   // criterio que CamposDesdeSchema. Envolverlo fue un bug real — la
   // sección aparecía con su encabezado pero sin ningún campo adentro.
-  return entradas.map(([nombre, definicion]) => (
-    <CampoDesdeSchema
-      key={nombre}
-      nombre={nombre}
-      definicion={definicion}
-      valor={contenido[nombre]}
-      onCambiar={(valorNuevo) => onCambiarCampo(nombre, valorNuevo)}
-      restUrl={restUrl}
-      nonce={nonce}
-    />
-  ));
+  return entradas.map(([nombre, definicion]) =>
+    definicion.tipo === "lista" ? (
+      <CampoLista
+        key={nombre}
+        definicion={definicion}
+        valor={contenido[nombre]}
+        onCambiar={(valorNuevo) => onCambiarCampo(nombre, valorNuevo)}
+        restUrl={restUrl}
+        nonce={nonce}
+      />
+    ) : (
+      <CampoDesdeSchema
+        key={nombre}
+        nombre={nombre}
+        definicion={definicion}
+        valor={contenido[nombre]}
+        onCambiar={(valorNuevo) => onCambiarCampo(nombre, valorNuevo)}
+        restUrl={restUrl}
+        nonce={nonce}
+      />
+    )
+  );
 }
 
 /**

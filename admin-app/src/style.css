@@ -1024,6 +1024,33 @@ body {
   border-color: var(--gp-accent);
 }
 
+/* Items de una lista repetible: cada uno agrupa sus subcampos bajo el
+   texto que lo identifica, para saber de cuál se está editando el
+   enlace. */
+.sofia-drawer-estilo__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sofia-drawer-estilo__lista-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--gp-panel-border);
+  border-radius: 6px;
+}
+
+.sofia-drawer-estilo__lista-nombre {
+  color: var(--gp-panel-text);
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Número acotado: deslizador + valor. El deslizador comunica el rango
    sin explicarlo y no deja escribir un valor inválido. */
 .sofia-drawer-estilo__numero {
