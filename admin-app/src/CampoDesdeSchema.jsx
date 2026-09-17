@@ -336,7 +336,10 @@ export function CamposDesdeSchema({ schema, estilo, actualizar, restUrl, nonce, 
         nombre={nombre}
         definicion={definicion}
         valor={estilo[nombre]}
-        onCambiar={(valorNuevo) => actualizar({ [nombre]: valorNuevo })}
+        // requiere_render (lo marca schema_de() del lado PHP): esta prop
+        // la resuelve render() en PHP, no es CSS que el iframe pueda
+        // aplicar solo — el panel tiene que pedir el bloque de nuevo.
+        onCambiar={(valorNuevo) => actualizar({ [nombre]: valorNuevo }, definicion.requiere_render === true)}
         restUrl={restUrl}
         nonce={nonce}
       />

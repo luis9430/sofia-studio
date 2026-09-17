@@ -270,8 +270,8 @@ export function DrawerEstilo({
 
   if (!campo) return null;
 
-  function actualizar(cambios) {
-    onCambiarEstilo({ ...estilo, ...cambios });
+  function actualizar(cambios, requiereRender) {
+    onCambiarEstilo({ ...estilo, ...cambios }, requiereRender);
   }
 
   return (

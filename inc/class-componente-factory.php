@@ -186,7 +186,29 @@ class Sofia_Componente_Factory {
 		if ( null === $componente ) {
 			return null;
 		}
-		return array_merge( self::generico_relevante_de( $componente ), $componente::schema_propio() );
+
+		// "requiere_render": marca las entradas que vienen de
+		// schema_propio() — las props de APARIENCIA propias de este tipo.
+		//
+		// El editor necesita distinguirlas de las genéricas porque se
+		// aplican distinto: una prop genérica (color de fondo, ancho) es
+		// CSS que el iframe escribe al instante sobre la <section>, pero
+		// una prop propia la resuelve render() del lado PHP — decide
+		// clases, íconos o estructura del HTML. El iframe no puede
+		// simular eso, así que el panel tiene que pedir el bloque
+		// re-renderizado.
+		//
+		// Se marca acá, en el mismo lugar que fusiona los dos schemas, en
+		// vez de que el frontend mantenga una lista de "qué props son
+		// propias de qué tipo" — esa lista se desincronizaría en cuanto
+		// un Componente gane una prop nueva.
+		$propio = array();
+		foreach ( $componente::schema_propio() as $clave => $definicion ) {
+			$definicion['requiere_render'] = true;
+			$propio[ $clave ]              = $definicion;
+		}
+
+		return array_merge( self::generico_relevante_de( $componente ), $propio );
 	}
 
 	/**

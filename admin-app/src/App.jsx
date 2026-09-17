@@ -66,14 +66,6 @@ function todosLosIds(estructura) {
   return ids;
 }
 
-// buscarNodo(estructura, id): encuentra el nodo {id,tipo,hijos} de UN
-// bloque puntual en cualquier profundidad del árbol — anexo del plan "50
-// primitivas" (ver la memoria de producto, rediseño de Container): el
-// aviso "necesitás 2+ hijos para ver el efecto" (mostrarEstiloDeBloque)
-// necesita saber CUÁNTOS hijos tiene el Container seleccionado, y la
-// única fuente de eso es el árbol de estructura — mismo recorrido
-// recursivo que todosLosIds(), pero buscando un id puntual en vez de
-// listarlos todos.
 // contenidoDeBloque(contenido, id): los campos de contenido de UN bloque,
 // extraídos del mapa plano que guarda GoPress ("{id}.{campo}": valor).
 // Descarta las claves internas que empiezan con "_" (_estilo_bloque,
@@ -90,6 +82,15 @@ function contenidoDeBloque(contenido, id) {
   }
   return campos;
 }
+
+// buscarNodo(estructura, id): encuentra el nodo {id,tipo,hijos} de UN
+// bloque puntual en cualquier profundidad del árbol — anexo del plan "50
+// primitivas" (ver la memoria de producto, rediseño de Container): el
+// aviso "necesitás 2+ hijos para ver el efecto" (mostrarEstiloDeBloque)
+// necesita saber CUÁNTOS hijos tiene el Container seleccionado, y la
+// única fuente de eso es el árbol de estructura — mismo recorrido
+// recursivo que todosLosIds(), pero buscando un id puntual en vez de
+// listarlos todos.
 
 function buscarNodo(estructura, id) {
   for (const bloque of estructura) {
@@ -645,7 +646,7 @@ export function App({ config }) {
   // controles reflejen el cambio al instante. El nivel decide qué mensaje
   // mandar y qué significa "campo" en cada caso (clave de campo vs. ID de
   // bloque directo).
-  function cambiarEstiloDrawer(estiloNuevo) {
+  function cambiarEstiloDrawer(estiloNuevo, requiereRender) {
     if (!drawerEstilo) return;
     setDrawerEstilo({ ...drawerEstilo, estilo: estiloNuevo });
     const tipoMensaje = drawerEstilo.nivel === "bloque" ? "sofia:aplicar-estilo-bloque" : "sofia:aplicar-estilo";
@@ -654,6 +655,38 @@ export function App({ config }) {
       { tipo: tipoMensaje, [clave]: drawerEstilo.campo, estilo: estiloNuevo },
       "*"
     );
+
+    // Props de apariencia propias del Componente (las que schema_de()
+    // marca con requiere_render): no son CSS, las resuelve render() en
+    // PHP — decide clases, íconos o estructura del HTML. El mensaje de
+    // arriba ya persistió el valor, pero el iframe no tiene forma de
+    // reflejarlo solo, así que se pide el bloque de nuevo.
+    //
+    // Bug real que esto corrige: cambiar la orientación de una Card se
+    // guardaba bien pero el canvas no cambiaba hasta recargar con F5.
+    if (requiereRender && drawerEstilo.nivel === "bloque") {
+      rerenderizarBloque(drawerEstilo.campo);
+    }
+  }
+
+  // Pide a PHP el HTML actualizado de un bloque y lo reemplaza en el
+  // canvas. Mismo endpoint y mensaje que ya usan agregar bloque, cambiar
+  // visibilidad y editar contenido — el iframe nunca inventa HTML de un
+  // Componente, siempre lo pide.
+  async function rerenderizarBloque(idBloque) {
+    try {
+      const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${idBloque}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => (r.ok ? r.json() : null));
+      if (html?.html) {
+        iframeRef.current?.contentWindow.postMessage(
+          { tipo: "sofia:reemplazar-bloque-html", id: idBloque, html: html.html },
+          "*"
+        );
+      }
+    } catch {
+      setEstado("error");
+    }
   }
 
   // Guarda un campo de CONTENIDO editado desde el panel (el enlace de un
