@@ -40,6 +40,14 @@ class Sofia_Panel_Editor {
 		wp_enqueue_style( 'sofia-editor-admin', $build_uri . '/editor-admin.css', array(), $version );
 		wp_enqueue_script( 'sofia-editor-admin', $build_uri . '/editor-admin.js', array(), $version, true );
 
+		// wp_enqueue_media(): el panel de contenido (CampoDesdeSchema.jsx,
+		// tipo "imagen") abre el selector de medios de WordPress con
+		// wp.media(), igual que el click sobre una <img> del canvas — pero
+		// esto corre en la página de admin, no dentro del iframe, así que
+		// necesita su propia copia de la librería. Sin esto, wp.media es
+		// undefined acá y el campo de imagen del panel no abre nada.
+		wp_enqueue_media();
+
 		$slug = isset( $_GET['pagina'] ) ? sanitize_title( wp_unslash( $_GET['pagina'] ) ) : 'inicio';
 
 		wp_localize_script(

@@ -85,6 +85,20 @@ class Sofia_REST_Editor {
 			)
 		);
 
+		// Set de íconos del sistema, para el selector visual del panel de
+		// contenido (CampoIcono en CampoDesdeSchema.jsx). Ruta propia, no
+		// bajo catalogo-bloques/: ahí "iconos" chocaría con el patrón
+		// {tipo} de las rutas de schema.
+		register_rest_route(
+			'sofia/v1',
+			'/iconos',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'catalogo_iconos' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
 		register_rest_route(
 			'sofia/v1',
 			'/ia/generar',
@@ -599,6 +613,21 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_tipo_desconocido', 'Tipo de bloque desconocido.', array( 'status' => 404 ) );
 		}
 		return rest_ensure_response( $schema );
+	}
+
+	/**
+	 * GET /wp-json/sofia/v1/iconos — el set de íconos del sistema
+	 * ({nombre: contenido interno del <svg>}), para que el panel de
+	 * contenido dibuje un selector visual en vez de pedir el nombre exacto
+	 * escrito a mano.
+	 *
+	 * Manda el <path> crudo, no un <svg> armado: el tamaño y la clase los
+	 * decide quien lo dibuja (la grilla del panel los quiere chicos, el
+	 * render del sitio los quiere del tamaño del Componente), mismo
+	 * criterio que Sofia_Componente::svg_icono() ya aplica del lado PHP.
+	 */
+	public static function catalogo_iconos() {
+		return rest_ensure_response( array( 'iconos' => Sofia_Componente::ICONOS_PERMITIDOS ) );
 	}
 
 	/**

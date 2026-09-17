@@ -74,6 +74,23 @@ function todosLosIds(estructura) {
 // única fuente de eso es el árbol de estructura — mismo recorrido
 // recursivo que todosLosIds(), pero buscando un id puntual en vez de
 // listarlos todos.
+// contenidoDeBloque(contenido, id): los campos de contenido de UN bloque,
+// extraídos del mapa plano que guarda GoPress ("{id}.{campo}": valor).
+// Descarta las claves internas que empiezan con "_" (_estilo_bloque,
+// _condicion_bloque) y las de estilo de campo ("{id}.{campo}._estilo"):
+// el panel de contenido dibuja campos editables, no metadatos.
+function contenidoDeBloque(contenido, id) {
+  const prefijo = `${id}.`;
+  const campos = {};
+  for (const [clave, valor] of Object.entries(contenido || {})) {
+    if (!clave.startsWith(prefijo)) continue;
+    const resto = clave.slice(prefijo.length);
+    if (resto.startsWith("_") || resto.includes("._estilo")) continue;
+    campos[resto] = valor;
+  }
+  return campos;
+}
+
 function buscarNodo(estructura, id) {
   for (const bloque of estructura) {
     if (bloque.id === id) return bloque;
@@ -571,7 +588,15 @@ export function App({ config }) {
       // encuentra el nodo exacto sin pedir nada aparte a PHP.
       const nodo = buscarNodo(pagina.estructura || [], id);
       const cantidadHijos = nodo?.hijos?.length ?? 0;
-      setDrawerEstilo({ campo: id, tipoBloque: tipoBloque || "", estilo, condicion: reglas, nivel: "bloque", cantidadHijos });
+      setDrawerEstilo({
+        campo: id,
+        tipoBloque: tipoBloque || "",
+        estilo,
+        condicion: reglas,
+        nivel: "bloque",
+        cantidadHijos,
+        contenido: contenidoDeBloque(pagina.contenido, id),
+      });
     } catch {
       setEstado("error");
     }
@@ -629,6 +654,44 @@ export function App({ config }) {
       { tipo: tipoMensaje, [clave]: drawerEstilo.campo, estilo: estiloNuevo },
       "*"
     );
+  }
+
+  // Guarda un campo de CONTENIDO editado desde el panel (el enlace de un
+  // Button, la URL de un Embed, el ícono de un Icon). A diferencia del
+  // estilo —que el iframe aplica con CSS al instante— cambiar contenido
+  // cambia el HTML que PHP genera, así que hay que pedirle el bloque
+  // renderizado de nuevo: mismo camino que cambiarCondicionDrawer, con
+  // GET .../bloque/{id} y "sofia:reemplazar-bloque-html".
+  //
+  // El debounce de escritura ya lo aplica el input del panel (ver
+  // CampoTexto en CampoDesdeSchema.jsx), así que acá se guarda directo.
+  async function cambiarCampoContenido(nombreCampo, valorNuevo) {
+    if (!drawerEstilo) return;
+    const idBloque = drawerEstilo.campo;
+    setDrawerEstilo({
+      ...drawerEstilo,
+      contenido: { ...(drawerEstilo.contenido || {}), [nombreCampo]: valorNuevo },
+    });
+    setEstado("guardando");
+    try {
+      await fetch(`${config.restUrl}paginas/${config.slug}/campo`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
+        body: JSON.stringify({ campo: `${idBloque}.${nombreCampo}`, valor: valorNuevo }),
+      });
+      const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${idBloque}`, {
+        headers: { "X-WP-Nonce": config.nonce },
+      }).then((r) => (r.ok ? r.json() : null));
+      if (html?.html) {
+        iframeRef.current?.contentWindow.postMessage(
+          { tipo: "sofia:reemplazar-bloque-html", id: idBloque, html: html.html },
+          "*"
+        );
+      }
+      setEstado("guardado");
+    } catch {
+      setEstado("error");
+    }
   }
 
   // Guarda la condición de Visibilidad — a diferencia del estilo (que pasa
@@ -979,6 +1042,8 @@ export function App({ config }) {
               nivel={drawerEstilo.nivel || "campo"}
               condicion={drawerEstilo.condicion}
               cantidadHijos={drawerEstilo.cantidadHijos}
+              contenido={drawerEstilo.contenido}
+              onCambiarCampoContenido={cambiarCampoContenido}
               onCambiarEstilo={cambiarEstiloDrawer}
               onCambiarCondicion={cambiarCondicionDrawer}
               onAplicarFormato={aplicarFormato}

@@ -28,7 +28,7 @@ class Sofia_Componente_Icon_Button extends Sofia_Componente {
 		return array(
 			'texto'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto del botón', 'sofia-studio' ) ),
 			'enlace' => array( 'tipo' => 'url', 'etiqueta' => __( 'Enlace', 'sofia-studio' ) ),
-			'icono'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Ícono', 'sofia-studio' ) ),
+			'icono'  => array( 'tipo' => 'icono', 'etiqueta' => __( 'Ícono', 'sofia-studio' ) ),
 		);
 	}
 

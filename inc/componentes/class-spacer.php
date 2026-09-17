@@ -37,6 +37,13 @@ class Sofia_Componente_Spacer extends Sofia_Componente {
 	 * cualquier otro campo de medida_token del sistema (no existe un tipo
 	 * de schema_contenido dedicado a "medida", solo texto/texto_largo/
 	 * imagen/url/lista — ver Sofia_Componente::schema_contenido()).
+	 *
+	 * PENDIENTE: desde que el panel de contenido existe, esto se ve como un
+	 * input donde hay que escribir "cf:space-xl" de memoria, cuando el
+	 * sistema ya tiene un selector visual de tokens de espaciado
+	 * (CampoTokenVisual con categoria="space"). Al migrar este Componente
+	 * al contrato de tres capas, "alto" debería pasar a la capa de
+	 * apariencia como medida_token, que es lo que realmente es.
 	 */
 	public static function schema_contenido(): array {
 		return array(

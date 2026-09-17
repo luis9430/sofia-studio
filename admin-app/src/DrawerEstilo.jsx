@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { CampoConToken } from "./CampoConToken.jsx";
-import { CamposDesdeSchema } from "./CampoDesdeSchema.jsx";
+import { CamposDesdeSchema, CamposContenido } from "./CampoDesdeSchema.jsx";
 
 /**
  * Drawer de estilo — panel lateral con pestañas (Estilo | Visibilidad |
@@ -207,6 +207,8 @@ export function DrawerEstilo({
   nivel = "campo",
   condicion,
   cantidadHijos,
+  contenido,
+  onCambiarCampoContenido,
   onCambiarEstilo,
   onCambiarCondicion,
   onAplicarFormato,
@@ -223,6 +225,10 @@ export function DrawerEstilo({
   // distinto tipo sin que este componente se desmonte — ya no depende de
   // "abrir/cerrar" el panel, ver el comentario largo arriba).
   const [schemaBloque, setSchemaBloque] = useState(null);
+  // schemaContenido: los campos editables del bloque (schema_contenido()
+  // del lado PHP). Se pide junto al de estilo y por el mismo criterio: el
+  // Componente declara qué campos tiene, el panel solo los dibuja.
+  const [schemaContenido, setSchemaContenido] = useState(null);
 
   useEffect(() => {
     if (nivel !== "bloque" || !tipoBloque || !restUrl) {
@@ -237,6 +243,25 @@ export function DrawerEstilo({
       })
       .catch(() => {
         if (!cancelado) setSchemaBloque(null);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [nivel, tipoBloque, restUrl, nonce]);
+
+  useEffect(() => {
+    if (nivel !== "bloque" || !tipoBloque || !restUrl) {
+      setSchemaContenido(null);
+      return;
+    }
+    let cancelado = false;
+    fetch(`${restUrl}catalogo-bloques/${tipoBloque}/schema-contenido`, { headers: { "X-WP-Nonce": nonce } })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((datos) => {
+        if (!cancelado) setSchemaContenido(datos);
+      })
+      .catch(() => {
+        if (!cancelado) setSchemaContenido(null);
       });
     return () => {
       cancelado = true;
@@ -372,6 +397,20 @@ export function DrawerEstilo({
                     {estilo.sombra_texto ? "Activada" : "Desactivada"}
                   </button>
                 </div>
+              </>
+            )}
+
+            {nivel === "bloque" && schemaContenido && Object.keys(schemaContenido).length > 0 && (
+              <>
+                <p className="sofia-drawer-estilo__seccion">Contenido</p>
+                <CamposContenido
+                  schema={schemaContenido}
+                  contenido={contenido || {}}
+                  onCambiarCampo={onCambiarCampoContenido}
+                  restUrl={restUrl}
+                  nonce={nonce}
+                />
+                <p className="sofia-drawer-estilo__seccion">Apariencia</p>
               </>
             )}
 

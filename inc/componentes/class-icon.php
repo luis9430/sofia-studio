@@ -43,7 +43,7 @@ class Sofia_Componente_Icon extends Sofia_Componente {
 	 */
 	public static function schema_contenido(): array {
 		return array(
-			'icono' => array( 'tipo' => 'texto', 'etiqueta' => __( 'Ícono', 'sofia-studio' ) ),
+			'icono' => array( 'tipo' => 'icono', 'etiqueta' => __( 'Ícono', 'sofia-studio' ) ),
 		);
 	}
 

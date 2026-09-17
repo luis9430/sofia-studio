@@ -1,18 +1,178 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 import { CampoTokenVisual } from "./CampoTokenVisual.jsx";
 
+// Un cambio de texto se guarda con PUT sofia/v1/paginas/{slug}/campo —
+// mandar uno por tecla saturaría la red y pisaría respuestas entre sí. El
+// input se mantiene en estado local (para que el cursor no salte) y el
+// guardado sale recién tras esta pausa sin escribir. Mismo criterio que
+// programarGuardado() en App.jsx, que ya aplica este retraso a la edición
+// in-place del canvas.
+const RETRASO_ESCRITURA_MS = 500;
+
+function CampoTexto({ valor, onCambiar, multilinea, placeholder }) {
+  const [local, setLocal] = useState(valor || "");
+  const temporizador = useRef(null);
+  // Última propuesta local: distingue "el valor de afuera cambió de verdad"
+  // de "volvió mi propio cambio tras guardarse". Sin esto, el eco del
+  // guardado reescribe el input mientras se sigue tecleando.
+  const propio = useRef(valor || "");
+
+  useEffect(() => {
+    const externo = valor || "";
+    if (externo !== propio.current) {
+      propio.current = externo;
+      setLocal(externo);
+    }
+  }, [valor]);
+
+  useEffect(() => () => clearTimeout(temporizador.current), []);
+
+  function alEscribir(evento) {
+    const texto = evento.currentTarget.value;
+    setLocal(texto);
+    propio.current = texto;
+    clearTimeout(temporizador.current);
+    temporizador.current = setTimeout(() => onCambiar(texto), RETRASO_ESCRITURA_MS);
+  }
+
+  // blur guarda de inmediato: si el usuario cierra el panel o clickea otro
+  // bloque antes de que venza la pausa, el cambio no se pierde.
+  function alSalir() {
+    clearTimeout(temporizador.current);
+    if ((valor || "") !== local) onCambiar(local);
+  }
+
+  const Etiqueta = multilinea ? "textarea" : "input";
+  return (
+    <Etiqueta
+      className="sofia-drawer-estilo__texto"
+      type={multilinea ? undefined : "text"}
+      rows={multilinea ? 4 : undefined}
+      value={local}
+      placeholder={placeholder}
+      onInput={alEscribir}
+      onBlur={alSalir}
+    />
+  );
+}
+
 /**
- * CampoDesdeSchema — un control de Nivel 2 (estilo de bloque) renderizado a
- * partir de UNA entrada del schema que devuelve
- * GET sofia/v1/catalogo-bloques/{tipo}/schema (ver
- * Sofia_Componente::schema_bloque_generico()/schema_propio() del lado PHP,
- * fusionados en Sofia_Componente_Factory::schema_de()). Reemplaza los
- * <select>/botones que DrawerEstilo.jsx tenía hardcodeados uno por uno — el
- * PHP es ahora la única fuente de verdad de "qué controles existen", este
- * componente solo sabe traducir CADA tipo de entrada a su control real, ver
- * Fase 2 del plan de "primitivas de layout" (memoria de producto).
+ * CampoImagen — abre el selector de medios de WordPress, el mismo que ya
+ * usa el click sobre una <img> del canvas (activarImagen en
+ * editor-iframe.js). Acá corre en la página de admin, así que depende de
+ * wp_enqueue_media() en class-panel-editor.php.
  *
- * Tipos soportados, mismo vocabulario que ya usaba DrawerEstilo.jsx a mano:
+ * Muestra la miniatura de lo elegido en vez de la URL cruda: para decidir
+ * si es la imagen correcta, verla vale más que leer su ruta.
+ */
+function CampoImagen({ valor, onCambiar }) {
+  function elegir() {
+    if (typeof wp === "undefined" || !wp.media) return;
+    const selector = wp.media({
+      title: "Elegir imagen",
+      button: { text: "Usar esta imagen" },
+      multiple: false,
+    });
+    selector.on("select", () => {
+      const adjunto = selector.state().get("selection").first().toJSON();
+      onCambiar(adjunto.url);
+    });
+    selector.open();
+  }
+
+  return (
+    <div className="sofia-drawer-estilo__imagen">
+      {valor ? (
+        <button type="button" className="sofia-drawer-estilo__imagen-preview" onClick={elegir}>
+          <img src={valor} alt="" />
+          <span>Cambiar</span>
+        </button>
+      ) : (
+        <button type="button" className="sofia-drawer-estilo__imagen-vacia" onClick={elegir}>
+          Elegir imagen
+        </button>
+      )}
+      {valor && (
+        <button type="button" className="sofia-drawer-estilo__imagen-quitar" onClick={() => onCambiar("")}>
+          Quitar
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * CampoIcono — grilla visual del set de íconos del sistema
+ * (Sofia_Componente::ICONOS_PERMITIDOS, expuesto vía GET sofia/v1/iconos).
+ * Reemplaza al input de texto donde había que escribir el nombre exacto
+ * del ícono de memoria.
+ */
+function CampoIcono({ valor, onCambiar, restUrl, nonce }) {
+  const [iconos, setIconos] = useState(null);
+
+  useEffect(() => {
+    if (!restUrl) return;
+    let cancelado = false;
+    fetch(`${restUrl}iconos`, { headers: { "X-WP-Nonce": nonce } })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((datos) => {
+        if (!cancelado) setIconos(datos && datos.iconos ? datos.iconos : null);
+      })
+      .catch(() => {
+        if (!cancelado) setIconos(null);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [restUrl, nonce]);
+
+  // Sin catálogo (fetch fallido) cae a texto libre: es peor control, pero
+  // deja editar el campo igual en vez de dejarlo inaccesible.
+  if (!iconos) {
+    return <CampoTexto valor={valor} onCambiar={onCambiar} placeholder="Nombre del ícono" />;
+  }
+
+  return (
+    <div className="sofia-drawer-estilo__iconos">
+      {Object.entries(iconos).map(([nombre, paths]) => (
+        <button
+          key={nombre}
+          type="button"
+          title={nombre}
+          className={`sofia-drawer-estilo__icono ${valor === nombre ? "sofia-drawer-estilo__icono--activo" : ""}`}
+          onClick={() => onCambiar(nombre)}
+        >
+          {/* El endpoint manda el contenido INTERNO del svg (los <path>),
+              no el svg armado — el wrapper lo pone quien dibuja, porque
+              cada contexto lo quiere de otro tamaño. */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: paths }}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * CampoDesdeSchema — UN control renderizado a partir de una entrada de
+ * schema del lado PHP. Sirve a los dos schemas que declara un Componente:
+ * el de ESTILO (schema_bloque_generico() + schema_propio(), vía
+ * GET catalogo-bloques/{tipo}/schema) y el de CONTENIDO
+ * (schema_contenido(), vía .../schema-contenido).
+ *
+ * PHP es la única fuente de verdad de qué controles existen; este
+ * componente solo sabe traducir cada TIPO de entrada a su control real.
+ *
+ * Tipos de ESTILO:
  * - "select": <select> de opciones fijas ({opciones:[{valor,etiqueta}]}).
  * - "botones_numero": fila de botones exclusivos de un número
  *   ({opciones:["2","3","4"]}), ej. Columnas/Columnas de grilla.
@@ -28,6 +188,15 @@ import { CampoTokenVisual } from "./CampoTokenVisual.jsx";
  *   texto, que activan un valor pre-armado propio de cada campo), acá
  *   activa/desactiva simplemente "true"/"" (ningún Componente de Nivel 2
  *   necesitó hoy un valor pre-armado distinto).
+ *
+ * Tipos de CONTENIDO:
+ * - "texto" / "url": input con debounce (ver CampoTexto).
+ * - "texto_largo": textarea, mismo debounce.
+ * - "imagen": selector de medios de WordPress con miniatura.
+ * - "icono": grilla visual del set de íconos del sistema.
+ * - "lista": no se edita acá — los items de una lista repetible se
+ *   agregan, reordenan y eliminan desde el árbol de Estructura y el
+ *   canvas, que ya resuelven ese gesto mejor que un control de panel.
  */
 export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar, restUrl, nonce }) {
   const { tipo, etiqueta, ayuda, opciones } = definicion;
@@ -84,6 +253,27 @@ export function CampoDesdeSchema({ nombre, definicion, valor, onCambiar, restUrl
         >
           {valor ? "Activada" : "Desactivada"}
         </button>
+      )}
+
+      {/* Tipos de CONTENIDO (schema_contenido() del lado PHP). Hasta este
+          cambio ningún frontend los consumía: los 29 Componentes declaraban
+          sus campos y esa información solo la usaba la validación de la IA,
+          así que 9 campos "url" no se podían editar desde ningún lado y
+          Embed —cuyo único campo es la URL— era inusable a mano. */}
+      {(tipo === "texto" || tipo === "url") && (
+        <CampoTexto
+          valor={valor}
+          onCambiar={onCambiar}
+          placeholder={tipo === "url" ? "https://…" : undefined}
+        />
+      )}
+
+      {tipo === "texto_largo" && <CampoTexto valor={valor} onCambiar={onCambiar} multilinea />}
+
+      {tipo === "imagen" && <CampoImagen valor={valor} onCambiar={onCambiar} />}
+
+      {tipo === "icono" && (
+        <CampoIcono valor={valor} onCambiar={onCambiar} restUrl={restUrl} nonce={nonce} />
       )}
     </div>
   );
@@ -178,6 +368,44 @@ export function CamposDesdeSchema({ schema, estilo, actualizar, restUrl, nonce, 
           {avanzadas.map(renderCampo)}
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * CamposContenido — la sección "Contenido" del panel de bloque: un control
+ * por cada campo que el Componente declara en schema_contenido() del lado
+ * PHP.
+ *
+ * Es la pieza que faltaba para que ese schema sirviera de algo en el
+ * editor. Los 29 Componentes ya lo declaraban, pero ningún frontend lo
+ * pedía: la información existía y solo la usaba la validación del
+ * generador por IA. Como consecuencia, 9 campos "url" (el enlace de
+ * Button, Link, IconButton, CTA, Card, y el de cada item de Nav y
+ * Breadcrumb) no se podían editar desde ningún lado, y Embed —cuyo único
+ * campo ES la URL— era un bloque inusable a mano.
+ *
+ * Las listas repetibles se omiten a propósito (ver el comentario de tipos
+ * en CampoDesdeSchema): sus items ya se editan en el canvas y se
+ * reordenan desde el árbol de Estructura.
+ */
+export function CamposContenido({ schema, contenido, onCambiarCampo, restUrl, nonce }) {
+  const entradas = Object.entries(schema || {}).filter(([, definicion]) => definicion.tipo !== "lista");
+  if (entradas.length === 0) return null;
+
+  return (
+    <>
+      {entradas.map(([nombre, definicion]) => (
+        <CampoDesdeSchema
+          key={nombre}
+          nombre={nombre}
+          definicion={definicion}
+          valor={contenido[nombre]}
+          onCambiar={(valorNuevo) => onCambiarCampo(nombre, valorNuevo)}
+          restUrl={restUrl}
+          nonce={nonce}
+        />
+      ))}
     </>
   );
 }
