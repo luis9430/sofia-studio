@@ -55,13 +55,11 @@ class Sofia_Componente_Rich_Text extends Sofia_Componente {
 		);
 	}
 
-	/**
-	 * claves_estilo_relevantes(): PERFIL_SECCION — mismo perfil que
-	 * Texto_Libre (implícito, default heredado de la clase base): es una
-	 * sección de contenido completa, con fondo/espaciado propios con
-	 * sentido real (ej. una sección de texto largo con fondo distinto al
-	 * resto de la página).
-	 */
+	// Sin override de claves_estilo_relevantes(): hereda PERFIL_SECCION de
+	// la clase base, que es exactamente lo que corresponde acá — mismo caso
+	// que Texto_Libre. Es una sección de contenido completa, con fondo y
+	// espaciado propios con sentido real (ej. un bloque de texto largo con
+	// fondo distinto al resto de la página).
 
 	public function render(): string {
 		$contenido = wp_kses( (string) ( $this->props['contenido'] ?? '' ), self::ETIQUETAS_FORMATO_PERMITIDAS );

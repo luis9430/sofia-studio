@@ -205,6 +205,26 @@ h1, h2, h3, h4, h5, h6 {
 	text-decoration: none;
 }
 
+/* Image — la <img> va directo dentro de la <section>, sin clase propia (ver
+   Sofia_Componente_Image::render()), así que se la alcanza por elemento.
+   max-width:100% es lo que evita que una imagen más ancha que su contenedor
+   se desborde del layout — sin esto, cualquier foto de la Media Library a
+   tamaño completo rompía el ancho de la página. display:block saca el
+   espacio fantasma bajo la imagen que deja el line-height de inline. */
+.sofia-image > img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+/* Texto libre — el <p> ya trae los márgenes del navegador, que acá sobran:
+   el espaciado entre secciones lo resuelve .sofia-pagina > section (ver
+   arriba), y un margin propio del párrafo se sumaba a ese, dando el doble
+   de aire del pedido. */
+.sofia-texto-libre > p {
+	margin: 0;
+}
+
 .sofia-faq__item {
 	padding: 16px 0;
 	border-bottom: 1px solid var(--sofia-color-borde);
@@ -220,8 +240,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* max-width-*/width-* de Core Framework (Nivel 2, "Ancho máximo"/"Ancho")
    se aplican a la <section> del bloque, en flujo normal tanto en el sitio
-   público como en el editor desde el paso 3 del rediseño de layout (Muuri
-   eliminado, ver la memoria de producto y class-modo-editor.php) — una
+   público como en el editor — una
    <section> en flujo normal con max-width/width menor a 100% queda pegada
    a la izquierda por default (display:block no centra por sí solo).
    Centrado por DEFECTO (mismo comportamiento esperado de
@@ -234,15 +253,9 @@ h1, h2, h3, h4, h5, h6 {
    self-left/-right (que solo fijan UN lado de los dos, dejando el otro
    en su valor inicial).
 
-   Paso 3 del rediseño de layout (Muuri eliminado, ver la memoria de
-   producto): esta regla ahora SÍ aplica dentro del editor también — antes
-   no, porque .sofia-pagina > section forzaba position:absolute/left ahí,
-   y un mecanismo aparte (layoutNivelSuperiorConAlineacion(), ya eliminado
-   de editor-iframe.js) calculaba el X a mano leyendo la misma clase
-   self-left/-center/-right. Sin ese CSS paralelo, el editor y el sitio
-   público comparten exactamente esta regla — el centrado de un bloque de
-   ancho reducido, documentado antes como deuda pendiente ("no llegó a
-   funcionar en el editor"), quedó resuelto de raíz sin código nuevo. */
+   El editor y el sitio público comparten exactamente esta regla: en ambos
+   el bloque está en flujo normal, así que no hace falta ningún CSS ni
+   cálculo de posición paralelo para el canvas. */
 .sofia-pagina > section[class*="max-width-"]:not(.self-left):not(.self-right),
 .sofia-pagina > section.max-site-width:not(.self-left):not(.self-right),
 .sofia-pagina > section[class*="width-"]:not(.self-left):not(.self-right) {

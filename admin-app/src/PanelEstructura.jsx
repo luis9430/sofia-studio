@@ -58,17 +58,14 @@ function CatalogoAgregar({ catalogo, onAgregar }) {
  *    lista angosta y previsible, y el iframe se sincroniza por mensaje (ver
  *    alMoverBloque en editor-iframe.js) en vez de recibir el drag directo.
  *
- * Mismo alcance que tenía el drag de Muuri en el canvas cuando existía
- * (decisión de diseño explícita, Fase 3 de "primitivas de layout" —
- * vigente aunque Muuri ya no exista, ver el paso 3 del rediseño en la
- * memoria de producto): el drag acá SOLO reordena dentro del mismo padre
+ * Restricción de alcance (decisión de diseño explícita, Fase 3 de
+ * "primitivas de layout"): el drag acá SOLO reordena dentro del mismo padre
  * — nunca mueve un nodo de un Container a otro, ni entre nivel superior y
  * un Container. Ampliar a eso es una fase aparte (requiere reconstruir el
  * HTML del bloque movido para su nuevo padre, no solo reordenar el
  * existente).
  *
- * Paso 3 (Muuri eliminado del canvas, ver la memoria de producto): los
- * nodos de un bloque con lista repetible (Franja de beneficios/
+ * Los nodos de un bloque con lista repetible (Franja de beneficios/
  * Testimonios/FAQ) traen ADEMÁS un item por hijo, marcados `esItem:true`
  * (ver conNombres en App.jsx) — mismos gestos de selección/arrastre que
  * un bloque real, pero un item nunca tiene hijos propios ni abre el

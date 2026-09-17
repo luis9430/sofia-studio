@@ -215,10 +215,10 @@ abstract class Sofia_Componente {
 	 * bloque_visible() es false) marca la <section> con la pista visual de
 	 * "esto está oculto para un visitante real, mismo criterio en el CSS
 	 * del modo editor (class-modo-editor.php) que .sofia-handle-arrastre —
-	 * un ATRIBUTO en la propia sección, nunca un <div> envolvente: Muuri
-	 * reconoce sus ítems por selector "section" hijo DIRECTO de
-	 * .sofia-pagina (ver activarReordenar() en editor-iframe.js), un
-	 * wrapper extra rompería ese matching. page.php ya decidió SI
+	 * un ATRIBUTO en la propia sección, nunca un <div> envolvente:
+	 * editor-iframe.js reconoce cada bloque por "section" hijo DIRECTO de
+	 * .sofia-pagina (ver leerBloquesDesde()), así que un wrapper extra
+	 * rompería ese matching. page.php ya decidió SI
 	 * renderizar el bloque (visita pública: no se renderiza en absoluto si
 	 * no es visible) — acá solo se agrega la marca cuando corresponde.
 	 */
@@ -453,12 +453,10 @@ abstract class Sofia_Componente {
 		// Ancho/Ancho máximo menor al 100% (mismo criterio documentado en
 		// style.css) — .self-left/-center/-right son las utility classes
 		// REALES de Core Framework (margin-inline/left/right:auto +
-		// place-self), funcionan tal cual en la visita pública (bloque en
-		// flujo normal). DENTRO del editor, Muuri posiciona cada <section>
-		// con su propio transform (position:absolute), que ignora margin
-		// auto — ahí, editor-iframe.js lee esta MISMA clase para calcular a
-		// mano el X centrado/derecha (ver layoutNivelSuperior()), en vez de
-		// depender de que el navegador resuelva el margin.
+		// place-self), funcionan tal cual tanto en la visita pública como
+		// dentro del editor: en ambos el bloque está en flujo normal, así
+		// que el margin auto de la propia utility class alcanza, sin
+		// necesidad de que el JS calcule ninguna posición a mano.
 		'alineacion_bloque' => array(
 			'left'   => 'self-left',
 			'center' => 'self-center',
@@ -620,10 +618,10 @@ abstract class Sofia_Componente {
 		// un TOKEN, porque un valor fijo se puede releer tal cual de
 		// el.style.borderRadius, por ejemplo), acá no hay ningún
 		// "el.style.transform" del que el JS pueda leer de vuelta el
-		// string original: dentro del editor, Muuri controla ese
-		// atributo por completo (ver layoutNivelSuperiorConAlineacion en
-		// editor-iframe.js) — sin este data-attribute, reabrir el drawer
-		// perdería el offset guardado incluso cuando es un valor fijo.
+		// string ORIGINAL: el navegador normaliza transform a una matriz,
+		// perdiendo tanto el token como la unidad escrita — sin este
+		// data-attribute, reabrir el drawer perdería el offset guardado
+		// incluso cuando es un valor fijo.
 		$offset_x = $estilo['offset_x'] ?? null;
 		if ( ! empty( $offset_x ) && is_string( $offset_x ) ) {
 			if ( Sofia_Estilo_Global::es_token_con_nombre( $offset_x ) ) {
@@ -1129,15 +1127,24 @@ abstract class Sofia_Componente {
 	protected const PERFIL_PRIMITIVA = array( 'ancho', 'max_width', 'alineacion_bloque', 'offset_x' );
 
 	/**
-	 * PERFIL_LISTA: PERFIL_SECCION + los 3 controles que solo tienen
-	 * efecto real en un Componente con una lista de items propia
-	 * (Franja de beneficios, Testimonios, y a futuro Carousel) — columnas
-	 * de grid + alineación horizontal/vertical del contenido DENTRO de
-	 * cada columna. Confirmado por lectura del propio CSS (ver el
-	 * comentario largo de CLASES_UTILITARIAS_BLOQUE más arriba): estas 3
-	 * claves ya eran, desde antes de este cambio, "se muestran siempre
-	 * pero solo hacen algo visible en 2 tipos" — el perfil solo hace
-	 * explícito lo que ya era cierto en la práctica.
+	 * PERFIL_LISTA: PERFIL_SECCION + los 3 controles de GRILLA — columnas
+	 * + alineación horizontal/vertical del contenido DENTRO de cada
+	 * columna.
+	 *
+	 * REGLA para usarlo, más estricta que "el Componente tiene items":
+	 * solo lo declara un Componente que renderiza una GRILLA REAL de
+	 * columnas Y tiene el CSS que consume esas 3 claves. Hoy eso es
+	 * exactamente Franja de beneficios y Testimonios — los selectores de
+	 * alineación (.sofia-franja-beneficios.items-*, .sofia-testimonios
+	 * .items-*) y el consumo de --sofia-columnas están escritos a mano
+	 * para esos dos, no de forma genérica.
+	 *
+	 * Bug real que motivó esta regla: List, Nav y Breadcrumb lo declararon
+	 * por analogía ("tienen lista de items") en la Fase 4, y mostraban 3
+	 * controles que no hacían nada en el drawer — justo el ruido que los
+	 * perfiles existen para evitar. Los tres pasaron a PERFIL_SECCION.
+	 * Un Componente nuevo con lista pero sin grilla (o con grilla propia
+	 * resuelta por utility classes de Core Framework) va a PERFIL_SECCION.
 	 */
 	protected const PERFIL_LISTA = array(
 		'ancho', 'max_width', 'alineacion_bloque', 'offset_x',

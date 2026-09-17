@@ -60,22 +60,14 @@ class Sofia_Modo_Editor {
 	}
 
 	/**
-	 * Muuri (drag-and-drop position:absolute) fue ELIMINADO en el paso 3
-	 * del rediseño de layout a 3 zonas fijas (ver la memoria de producto):
-	 * el objetivo de ese paso es que el canvas sea un espejo FIEL del
-	 * sitio público real (flujo normal, sin ningún CSS "solo modo editor"
-	 * para simular posiciones) — mantener Muuri lo contradecía
-	 * directamente. Reordenar bloques (paso 2) e items de listas
-	 * repetibles (este paso) ya no se arrastra sobre el canvas: se hace
-	 * desde el panel de Estructura (ver PanelEstructura.jsx/App.jsx), que
-	 * le pide a este script mover un nodo puntual del DOM real — nunca un
-	 * motor de layout paralelo. El bug histórico de SortableJS que motivó
-	 * adoptar Muuri (reordenamiento errático con bloques de altura muy
-	 * dispar, ver el historial de git) era específico de arrastrar
-	 * DIRECTAMENTE sobre un documento en flujo variable mientras se
-	 * recalculaba geometría en vivo — un mover puntual disparado por click
-	 * en el árbol (sin ningún drag real dentro del iframe) nunca pisa esa
-	 * causa raíz.
+	 * Encola el script de edición in-place dentro del iframe, más la
+	 * librería de medios de WordPress que wp.media() necesita.
+	 *
+	 * El canvas es flujo normal, un espejo fiel del sitio público: no hay
+	 * ningún CSS "solo modo editor" que simule posiciones. Reordenar
+	 * bloques o items de listas no se arrastra sobre el canvas — se hace
+	 * desde el panel de Estructura (PanelEstructura.jsx/App.jsx), que le
+	 * pide a este script mover un nodo puntual del DOM real.
 	 */
 	public static function encolar_script(): void {
 		if ( ! self::activo() ) {
@@ -126,17 +118,12 @@ class Sofia_Modo_Editor {
 	 * una visita pública normal — inyectado inline en vez de un archivo
 	 * .css propio, mismo criterio que imprimir_css_ocultar_admin_bar.
 	 *
-	 * REDISEÑO (paso 3, ver la memoria de producto): antes de este paso,
-	 * este método imponía TODO un layout paralelo — .sofia-pagina>section/
-	 * [data-sofia-item]/.sofia-container>section pasaban a position:absolute
-	 * (requisito de Muuri), con un margen de 60px reservado para el handle
-	 * de arrastre, anchos recalculados a mano, utility classes de Ancho
-	 * peleando de especificidad contra ese CSS, y centrado que ni siquiera
-	 * llegó a funcionar (quedó documentado como deuda pendiente). Todo eso
-	 * desapareció junto con Muuri: el canvas ahora es FLUJO NORMAL real, el
-	 * mismo layout exacto que vería cualquier visitante del sitio público
-	 * — el objetivo explícito de este paso era justamente esa fidelidad
-	 * 1:1, algo que el modelo de Muuri contradecía de raíz.
+	 * Es puro chrome de edición (marcas de bloque oculto, badge de token,
+	 * botón de agregar item, líneas de inserción): nada acá cambia el
+	 * LAYOUT del contenido. El canvas es flujo normal, el mismo layout
+	 * exacto que ve un visitante del sitio público — esa fidelidad 1:1 es
+	 * deliberada, así que ningún CSS de este método debe posicionar ni
+	 * dimensionar bloques.
 	 */
 	public static function imprimir_css_reordenar(): void {
 		if ( ! self::activo() ) {
@@ -233,10 +220,10 @@ class Sofia_Modo_Editor {
 			   naranja de acento queda reservado EXCLUSIVAMENTE para
 			   "agregar bloque completo" — un lenguaje de color consistente:
 			   gris = acción dentro del bloque actual, naranja = acción
-			   sobre la estructura de bloques de la página. Flujo normal
-			   (nunca tuvo relación con Muuri): vive como hermano de
-			   [data-sofia-lista] (ver Sofia_Componente_Franja_Beneficios::
-			   render()), empuja la altura real de la <section> igual que
+			   sobre la estructura de bloques de la página. Vive como
+			   hermano de [data-sofia-lista] (ver
+			   Sofia_Componente_Franja_Beneficios::render()), en flujo
+			   normal: empuja la altura real de la <section> igual que
 			   cualquier otro contenido. */
 			.sofia-boton-agregar-item {
 				display: block; width: 100%; margin-top: 8px;
@@ -250,16 +237,12 @@ class Sofia_Modo_Editor {
 			/* Línea de inserción ENTRE bloques — mismo patrón del mockup de
 			   diseño original ("Editor de Contenido", Artifact): una raya
 			   fina que solo se pinta al hover, con un botón "+" circular al
-			   centro. Paso 3 (ver la memoria de producto, eliminación de
-			   Muuri): antes vivía DENTRO de cada <section> con
-			   position:absolute, porque ser hermana suelta de .sofia-pagina
-			   contaminaba los índices que leía SortableJS/Muuri — sin ningún
-			   motor de drag leyendo el DOM (leerBloquesDesde en
-			   editor-iframe.js ya filtra explícitamente por
-			   data-sofia-bloque-id/-tipo, ignorando cualquier otro hermano),
-			   esa razón desapareció: la línea vuelve a ser hermana suelta,
-			   en flujo normal, más simple que reposicionarla a mano sobre
-			   cada borde de sección. */
+			   centro. Es hermana suelta de .sofia-pagina, en flujo normal
+			   — más simple que reposicionarla a mano sobre cada borde de
+			   sección. Que ensucie la lista de hijos no importa:
+			   leerBloquesDesde() (editor-iframe.js) filtra explícitamente
+			   por data-sofia-bloque-id/-tipo, ignorando cualquier otro
+			   hermano. */
 			.sofia-linea-insertar {
 				height: 16px; margin: -8px 0; position: relative; z-index: 6;
 				display: flex; align-items: center; justify-content: center;
@@ -295,12 +278,9 @@ class Sofia_Modo_Editor {
 			.sofia-linea-insertar:hover .sofia-linea-insertar__boton { opacity: 1; transform: scale(1); }
 			.sofia-linea-insertar__boton:hover { background: #d97a4d; color: #fff; }
 
-			/* .sofia-container (Fase 3, "primitivas de layout"): ya no
-			   necesita position:relative/overflow para alojar hijos
-			   position:absolute (eliminado junto con Muuri) — solo
-			   min-height, para que un container VACÍO siga teniendo un área
-			   clickeable real donde mostrar su línea de inserción "vacio"
-			   de arriba. */
+			/* .sofia-container: min-height para que un container VACÍO
+			   siga teniendo un área clickeable real donde mostrar su línea
+			   de inserción "vacio" de arriba. */
 			.sofia-container {
 				min-height: 40px;
 			}

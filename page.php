@@ -31,7 +31,7 @@ if ( null !== $datos ) {
 		// renderiza igual (el admin logueado nunca vería un bloque "solo
 		// para no logueados" si se ocultara de verdad ahí — necesita poder
 		// seguir editándolo), marcado con data-sofia-oculto-condicion en
-		// la PROPIA <section> — nunca un <div> envolvente: Muuri reconoce
+		// la PROPIA <section> — nunca un <div> envolvente: el editor reconoce
 		// sus ítems por selector "section" hijo DIRECTO de .sofia-pagina
 		// (ver activarReordenar() en editor-iframe.js), un wrapper extra
 		// rompería ese matching y el bloque dejaría de ser arrastrable.

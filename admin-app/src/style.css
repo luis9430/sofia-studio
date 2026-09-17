@@ -177,7 +177,7 @@ body {
 }
 
 /* Nodo de un ITEM de lista repetible (Franja de beneficios/Testimonios/
-   FAQ, ver conNombres en App.jsx, paso 3 del rediseño de layout — Muuri
+   FAQ, ver conNombres en App.jsx —
    eliminado) — mismo gesto de arrastre que un bloque real, pero no abre
    ningún drawer al hacer click (no tiene Nivel 2 propio), así que el
    cursor vuelve a "default" en vez de "pointer" para no prometer una

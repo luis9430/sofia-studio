@@ -350,15 +350,11 @@
 			}
 		}
 
-		// offset_x (Desplazamiento horizontal): en flujo normal (paso 3 del
-		// rediseño de layout, ver la memoria de producto — Muuri
-		// eliminado) se aplica directo como transform:translateX(...),
-		// mismo patrón que cualquier otra propiedad de
-		// PROPIEDADES_TOKEN_BLOQUE — antes necesitaba un mecanismo aparte
-		// (resolver a píxeles y congelar en un data-attribute) porque
-		// Muuri fijaba su PROPIO transform:translate(x,y) en cada layout,
-		// pisando cualquier transform que este método hubiera puesto acá.
-		// Sin Muuri, ya no hay nadie más escribiendo en seccion.style.transform.
+		// offset_x (Desplazamiento horizontal): se aplica directo como
+		// transform:translateX(...), mismo patrón que cualquier otra
+		// propiedad de PROPIEDADES_TOKEN_BLOQUE. Nadie más escribe en
+		// seccion.style.transform, así que no hace falta ningún mecanismo
+		// de convivencia acá.
 		seccion.style.transform = estilo.offset_x ? "translateX(" + resolverValorConToken(estilo.offset_x) + ")" : "";
 		if (estilo.offset_x) {
 			seccion.setAttribute("data-sofia-estilo-offset_x", estilo.offset_x);
@@ -681,9 +677,8 @@
 	// Franja) — distinto de alEliminarBloque: acá el bloque entero sigue
 	// existiendo, solo se quita un item de su lista. Reusa
 	// notificarListaActualizada() para reportar el array resultante, mismo
-	// mecanismo que un reordenamiento. Flujo normal (paso 3, Muuri
-	// eliminado): quitar el elemento del DOM alcanza, sin ningún estado de
-	// grid paralelo que sincronizar.
+	// mecanismo que un reordenamiento. Quitar el elemento del DOM alcanza:
+	// no hay ningún estado de grid paralelo que sincronizar.
 	function alEliminarItemDeLista(campoLista, indiceItem) {
 		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
 		var item = contenedorLista ? contenedorLista.querySelector(':scope > [data-sofia-item="' + indiceItem + '"]') : null;
@@ -701,9 +696,8 @@
 	// como .sofia-linea-insertar) para que termine exactamente en el
 	// índice $posicion, con la MISMA semántica que Array.prototype.splice
 	// (sacar de origen, insertar en destino) — reusado por alMoverBloque y
-	// alMoverItemDeLista, los dos casos donde el paso 3 del rediseño de
-	// layout (Muuri eliminado, ver la memoria de producto) reemplaza un
-	// drag real por un mensaje puntual "mover a esta posición".
+	// alMoverItemDeLista, los dos casos donde un mensaje puntual "mover a
+	// esta posición" reemplaza a un drag real sobre el canvas.
 	//
 	// insertBefore(nodo, referencia) por sí solo NO alcanza con la
 	// referencia tomada del array actual sin más: como el propio nodo se
@@ -733,8 +727,7 @@
 	// (PanelEstructura.jsx) suma los items de cada lista repetible como
 	// nodos hijos de su bloque contenedor, mismo árbol que ya reordena
 	// bloques — reemplaza el drag directo sobre el canvas que antes movía
-	// estos items (con su propio handle .sofia-handle-arrastre-item,
-	// eliminado junto con Muuri).
+	// estos items.
 	function alMoverItemDeLista(campoLista, indiceItem, posicion) {
 		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
 		var item = contenedorLista ? contenedorLista.querySelector(':scope > [data-sofia-item="' + indiceItem + '"]') : null;
@@ -762,9 +755,8 @@
 	// Requiere que la lista tenga AL MENOS un item para clonar; una lista
 	// vacía no puede agregar por este mecanismo (caso borde no soportado
 	// hoy: recargar el iframe tras eliminar el último item, si hiciera
-	// falta, sería la vía de escape). Flujo normal (paso 3, Muuri
-	// eliminado): insertar en el DOM ya alcanza, sin ningún grid paralelo
-	// al que avisarle del elemento nuevo.
+	// falta, sería la vía de escape). Insertar en el DOM ya alcanza: no hay
+	// ningún grid paralelo al que avisarle del elemento nuevo.
 	function alAgregarItemALista(campoLista) {
 		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
 		var ultimoItem = contenedorLista ? contenedorLista.querySelector(":scope > [data-sofia-item]:last-of-type") : null;
@@ -800,9 +792,9 @@
 	// contrato que agrega App.jsx al mensaje "sofia:insertar-bloque-html"
 	// (ver agregarBloque() ahí). Cuando hay containerId, la sección nueva
 	// se inserta DENTRO del <div class="sofia-container"> de esa sección
-	// (nunca directo en .sofia-pagina). Flujo normal (paso 3, Muuri
-	// eliminado): insertar en el DOM en la posición correcta ya alcanza,
-	// sin ningún grid paralelo al que registrar el elemento nuevo.
+	// (nunca directo en .sofia-pagina). Insertar en el DOM en la posición
+	// correcta ya alcanza: no hay ningún grid paralelo al que registrar el
+	// elemento nuevo.
 	function alInsertarBloqueHTML(html, posicion, containerId) {
 		var contenedor = containerId
 			? contenedorDeHijos(document.querySelector('[data-sofia-bloque-id="' + containerId + '"]'))
@@ -827,9 +819,8 @@
 	// del mouse — el panel de estructura/árbol de bloques (App.jsx) manda
 	// este mensaje cuando el usuario arrastra un nodo del árbol, ya que ese
 	// árbol vive FUERA del iframe y no tiene acceso al mouse real dentro de
-	// él. Mismo alcance decidido en su momento para el drag de Muuri
-	// (paso 3 lo eliminó, pero la restricción de diseño sigue vigente):
-	// solo reordena DENTRO del mismo padre — el árbol nunca manda un
+	// él. Restricción de diseño vigente: solo reordena DENTRO del mismo
+	// padre — el árbol nunca manda un
 	// containerId destino distinto de donde el bloque ya está, así que
 	// moverNodoAPosicion() (mismo contenedor de origen y destino) alcanza,
 	// sin necesitar remove+insertar-HTML como si fuera un bloque nuevo.
@@ -921,10 +912,10 @@
 		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
 		if (!seccion) return;
 
-		// Flujo normal (paso 3, Muuri eliminado): quitar la sección del DOM
-		// alcanza — sin ningún grid paralelo cuyo estado interno haya que
-		// mantener sincronizado, y sin instancias huérfanas que limpiar si
-		// el bloque eliminado era (o contenía) un Container.
+		// Quitar la sección del DOM alcanza: no hay ningún grid paralelo
+		// cuyo estado interno mantener sincronizado, ni instancias
+		// huérfanas que limpiar si el bloque eliminado era (o contenía) un
+		// Container.
 		seccion.remove();
 
 		seccionResaltada = null;
@@ -1071,14 +1062,11 @@
 	// DENTRO del iframe — el click solo abre el MISMO catálogo que ya
 	// existe en el panel padre, pasando la posición exacta vía postMessage.
 	//
-	// Paso 3 (ver la memoria de producto, eliminación de Muuri): la línea
-	// vive como HERMANA suelta de las <section> (ver CSS en
-	// class-modo-editor.php) — antes tenía que vivir DENTRO de cada
-	// <section> porque ser hermana contaminaba los índices que leía
-	// SortableJS/Muuri; sin ningún motor de drag leyendo el DOM, esa razón
-	// desapareció (leerBloquesDesde ya filtra explícitamente por
+	// La línea vive como HERMANA suelta de las <section> (ver CSS en
+	// class-modo-editor.php). Que ensucie la lista de hijos no importa:
+	// leerBloquesDesde ya filtra explícitamente por
 	// data-sofia-bloque-id/-tipo, ignorando cualquier hermano que no lo
-	// tenga).
+	// tenga.
 	//
 	// Se extiende igual dentro de cada .sofia-container — mismo criterio,
 	// las líneas de un container van DENTRO de ese .sofia-container como

@@ -36,8 +36,13 @@ class Sofia_Componente_Breadcrumb extends Sofia_Componente {
 		);
 	}
 
+	/**
+	 * claves_estilo_relevantes(): PERFIL_SECCION — ver el comentario largo
+	 * en Sofia_Componente_List: las 3 claves extra de PERFIL_LISTA son de
+	 * GRILLA y su CSS solo existe para Franja de beneficios/Testimonios.
+	 */
 	public static function claves_estilo_relevantes(): array {
-		return parent::PERFIL_LISTA;
+		return parent::PERFIL_SECCION;
 	}
 
 	public function render(): string {

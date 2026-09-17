@@ -86,8 +86,7 @@ function buscarNodo(estructura, id) {
 }
 
 // extraerListasDe(estructura, contenido): construye {idDeBloque: items[]}
-// leyendo pagina.contenido — paso 3 del rediseño de layout (ver la memoria
-// de producto, eliminación de Muuri). Genérico (no un mapa hardcodeado de
+// leyendo pagina.contenido. Genérico (no un mapa hardcodeado de
 // "estos 3 tipos tienen lista"): cualquier bloque de la estructura cuya
 // clave "{id}.items" exista en contenido y sea un array se considera con
 // lista — mismo criterio que Sofia_Componente::atributo_editable() usa
@@ -220,12 +219,10 @@ export function App({ config }) {
   // escribiendo en GoPress primero y recién después refresca este estado,
   // nunca al revés.
   const [estructura, setEstructura] = useState([]);
-  // listasPorBloque: {idDeBloque: [{...item}, ...]} — paso 3 del rediseño
-  // de layout (ver la memoria de producto, eliminación de Muuri): los
-  // items de una lista repetible (Franja de beneficios/Testimonios/FAQ,
-  // ver Sofia_Componente::atributo_editable "{id}.items") YA NO se
-  // reordenan arrastrando en el canvas (ese handle vivía dentro de Muuri,
-  // eliminado) — se suman como nodos HIJOS de su bloque en el árbol de
+  // listasPorBloque: {idDeBloque: [{...item}, ...]}: los items de una
+  // lista repetible (Franja de beneficios/Testimonios/FAQ, ver
+  // Sofia_Componente::atributo_editable "{id}.items") no se reordenan
+  // arrastrando en el canvas — se suman como nodos HIJOS de su bloque en el árbol de
   // Estructura (ver conNombresYListas más abajo), mismo mecanismo de
   // selección/arrastre que ya reordena bloques completos. Se puebla en
   // recargarEstructura() leyendo pagina.contenido, la única fuente real
@@ -448,8 +445,8 @@ export function App({ config }) {
   }
 
   // Nivel 2 — reordenar bloques: el iframe ya movió los nodos reales
-  // (SortableJS corre ADENTRO del documento del iframe, ver
-  // activarReordenar() en editor-iframe.js) y solo informa el resultado
+  // (alMoverBloque() en editor-iframe.js, disparado desde el árbol de
+  // Estructura) y solo informa el resultado
   // final: {id, tipo} de cada bloque en el nuevo orden, leído directo de
   // sus atributos data-sofia-bloque-id/-tipo (ver
   // Sofia_Componente::atributos_seccion()) — el ID YA EXISTENTE de cada
@@ -602,10 +599,8 @@ export function App({ config }) {
     iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:mover-bloque", id, posicion }, "*");
   }
 
-  // Reordenar un ITEM de lista repetible desde el panel de Estructura
-  // (paso 3, ver la memoria de producto — reemplaza el drag directo sobre
-  // el canvas que usaba el handle .sofia-handle-arrastre-item, eliminado
-  // junto con Muuri): mismo patrón que moverBloqueDesdeEstructura, pero
+  // Reordenar un ITEM de lista repetible desde el panel de Estructura:
+  // mismo patrón que moverBloqueDesdeEstructura, pero
   // alMoverItemDeLista en editor-iframe.js responde con
   // "sofia:campo-editado" (mismo mensaje que cualquier edición de la
   // lista, ver notificarListaActualizada), que el handler de arriba ya
@@ -899,8 +894,8 @@ export function App({ config }) {
             izquierda del canvas, hermana de .sofia-sitio-frame, mismo
             criterio que .sofia-zona-propiedades a la derecha (paso 1).
             conNombres() resuelve el nombre humano de cada nodo Y agrega
-            los nodos-item de listas repetibles (paso 3, Muuri eliminado)
-            recién acá, en el render — `estructura`/`listasPorBloque` en
+            los nodos-item de listas repetibles recién acá, en el render
+            — `estructura`/`listasPorBloque` en
             estado siguen guardando solo el shape liviano que ya viaja en
             cada mensaje. onSeleccionar/onMover despachan según
             nodo.esItem: un bloque real sigue el camino ya construido en

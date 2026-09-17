@@ -34,29 +34,27 @@ class Sofia_Componente_Container extends Sofia_Componente {
 	 *
 	 * 1. atributos_seccion()/data-sofia-bloque-id/-tipo SIEMPRE van en el
 	 *    elemento que editor-iframe.js trata como "la sección completa
-	 *    de este bloque" — todo el JS (mouseover, contextmenu, Muuri)
-	 *    busca esto con closest("section")/[data-sofia-bloque-id], nunca
-	 *    con closest("div.sofia-container").
-	 * 2. gridNivelSuperior (Muuri de nivel superior) usa items:"section"
-	 *    aplicado con matches() a cada HIJO DIRECTO de .sofia-pagina (ver
-	 *    el comentario largo en activarReordenar(), editor-iframe.js) —
-	 *    un <div class="sofia-container"> ahí NUNCA matchea, Muuri lo
-	 *    ignoraría por completo como ítem reordenable/insertable.
+	 *    de este bloque" — todo el JS (mouseover, contextmenu, lectura de
+	 *    estructura) busca esto con closest("section")/
+	 *    [data-sofia-bloque-id], nunca con closest("div.sofia-container").
+	 * 2. leerBloquesDesde()/contenedorDeHijos() (editor-iframe.js) recorren
+	 *    ":scope > section" — un <div class="sofia-container"> nunca
+	 *    matchea ahí, así que si la raíz del bloque fuera ese <div>, el
+	 *    bloque entero sería invisible para la lectura de estructura.
 	 *
 	 * Todo Componente del catálogo (Hero, CTA, etc.) resuelve esto
 	 * gratis porque su ÚNICO elemento raíz ya es un <section> con
 	 * atributos_seccion() encima — Container es el primero cuya raíz
 	 * "natural" es un <div> (necesita seguir siendo <div> para que
-	 * display:flex/grid + gap de Fase 2 tengan un contenedor real sin
-	 * pelearse con el position:absolute que el editor le impone a la
-	 * <section>, ver class-modo-editor.php). La solución más chica que
-	 * no exige tocar ni el editor ni el CSS existente: envolver ese
-	 * <div class="sofia-container"> (SIN atributos_seccion(), sin id/tipo)
-	 * dentro de un <section> exterior que SÍ los lleva — así:
-	 *   - A nivel superior: la <section> exterior es el ítem de
-	 *     gridNivelSuperior, indistinguible de un Hero/CTA para ese grid.
+	 * display:flex/grid + gap tengan un contenedor real, separado de la
+	 * <section> que lleva el estilo de caja de Nivel 2). La solución más
+	 * chica que no exige tocar ni el editor ni el CSS existente: envolver
+	 * ese <div class="sofia-container"> (SIN atributos_seccion(), sin
+	 * id/tipo) dentro de un <section> exterior que SÍ los lleva — así:
+	 *   - A nivel superior: la <section> exterior es indistinguible de un
+	 *     Hero/CTA para la lectura de estructura.
 	 *   - Dentro de OTRO Container: la <section> exterior es el hijo
-	 *     directo que activarReordenarDentroDeContainers() espera (mismo
+	 *     directo que espera contenedorDeHijos() (mismo
 	 *     "items:section" aplicado a hijos de .sofia-container) — un
 	 *     Container anidado dentro de otro Container sigue calzando con
 	 *     el mismo criterio "los hijos son <section> completas" que

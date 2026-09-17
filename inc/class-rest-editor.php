@@ -267,7 +267,7 @@ class Sofia_REST_Editor {
 	 * real, el iframe/panel nunca inventa nada") — el cambio es CUÁNDO se
 	 * pide ese HTML: un fragmento puntual en vez de la página completa. El
 	 * panel decide qué hacer con el HTML devuelto (insertarlo como bloque
-	 * nuevo vía Muuri.add(), o reemplazar una <section> existente), este
+	 * nuevo, o reemplazar una <section> existente), este
 	 * endpoint no sabe ni le importa cuál de los dos casos es.
 	 */
 	public static function obtener_html_de_bloque( WP_REST_Request $request ) {

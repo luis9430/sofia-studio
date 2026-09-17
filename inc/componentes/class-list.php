@@ -37,12 +37,17 @@ class Sofia_Componente_List extends Sofia_Componente {
 	}
 
 	/**
-	 * claves_estilo_relevantes(): PERFIL_LISTA — mismo criterio que Franja
-	 * de beneficios: tiene lista de items propia, Columnas/Alineación
-	 * tienen efecto real acá.
+	 * claves_estilo_relevantes(): PERFIL_SECCION, no PERFIL_LISTA — tener
+	 * una lista de items NO alcanza para justificar ese perfil. Las 3
+	 * claves extra de PERFIL_LISTA (columnas/alineacion_contenido/
+	 * alineacion_vertical_contenido) describen una GRILLA de columnas, y su
+	 * CSS existe solo para Franja de beneficios y Testimonios (selectores
+	 * hardcodeados en style.css). Una Lista se apila en vertical, así que
+	 * esos 3 controles aparecían en el drawer sin hacer absolutamente nada
+	 * — exactamente el ruido que los perfiles existen para evitar.
 	 */
 	public static function claves_estilo_relevantes(): array {
-		return parent::PERFIL_LISTA;
+		return parent::PERFIL_SECCION;
 	}
 
 	public function render(): string {
