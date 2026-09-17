@@ -40,8 +40,10 @@ class Sofia_Componente_Card extends Sofia_Componente {
 	 * horizontal es puramente de layout, y Core Framework ya lo resuelve
 	 * — este mapa solo elige qué utility classes agregar.
 	 *
-	 * "" (vertical) tampoco necesita clases: es el apilado natural de un
-	 * <section> en flujo normal, sin flex de por medio.
+	 * "vertical" no aparece acá a propósito: es el apilado natural de un
+	 * <section> en flujo normal, sin flex de por medio, así que no
+	 * necesita ninguna clase. clase_de_variante() devuelve "" para
+	 * cualquier valor que no esté en el mapa, incluido ese.
 	 */
 	private const CLASES_ORIENTACION = array(
 		'horizontal' => 'flex-row gap-m items-middle',
@@ -101,7 +103,12 @@ class Sofia_Componente_Card extends Sofia_Componente {
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Orientación', 'sofia-studio' ),
 				'opciones' => array(
-					array( 'valor' => '', 'etiqueta' => __( 'Vertical (imagen arriba)', 'sofia-studio' ) ),
+					// El valor del default es "vertical", no "": una opción
+					// cuya etiqueta dice "Vertical" pero cuyo valor es
+					// vacío invita a escribir "vertical" y que se
+					// descarte al validar (pasó con el generador). Cuando
+					// el default tiene nombre propio, conviene nombrarlo.
+					array( 'valor' => 'vertical', 'etiqueta' => __( 'Vertical (imagen arriba)', 'sofia-studio' ) ),
 					array( 'valor' => 'horizontal', 'etiqueta' => __( 'Horizontal (imagen al costado)', 'sofia-studio' ) ),
 				),
 			),

@@ -104,17 +104,21 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 			$cita   = $this->texto_enriquecido( (string) ( $item['cita'] ?? '' ) );
 
 			$html .= '<div class="sofia-testimonios__item" ' . $this->atributo_item( $indice ) . '>';
-			if ( $foto ) {
-				$html .= '<img class="sofia-testimonios__foto" ' . $this->atributo_editable( "items.{$indice}.foto" ) . ' src="' . $foto . '" alt="' . wp_strip_all_tags( $nombre ) . '">';
-			} else {
-				// Placeholder clicable: sin foto todavía, pero igual debe
-				// poder abrir wp.media() — mismo criterio que
-				// Sofia_Componente_Hero cuando no hay imagen, salvo que
-				// acá SIEMPRE se imprime el <img> (vacío) para que el
-				// campo exista y sea editable desde el primer render,
-				// incluso en un item recién clonado por
-				// alAgregarItemALista() en editor-iframe.js.
-				$html .= '<img class="sofia-testimonios__foto sofia-testimonios__foto--vacia" ' . $this->atributo_editable( "items.{$indice}.foto" ) . ' src="" alt="">';
+			// Sin foto, el <img> igual tiene que existir EN EL EDITOR para
+			// poder clickearlo y abrir wp.media() — también en un item
+			// recién clonado por alAgregarItemALista(). Pero su src sale
+			// de imagen_o_placeholder(), no de un src="" vacío: un <img>
+			// con src vacío es HTML inválido y el navegador lo dibuja como
+			// imagen rota (bug real, visible en el canvas como un ícono de
+			// imagen partida en cada testimonio sin foto).
+			//
+			// En una visita pública sin foto no se emite ningún <img>:
+			// imagen_o_placeholder() devuelve "" fuera del editor, y un
+			// hueco vacío se ve mejor que un ícono de error.
+			$src = $this->imagen_o_placeholder( $foto );
+			if ( $src ) {
+				$clase = $foto ? 'sofia-testimonios__foto' : 'sofia-testimonios__foto sofia-testimonios__foto--vacia';
+				$html .= '<img class="' . $clase . '" ' . $this->atributo_editable( "items.{$indice}.foto" ) . ' src="' . $src . '" alt="' . esc_attr( wp_strip_all_tags( $nombre ) ) . '">';
 			}
 			$html .= '<p class="sofia-testimonios__cita" ' . $this->atributo_editable( "items.{$indice}.cita" ) . ' ' . $this->atributo_estilo( "items.{$indice}.cita" ) . '>' . $cita . '</p>';
 			$html .= '<h3 class="sofia-testimonios__nombre" ' . $this->atributo_editable( "items.{$indice}.nombre" ) . ' ' . $this->atributo_estilo( "items.{$indice}.nombre" ) . '>' . $nombre . '</h3>';
