@@ -41,9 +41,7 @@ body {
   flex-direction: column;
 }
 
-/* Fondo punteado detrás de la tarjeta — mismo patrón visual del mockup
-   (radial-gradient de puntos, sutil) para que el marco alrededor del sitio
-   se lea como "lienzo de trabajo", no como espacio vacío sin sentido.
+/* Lienzo de trabajo detrás de la tarjeta del sitio.
    Margen lateral real (no un max-width angosto tipo mockup original) —
    mismo criterio que Bricks/Elementor: la tarjeta ocupa casi todo el
    ancho disponible, con espacio de sobra a los costados para que un
@@ -270,14 +268,11 @@ body {
   line-height: 1.5;
 }
 
-.sofia-lienzo-wrap::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(var(--gp-panel-border) 1px, transparent 1px);
-  background-size: 22px 22px;
-  opacity: 0.35;
-  pointer-events: none;
+/* El lienzo es un fondo neutro liso: lo que tiene que destacar es la
+   página, no el fondo. La trama de puntos que había antes competía con
+   el contenido y hacía más difícil juzgar el diseño real. */
+.sofia-lienzo-wrap {
+  background: #46423c;
 }
 
 /* sofia-sitio-frame: la tarjeta que simula el sitio real — SOLO el marco
@@ -314,6 +309,36 @@ body {
   border-bottom: 1px solid #e7e3dc;
   border-radius: 10px 10px 0 0;
   background: #fff;
+}
+
+/* Selector de vista: alineado a la derecha del chrome, separado de la
+   URL que queda centrada. */
+.sofia-sitio-chrome__vistas {
+  display: flex;
+  gap: 1px;
+  margin-left: auto;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #e7e3dc;
+}
+
+.sofia-sitio-chrome__vista {
+  padding: 4px 10px;
+  border: 0;
+  background: #fff;
+  color: #6b6459;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.sofia-sitio-chrome__vista:hover {
+  color: #1c1a17;
+}
+
+.sofia-sitio-chrome__vista--activa {
+  background: #1c1a17;
+  color: #fff;
 }
 
 .sofia-sitio-chrome__trafico {

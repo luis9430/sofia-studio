@@ -414,6 +414,9 @@
 		if (datos.tipo === "sofia:resaltar-bloque-por-id") {
 			alResaltarBloquePorId(datos.id);
 		}
+		if (datos.tipo === "sofia:marcar-seleccionado") {
+			alMarcarSeleccionado(datos.id, datos.nombre);
+		}
 	}
 
 	// nombresBloque se llena al cargar, pidiendo el catálogo REAL a
@@ -519,6 +522,22 @@
 		if (!seccion) return;
 		seccion.scrollIntoView({ block: "center", behavior: "auto" });
 		resaltarSeccion(seccion);
+	}
+
+	// Marca del bloque SELECCIONADO — distinta del resaltado de hover, que
+	// vive en el documento padre y se apaga al mover el mouse. Esta es un
+	// atributo en el DOM del iframe, así que sigue al bloque al scrollear
+	// sin que nadie recalcule coordenadas, y persiste mientras el panel
+	// derecho esté mostrando ese bloque. El nombre se pinta con CSS
+	// (content: attr(...), ver class-modo-editor.php) en vez de insertar
+	// un elemento, que ensuciaría la lectura de estructura del DOM.
+	function alMarcarSeleccionado(id, nombre) {
+		document.querySelectorAll("[data-sofia-seleccionado]").forEach(function (previo) {
+			previo.removeAttribute("data-sofia-seleccionado");
+		});
+		if (!id) return;
+		var seccion = document.querySelector('[data-sofia-bloque-id="' + id + '"]');
+		if (seccion) seccion.setAttribute("data-sofia-seleccionado", nombre || "");
 	}
 
 	// Menú contextual (Nivel 2) — click derecho sobre un bloque, en vez de

@@ -278,6 +278,31 @@ class Sofia_Modo_Editor {
 			.sofia-linea-insertar:hover .sofia-linea-insertar__boton { opacity: 1; transform: scale(1); }
 			.sofia-linea-insertar__boton:hover { background: #d97a4d; color: #fff; }
 
+			/* Bloque SELECCIONADO — el que el panel derecho está
+			   editando. Distinto del resaltado de hover (que vive en el
+			   documento padre como overlay y se apaga al mover el mouse):
+			   este vive en el DOM del iframe, así que sigue al bloque al
+			   scrollear y persiste mientras dure la selección.
+			   outline (no border) para no correr el layout ni un píxel —
+			   el canvas tiene que seguir siendo un espejo fiel del sitio
+			   público. El nombre sale del propio atributo, sin insertar
+			   ningún elemento que ensucie la lectura de estructura. */
+			[data-sofia-seleccionado] {
+				position: relative;
+				outline: 2px solid #d97a4d;
+				outline-offset: -2px;
+			}
+			[data-sofia-seleccionado]::before {
+				content: attr(data-sofia-seleccionado);
+				position: absolute; top: 0; left: 0; z-index: 5;
+				transform: translateY(-100%);
+				background: #d97a4d; color: #fff;
+				font-size: 10px; font-weight: 600; line-height: 1.6;
+				padding: 1px 7px; border-radius: 4px 4px 0 0;
+				font-family: "Inter", -apple-system, sans-serif;
+				white-space: nowrap; pointer-events: none;
+			}
+
 			/* .sofia-container: min-height para que un container VACÍO
 			   siga teniendo un área clickeable real donde mostrar su línea
 			   de inserción "vacio" de arriba. */

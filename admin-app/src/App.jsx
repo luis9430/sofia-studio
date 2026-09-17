@@ -14,6 +14,17 @@ import { ListaVariablesCoreFramework } from "./CampoConToken.jsx";
 // seguridad, no el mecanismo principal de limitar llamadas.
 const RETRASO_GUARDADO_MS = 400;
 
+// Anchos del selector de vista del canvas. Son medidas de DISPOSITIVO
+// (no los breakpoints de Estilo Global, que acotan el ancho del
+// contenido): lo que se simula acá es la pantalla en la que alguien
+// abriría el sitio. 390 es el ancho de un teléfono moderno típico; 820,
+// el de una tablet en vertical.
+const VISTAS_CANVAS = [
+  { id: "escritorio", etiqueta: "Escritorio", ancho: null },
+  { id: "tablet", etiqueta: "Tablet", ancho: 820 },
+  { id: "movil", etiqueta: "Móvil", ancho: 390 },
+];
+
 // insertarEnArbol/todosLosIds (Nivel 3, "primitivas de layout"): mismo
 // principio recursivo que Sofia_Pagina::resolver_bloques() del lado PHP
 // (ver class-pagina.php) aplicado acá para MUTAR el árbol {id,tipo,hijos}
@@ -225,6 +236,7 @@ export function App({ config }) {
   // estilo" son el mismo gesto.
   const [drawerEstilo, setDrawerEstilo] = useState(null);
   const [bloqueResaltado, setBloqueResaltado] = useState(null);
+  const [vistaCanvas, setVistaCanvas] = useState("escritorio");
   const [catalogoBloques, setCatalogoBloques] = useState([]);
   // estructura: árbol COMPLETO {id, tipo, hijos?} de la página — paso 2 del
   // rediseño de layout a 3 zonas fijas (ver la memoria de producto),
@@ -376,6 +388,10 @@ export function App({ config }) {
         // "bloque", abierto desde el menú contextual), este click lo pisa
         // igual — mismo criterio que "el panel siempre refleja la última
         // selección" acordado para todo este rediseño.
+        // Un click en un campo de texto pasa el panel a Nivel 1, así que
+        // el bloque deja de estar seleccionado — la marca del canvas se
+        // apaga para no señalar algo que el panel ya no está editando.
+        iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:marcar-seleccionado", id: null }, "*");
         setDrawerEstilo({ campo: datos.campo, estilo: datos.estilo });
         return;
       }
@@ -572,6 +588,13 @@ export function App({ config }) {
   // sí), así que hay que pedirle el contenido completo de la página al
   // proxy REST de todos modos, mismo fetch que ya usa agregarBloque() para
   // leer la estructura actual.
+  // Nombre humano de un tipo, desde el catálogo real ya cargado (mismo
+  // criterio que conNombres para el árbol): si todavía no llegó, cae al
+  // tipo crudo — mejor "card" que nada.
+  function nombreDeTipo(tipo) {
+    return catalogoBloques.find((c) => c.tipo === tipo)?.nombre || tipo || "";
+  }
+
   async function mostrarEstiloDeBloque(id, tipoBloque, estiloBloque) {
     if (!id) return;
     try {
@@ -589,6 +612,13 @@ export function App({ config }) {
       // encuentra el nodo exacto sin pedir nada aparte a PHP.
       const nodo = buscarNodo(pagina.estructura || [], id);
       const cantidadHijos = nodo?.hijos?.length ?? 0;
+      // Marca visual persistente en el canvas: sin esto, al mover el
+      // mouse se pierde toda pista de QUÉ bloque está editando el panel
+      // derecho (el resaltado de hover se apaga solo).
+      iframeRef.current?.contentWindow.postMessage(
+        { tipo: "sofia:marcar-seleccionado", id, nombre: nombreDeTipo(tipoBloque) },
+        "*"
+      );
       setDrawerEstilo({
         campo: id,
         tipoBloque: tipoBloque || "",
@@ -948,6 +978,8 @@ export function App({ config }) {
   // Solo el host (sin protocolo/ruta) para el chrome falso de "navegador"
   // — mismo criterio visual del mockup ("costalegre.com.mx"), no la URL
   // completa con ?sofia_editor=1 que sería ruido de implementación.
+  const anchoVistaCanvas = VISTAS_CANVAS.find((v) => v.id === vistaCanvas)?.ancho ?? null;
+
   const urlHost = (() => {
     try {
       return new URL(config.urlPagina).host;
@@ -1008,7 +1040,10 @@ export function App({ config }) {
           catalogo={catalogoBloques}
           onAgregar={(tipo) => agregarBloque(tipo)}
         />
-        <div className="sofia-sitio-frame">
+        <div
+          className="sofia-sitio-frame"
+          style={anchoVistaCanvas ? { maxWidth: `${anchoVistaCanvas}px` } : undefined}
+        >
           <div className="sofia-sitio-chrome">
             <div className="sofia-sitio-chrome__trafico">
               <span></span>
@@ -1016,6 +1051,24 @@ export function App({ config }) {
               <span></span>
             </div>
             <div className="sofia-sitio-chrome__url">{urlHost}</div>
+            {/* Selector de vista: cambia el ancho del marco, así el sitio
+                dentro del iframe responde a sus propios breakpoints igual
+                que lo haría en una pantalla de ese tamaño. No hay nada
+                que simular — es el ancho real. */}
+            <div className="sofia-sitio-chrome__vistas">
+              {VISTAS_CANVAS.map((vista) => (
+                <button
+                  key={vista.id}
+                  type="button"
+                  className={`sofia-sitio-chrome__vista ${
+                    vistaCanvas === vista.id ? "sofia-sitio-chrome__vista--activa" : ""
+                  }`}
+                  onClick={() => setVistaCanvas(vista.id)}
+                >
+                  {vista.etiqueta}
+                </button>
+              ))}
+            </div>
           </div>
           {/* sofia-sitio-viewport envuelve SOLO el iframe y los overlays
               que apuntan a coordenadas DENTRO de él — bug real encontrado
