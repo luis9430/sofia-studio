@@ -363,13 +363,14 @@ export function CamposDesdeSchema({
   const [personalizarAbierto, setPersonalizarAbierto] = useState(false);
 
   const entradas = Object.entries(schema);
-  // requiere_render distingue APARIENCIA (lo propio de este tipo de
-  // bloque, que resuelve render() en PHP) de CAJA (lo genérico
-  // transversal: ancho, fondo, espaciado). La marca la pone schema_de()
-  // del lado PHP, así el panel no mantiene una lista de qué prop es de
-  // quién.
-  const apariencia = entradas.filter(([, d]) => d.requiere_render === true);
-  const caja = entradas.filter(([, d]) => d.requiere_render !== true);
+  // capa_apariencia dice de qué CAPA es cada prop (lo propio del tipo de
+  // bloque vs. lo genérico transversal); requiere_render dice CÓMO se
+  // aplica. Son preguntas distintas: spacer.alto es apariencia pero el
+  // iframe puede aplicarlo como CSS, sin pedir el bloque de nuevo. Las
+  // dos marcas las pone schema_de() del lado PHP, así el panel no
+  // mantiene su propia lista de qué prop es de quién.
+  const apariencia = entradas.filter(([, d]) => d.capa_apariencia === true);
+  const caja = entradas.filter(([, d]) => d.capa_apariencia !== true);
 
   function renderCampo([nombre, definicion]) {
     return (

@@ -14,6 +14,11 @@ import { ListaVariablesCoreFramework } from "./CampoConToken.jsx";
 // seguridad, no el mecanismo principal de limitar llamadas.
 const RETRASO_GUARDADO_MS = 400;
 
+// Pausa antes de pedir el HTML de un bloque tras cambiar una prop de
+// apariencia. Más corto que el de guardado: acá el usuario está mirando
+// el canvas esperando ver el cambio, no escribiendo.
+const RETRASO_RENDER_MS = 180;
+
 // Anchos del selector de vista del canvas. Son medidas de DISPOSITIVO
 // (no los breakpoints de Estilo Global, que acotan el ancho del
 // contenido): lo que se simula acá es la pantalla en la que alguien
@@ -247,6 +252,7 @@ export function App({ config }) {
   // con su propio timer: solo el ÚLTIMO cambio de la ráfaga dispara
   // guardado + reload.
   const timerCondicion = useRef(null);
+  const timerRender = useRef(null);
   const [estado, setEstado] = useState("listo"); // "listo" | "guardando" | "guardado" | "error"
   // Campo+estilo mostrado en la zona de Propiedades fija (paso 1 del
   // rediseño de layout, ver la memoria de producto) — { campo, estilo,
@@ -740,7 +746,18 @@ export function App({ config }) {
   // canvas. Mismo endpoint y mensaje que ya usan agregar bloque, cambiar
   // visibilidad y editar contenido — el iframe nunca inventa HTML de un
   // Componente, siempre lo pide.
-  async function rerenderizarBloque(idBloque) {
+  //
+  // Con debounce: probar variantes es un gesto exploratorio (se clickea
+  // una opción tras otra para ver cuál queda mejor), y sin esto cada
+  // click disparaba su propia petición. Las respuestas podían además
+  // llegar fuera de orden y dejar el canvas mostrando una variante que
+  // ya no es la elegida.
+  function rerenderizarBloque(idBloque) {
+    clearTimeout(timerRender.current);
+    timerRender.current = setTimeout(() => pedirYReemplazarBloque(idBloque), RETRASO_RENDER_MS);
+  }
+
+  async function pedirYReemplazarBloque(idBloque) {
     try {
       const html = await fetch(`${config.restUrl}paginas/${config.slug}/bloque/${idBloque}`, {
         headers: { "X-WP-Nonce": config.nonce },

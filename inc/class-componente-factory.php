@@ -187,23 +187,36 @@ class Sofia_Componente_Factory {
 			return null;
 		}
 
-		// "requiere_render": marca las entradas que vienen de
-		// schema_propio() — las props de APARIENCIA propias de este tipo.
+		// Dos marcas distintas sobre las props que vienen de
+		// schema_propio(), porque responden dos preguntas distintas:
 		//
-		// El editor necesita distinguirlas de las genéricas porque se
-		// aplican distinto: una prop genérica (color de fondo, ancho) es
-		// CSS que el iframe escribe al instante sobre la <section>, pero
-		// una prop propia la resuelve render() del lado PHP — decide
-		// clases, íconos o estructura del HTML. El iframe no puede
-		// simular eso, así que el panel tiene que pedir el bloque
-		// re-renderizado.
+		// "capa_apariencia" — de qué CAPA es, para que el panel la agrupe
+		// bajo "Apariencia" en vez de "Caja y posición".
 		//
-		// Se marca acá, en el mismo lugar que fusiona los dos schemas, en
-		// vez de que el frontend mantenga una lista de "qué props son
-		// propias de qué tipo" — esa lista se desincronizaría en cuanto
-		// un Componente gane una prop nueva.
+		// "requiere_render" — CÓMO se aplica. Una prop que el iframe puede
+		// escribir como CSS sobre la <section> (un token de medida o de
+		// color) se ve al instante, sin pedir nada. Una que decide clases,
+		// íconos o estructura la resuelve render() del lado PHP, y ahí el
+		// iframe no tiene forma de simularla: hay que pedir el bloque de
+		// nuevo.
+		//
+		// Hoy toda prop propia requiere render, pero las marcas siguen
+		// separadas a propósito: son preguntas distintas y la respuesta
+		// puede divergir. Se evaluó no re-renderizar las de tipo token
+		// (spacer.alto es un medida_token que el iframe podría escribir
+		// como CSS), y se descartó: esa prop aplica a un <div> interno,
+		// no a la <section>, así que el iframe necesitaría conocer la
+		// estructura de cada Componente — justo el acoplamiento que el
+		// re-render existe para evitar. Una petición es más barata que
+		// enseñarle al editor cómo está hecho cada bloque.
+		//
+		// Se marcan acá, donde se fusionan los dos schemas, en vez de que
+		// el frontend mantenga su propia lista de qué prop es de quién:
+		// esa lista se desincronizaría en cuanto un Componente gane una
+		// prop nueva.
 		$propio = array();
 		foreach ( $componente::schema_propio() as $clave => $definicion ) {
+			$definicion['capa_apariencia'] = true;
 			$definicion['requiere_render'] = true;
 			$propio[ $clave ]              = $definicion;
 		}
