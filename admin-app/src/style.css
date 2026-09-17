@@ -991,6 +991,13 @@ body {
   letter-spacing: 0;
 }
 
+/* La sección del texto seleccionado edita algo más chico que el bloque
+   (un campo puntual dentro de él), así que su encabezado lo dice con un
+   acento — si no, se lee como si fuera otra propiedad del bloque. */
+.sofia-panel-seccion__titulo--texto {
+  color: var(--gp-accent-text);
+}
+
 .sofia-panel-seccion__cuerpo {
   padding-bottom: 14px;
   display: flex;

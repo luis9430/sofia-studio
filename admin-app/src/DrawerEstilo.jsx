@@ -208,6 +208,9 @@ export function DrawerEstilo({
   condicion,
   cantidadHijos,
   contenido,
+  campoActivo,
+  estiloCampo,
+  onCambiarEstiloCampo,
   onCambiarCampoContenido,
   onCambiarEstilo,
   onCambiarCondicion,
@@ -233,7 +236,12 @@ export function DrawerEstilo({
   // Apariencia (lo propio del bloque). "Caja y posición" plegada — son
   // los controles genéricos que casi nunca se cambian y que, abiertos,
   // empujaban lo importante fuera de la pantalla.
-  const [seccionesAbiertas, setSeccionesAbiertas] = useState({ contenido: true, apariencia: true, caja: false });
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState({
+    texto: true,
+    contenido: true,
+    apariencia: true,
+    caja: false,
+  });
 
   function alternarSeccion(clave) {
     setSeccionesAbiertas((actual) => ({ ...actual, [clave]: !actual[clave] }));
@@ -283,6 +291,21 @@ export function DrawerEstilo({
     onCambiarEstilo({ ...estilo, ...cambios }, requiereRender);
   }
 
+  // La sección "Texto seleccionado" edita el estilo de UN campo, no el del
+  // bloque. Con el panel unificado los dos conviven, así que esta sección
+  // escribe por su propio camino (onCambiarEstiloCampo) cuando hay un
+  // campo activo dentro de un bloque seleccionado. En nivel "campo"
+  // —clickear un texto suelto, sin bloque— sigue usando el de siempre.
+  const estiloEfectivo = campoActivo ? estiloCampo || {} : estilo;
+
+  function actualizarTexto(cambios) {
+    if (campoActivo) {
+      onCambiarEstiloCampo({ ...estiloEfectivo, ...cambios });
+      return;
+    }
+    actualizar(cambios);
+  }
+
   return (
     <div className="sofia-drawer-estilo">
       <div className="sofia-drawer-estilo__cabecera">
@@ -323,8 +346,13 @@ export function DrawerEstilo({
 
         {tab === "estilo" && (
           <div className="sofia-drawer-estilo__cuerpo">
-            {nivel === "campo" && (
-              <>
+            {(nivel === "campo" || campoActivo) && (
+              <SeccionPanel
+                titulo="Texto seleccionado"
+                acento
+                abierta={seccionesAbiertas.texto}
+                onAlternar={() => alternarSeccion("texto")}
+              >
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Texto</span>
                   <div className="sofia-drawer-estilo__formato">
@@ -344,9 +372,9 @@ export function DrawerEstilo({
                       <button
                         key={op.valor}
                         type="button"
-                        className={`sofia-drawer-estilo__alineacion ${estilo.alineacion === op.valor ? "sofia-drawer-estilo__alineacion--activo" : ""}`}
+                        className={`sofia-drawer-estilo__alineacion ${estiloEfectivo.alineacion === op.valor ? "sofia-drawer-estilo__alineacion--activo" : ""}`}
                         title={op.etiqueta}
-                        onClick={() => actualizar({ alineacion: estilo.alineacion === op.valor ? "" : op.valor })}
+                        onClick={() => actualizarTexto({ alineacion: estiloEfectivo.alineacion === op.valor ? "" : op.valor })}
                       >
                         {op.icono}
                       </button>
@@ -360,8 +388,8 @@ export function DrawerEstilo({
                     tipo="text"
                     categoria="texto"
                     conUnidad
-                    valor={estilo.tamano_fuente}
-                    onCambiar={(valor) => actualizar({ tamano_fuente: valor })}
+                    valor={estiloEfectivo.tamano_fuente}
+                    onCambiar={(valor) => actualizarTexto({ tamano_fuente: valor })}
                   />
                 </div>
 
@@ -369,8 +397,8 @@ export function DrawerEstilo({
                   <span className="sofia-drawer-estilo__etiqueta">Tipo de fuente</span>
                   <select
                     className="sofia-drawer-estilo__select-fuente"
-                    value={estilo.tipo_fuente || ""}
-                    onChange={(evento) => actualizar({ tipo_fuente: evento.currentTarget.value })}
+                    value={estiloEfectivo.tipo_fuente || ""}
+                    onChange={(evento) => actualizarTexto({ tipo_fuente: evento.currentTarget.value })}
                   >
                     {FUENTES.map((op) => (
                       <option key={op.valor || "default"} value={op.valor}>
@@ -384,29 +412,29 @@ export function DrawerEstilo({
                   <span className="sofia-drawer-estilo__etiqueta">Negrita</span>
                   <button
                     type="button"
-                    className={`sofia-drawer-estilo__toggle ${estilo.negrita === "700" ? "sofia-drawer-estilo__toggle--activo" : ""}`}
-                    onClick={() => actualizar({ negrita: estilo.negrita === "700" ? "" : "700" })}
+                    className={`sofia-drawer-estilo__toggle ${estiloEfectivo.negrita === "700" ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                    onClick={() => actualizarTexto({ negrita: estiloEfectivo.negrita === "700" ? "" : "700" })}
                   >
-                    {estilo.negrita === "700" ? "Activada" : "Desactivada"}
+                    {estiloEfectivo.negrita === "700" ? "Activada" : "Desactivada"}
                   </button>
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo">
                   <span className="sofia-drawer-estilo__etiqueta">Color del texto</span>
-                  <CampoConToken tipo="color" valor={estilo.color} onCambiar={(valor) => actualizar({ color: valor })} />
+                  <CampoConToken tipo="color" valor={estiloEfectivo.color} onCambiar={(valor) => actualizarTexto({ color: valor })} />
                 </div>
 
                 <div className="sofia-drawer-estilo__grupo sofia-drawer-estilo__grupo--fila">
                   <span className="sofia-drawer-estilo__etiqueta">Sombra de texto</span>
                   <button
                     type="button"
-                    className={`sofia-drawer-estilo__toggle ${estilo.sombra_texto ? "sofia-drawer-estilo__toggle--activo" : ""}`}
-                    onClick={() => actualizar({ sombra_texto: estilo.sombra_texto ? "" : SOMBRA_TEXTO })}
+                    className={`sofia-drawer-estilo__toggle ${estiloEfectivo.sombra_texto ? "sofia-drawer-estilo__toggle--activo" : ""}`}
+                    onClick={() => actualizarTexto({ sombra_texto: estiloEfectivo.sombra_texto ? "" : SOMBRA_TEXTO })}
                   >
-                    {estilo.sombra_texto ? "Activada" : "Desactivada"}
+                    {estiloEfectivo.sombra_texto ? "Activada" : "Desactivada"}
                   </button>
                 </div>
-              </>
+              </SeccionPanel>
             )}
 
             {nivel === "bloque" && schemaContenido && Object.keys(schemaContenido).length > 0 && (

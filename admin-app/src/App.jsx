@@ -425,17 +425,16 @@ export function App({ config }) {
         return;
       }
       if (datos.tipo === "sofia:campo-clickeado") {
-        // Actualiza la zona de Propiedades directo — un click en CUALQUIER
-        // campo (nivel "campo", el default) muestra su estilo ahí, sin
-        // paso intermedio. Si el panel estaba mostrando un BLOQUE (nivel
-        // "bloque", abierto desde el menú contextual), este click lo pisa
-        // igual — mismo criterio que "el panel siempre refleja la última
-        // selección" acordado para todo este rediseño.
-        // Un click en un campo de texto pasa el panel a Nivel 1, así que
-        // el bloque deja de estar seleccionado — la marca del canvas se
-        // apaga para no señalar algo que el panel ya no está editando.
-        iframeRef.current?.contentWindow.postMessage({ tipo: "sofia:marcar-seleccionado", id: null }, "*");
-        setDrawerEstilo({ campo: datos.campo, estilo: datos.estilo });
+        // Clickear un texto ya no REEMPLAZA la selección del bloque: lo
+        // selecciona (si no lo estaba) y marca ese campo como activo
+        // dentro de él. Antes eran dos paneles que se pisaban — al tocar
+        // un texto se perdía de vista el bloque y sus controles.
+        //
+        // El id del bloque sale del prefijo de la clave del campo
+        // ("{id}.{resto}", ver Sofia_Componente::atributo_editable), así
+        // que no hace falta que el iframe lo mande ni tocar su código.
+        const idBloque = datos.campo.slice(0, datos.campo.indexOf("."));
+        seleccionarCampoDeBloque(idBloque, datos.campo, datos.estilo);
         return;
       }
       if (datos.tipo === "sofia:bloque-resaltado") {
@@ -631,6 +630,20 @@ export function App({ config }) {
   // sí), así que hay que pedirle el contenido completo de la página al
   // proxy REST de todos modos, mismo fetch que ya usa agregarBloque() para
   // leer la estructura actual.
+  // Selecciona el bloque que contiene un campo y marca ese campo como
+  // activo. Si el bloque ya estaba seleccionado solo cambia el campo
+  // activo, sin volver a pedir la página — clickear entre textos del
+  // mismo bloque es el gesto más frecuente del editor.
+  async function seleccionarCampoDeBloque(idBloque, campo, estiloCampo) {
+    const yaSeleccionado = drawerEstilo?.nivel === "bloque" && drawerEstilo?.campo === idBloque;
+    if (yaSeleccionado) {
+      setDrawerEstilo((actual) => ({ ...actual, campoActivo: campo, estiloCampo }));
+      return;
+    }
+    const nodo = buscarNodo(estructura, idBloque);
+    await mostrarEstiloDeBloque(idBloque, nodo?.tipo, undefined, { campo, estiloCampo });
+  }
+
   // Nombre humano de un tipo, desde el catálogo real ya cargado (mismo
   // criterio que conNombres para el árbol): si todavía no llegó, cae al
   // tipo crudo — mejor "card" que nada.
@@ -638,7 +651,7 @@ export function App({ config }) {
     return catalogoBloques.find((c) => c.tipo === tipo)?.nombre || tipo || "";
   }
 
-  async function mostrarEstiloDeBloque(id, tipoBloque, estiloBloque) {
+  async function mostrarEstiloDeBloque(id, tipoBloque, estiloBloque, campoActivo) {
     if (!id) return;
     try {
       const pagina = await fetch(`${config.restUrl}paginas/${config.slug}`, {
@@ -670,6 +683,11 @@ export function App({ config }) {
         nivel: "bloque",
         cantidadHijos,
         contenido: contenidoDeBloque(pagina.contenido, id),
+        // campoActivo/estiloCampo: cuando la selección vino de clickear
+        // un TEXTO dentro del bloque, el panel además muestra los
+        // controles de ese campo puntual (negrita, tamaño, color).
+        campoActivo: campoActivo?.campo,
+        estiloCampo: campoActivo?.estiloCampo,
       });
     } catch {
       setEstado("error");
@@ -740,6 +758,18 @@ export function App({ config }) {
     if (requiereRender && drawerEstilo.nivel === "bloque") {
       rerenderizarBloque(drawerEstilo.campo);
     }
+  }
+
+  // Estilo del CAMPO activo (negrita, tamaño, color de ESE texto), que
+  // ahora convive con el del bloque en el mismo panel. Va por su propio
+  // camino: el iframe lo aplica al elemento puntual, no a la <section>.
+  function cambiarEstiloCampo(estiloNuevo) {
+    if (!drawerEstilo?.campoActivo) return;
+    setDrawerEstilo({ ...drawerEstilo, estiloCampo: estiloNuevo });
+    iframeRef.current?.contentWindow.postMessage(
+      { tipo: "sofia:aplicar-estilo", campo: drawerEstilo.campoActivo, estilo: estiloNuevo },
+      "*"
+    );
   }
 
   // Pide a PHP el HTML actualizado de un bloque y lo reemplaza en el
@@ -1211,6 +1241,9 @@ export function App({ config }) {
               condicion={drawerEstilo.condicion}
               cantidadHijos={drawerEstilo.cantidadHijos}
               contenido={drawerEstilo.contenido}
+              campoActivo={drawerEstilo.campoActivo}
+              estiloCampo={drawerEstilo.estiloCampo}
+              onCambiarEstiloCampo={cambiarEstiloCampo}
               onCambiarCampoContenido={cambiarCampoContenido}
               onCambiarEstilo={cambiarEstiloDrawer}
               onCambiarCondicion={cambiarCondicionDrawer}

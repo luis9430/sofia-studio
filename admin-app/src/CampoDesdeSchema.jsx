@@ -495,12 +495,14 @@ export function CamposContenido({ schema, contenido, onCambiarCampo, restUrl, no
  * `cantidad` marca cuántos valores hay puestos en el grupo, para que algo
  * personalizado dentro de una sección cerrada no quede invisible.
  */
-export function SeccionPanel({ titulo, abierta, onAlternar, cantidad, children }) {
+export function SeccionPanel({ titulo, abierta, onAlternar, cantidad, acento, children }) {
   return (
     <div className="sofia-panel-seccion">
       <button
         type="button"
-        className={`sofia-panel-seccion__titulo ${abierta ? "sofia-panel-seccion__titulo--abierta" : ""}`}
+        className={`sofia-panel-seccion__titulo ${abierta ? "sofia-panel-seccion__titulo--abierta" : ""} ${
+          acento ? "sofia-panel-seccion__titulo--texto" : ""
+        }`}
         onClick={onAlternar}
         aria-expanded={abierta}
       >
