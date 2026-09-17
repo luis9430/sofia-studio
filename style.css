@@ -520,9 +520,10 @@ h1, h2, h3, h4, h5, h6 {
 	flex-shrink: 0;
 }
 
-/* Card (Fase 3) — imagen arriba, cuerpo con espaciado interno propio
-   (padding fijo, no configurable desde Nivel 2 todavía — mismo límite ya
-   documentado en otras primitivas simples del catálogo). El botón hereda
+/* Card — el layout de la orientación lo resuelven las utility classes de
+   Core Framework que agrega el PHP (flex-row + gap-m + items-middle, ver
+   CLASES_ORIENTACION); acá solo va lo que es propio de este bloque: el
+   recorte de la imagen y el espaciado interno del cuerpo. El botón hereda
    el mismo estilo sólido que Button/CTA para consistencia visual. */
 .sofia-card {
 	overflow: hidden;
@@ -533,6 +534,35 @@ h1, h2, h3, h4, h5, h6 {
 	width: 100%;
 	aspect-ratio: 16 / 10;
 	object-fit: cover;
+}
+
+/* Horizontal: la imagen deja de ocupar todo el ancho y pasa a ser una
+   columna de proporción fija junto al cuerpo. flex-basis (no width) para
+   que el gap de Core Framework siga funcionando; el cuerpo toma el resto
+   con flex:1. */
+.sofia-card.flex-row > .sofia-card__imagen {
+	flex: 0 0 40%;
+	align-self: stretch;
+	aspect-ratio: auto;
+}
+
+.sofia-card.flex-row > .sofia-card__cuerpo {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Superficies: agrupan radius + sombra + borde en una decisión con
+   nombre, en vez de tres controles sueltos que hay que combinar bien.
+   Los valores salen de los roles del sitio (Nivel 3), nunca de un hex
+   suelto. */
+.sofia-card--elevada {
+	border-radius: var(--sofia-radio-borde);
+	box-shadow: var(--sofia-sombra, 0 1px 3px rgba(0, 0, 0, 0.12));
+}
+
+.sofia-card--con-borde {
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
 }
 
 .sofia-card__cuerpo {

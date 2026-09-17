@@ -1,13 +1,63 @@
 <?php
 /**
- * Card — primitiva de Superficies (Fase 3, plan "50 primitivas", ver la
- * memoria de producto): imagen + título + texto + botón, los 4 campos
- * siempre fijos (mismo patrón que Sofia_Componente_CTA, con imagen
- * agregada) — pensada para vivir dentro de un Container variante Grid
- * (varias Cards en fila/grilla), sin necesitar su propio sistema de
- * columnas.
+ * Card — imagen + título + texto + botón.
+ *
+ * MOLDE DEL CONTRATO DE COMPONENTES. Este archivo es la referencia para
+ * migrar el resto del catálogo, así que documenta no solo qué hace sino
+ * por qué cada decisión cae donde cae. Las cuatro reglas:
+ *
+ * 1. TRES CAPAS DE PROPS, nunca mezcladas.
+ *    - Contenido (schema_contenido): lo que el bloque DICE — imagen,
+ *      título, texto, el botón y su enlace.
+ *    - Apariencia (schema_propio): cómo se ve ESTE tipo de bloque —
+ *      orientación y superficie. Vive en Nivel 2, guardado dentro de
+ *      _estilo_bloque.
+ *    - Caja (claves_estilo_relevantes): lo transversal que comparte con
+ *      cualquier otro bloque — ancho, alineación, fondo, espaciado.
+ *
+ * 2. TODA PROP DE APARIENCIA ES UNA LISTA CERRADA. Nunca texto libre:
+ *    "orientacion" y "superficie" son selects con opciones fijas, así el
+ *    editor no puede producir un valor que el render no sepa dibujar, y
+ *    la validación del generador por IA tiene contra qué comparar.
+ *
+ * 3. CORE FRAMEWORK PRIMERO. La orientación no lleva CSS propio: usa las
+ *    utility classes reales del plugin (flex-row/flex-column + gap-m +
+ *    items-middle), igual que ya hace Container. El CSS del tema queda
+ *    solo para lo que es genuinamente de este bloque — el recorte de la
+ *    imagen, el espaciado interno del cuerpo.
+ *
+ * 4. UN COMPONENTE = UN PHP + SU BLOQUE DE CSS. Card no necesita JS; si
+ *    lo necesitara, sería una función más en el archivo compartido de
+ *    interacciones, nunca un archivo propio.
+ *
+ * Pensada para vivir dentro de un Container en grilla (varias Cards en
+ * fila), así que no trae su propio sistema de columnas.
  */
 class Sofia_Componente_Card extends Sofia_Componente {
+
+	/**
+	 * CLASES_ORIENTACION: la diferencia entre una Card vertical y una
+	 * horizontal es puramente de layout, y Core Framework ya lo resuelve
+	 * — este mapa solo elige qué utility classes agregar.
+	 *
+	 * "" (vertical) tampoco necesita clases: es el apilado natural de un
+	 * <section> en flujo normal, sin flex de por medio.
+	 */
+	private const CLASES_ORIENTACION = array(
+		'horizontal' => 'flex-row gap-m items-middle',
+	);
+
+	/**
+	 * CLASES_SUPERFICIE: agrupa radius + sombra + borde en una sola
+	 * decisión con nombre humano, en vez de tres controles sueltos que el
+	 * usuario tiene que combinar bien para que la caja se vea coherente.
+	 * Quien quiera control fino de cada propiedad lo sigue teniendo en
+	 * "Caja y posición" (Nivel 2 genérico), que pisa esto.
+	 */
+	private const CLASES_SUPERFICIE = array(
+		'elevada'    => 'sofia-card--elevada',
+		'con-borde'  => 'sofia-card--con-borde',
+	);
 
 	public function nombre(): string {
 		return __( 'Card', 'sofia-studio' );
@@ -23,6 +73,7 @@ class Sofia_Componente_Card extends Sofia_Componente {
 		);
 	}
 
+	/** Capa 1 — CONTENIDO: lo que el bloque dice. */
 	public static function schema_contenido(): array {
 		return array(
 			'imagen'       => array( 'tipo' => 'imagen', 'etiqueta' => __( 'Imagen', 'sofia-studio' ) ),
@@ -34,11 +85,43 @@ class Sofia_Componente_Card extends Sofia_Componente {
 	}
 
 	/**
-	 * claves_estilo_relevantes(): unión de PERFIL_SECCION (caja real, con
-	 * fondo/borde/sombra/radius propios — a diferencia de Hero, una Card
-	 * SIEMPRE es una caja visual, nunca "libre") + aspect_ratio/object_fit
-	 * (hay una <img> real adentro), mismo criterio que
-	 * Sofia_Componente_Hero::claves_estilo_relevantes().
+	 * Capa 2 — APARIENCIA: cómo se ve una Card, con opciones propias de
+	 * este tipo de bloque. Dos ejes independientes y combinables (una Card
+	 * horizontal puede ser elevada o plana), mismo criterio que
+	 * forma+color en Badge.
+	 *
+	 * "Orientación horizontal" es, en concreto, la Card que antes no
+	 * existía y que motivó toda la discusión sobre variantes: no hace
+	 * falta un tipo nuevo en la Factory ni duplicar el componente, es una
+	 * prop de apariencia que cambia dos utility classes.
+	 */
+	public static function schema_propio(): array {
+		return array(
+			'orientacion' => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Orientación', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Vertical (imagen arriba)', 'sofia-studio' ) ),
+					array( 'valor' => 'horizontal', 'etiqueta' => __( 'Horizontal (imagen al costado)', 'sofia-studio' ) ),
+				),
+			),
+			'superficie'  => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Superficie', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Plana', 'sofia-studio' ) ),
+					array( 'valor' => 'elevada', 'etiqueta' => __( 'Elevada (con sombra)', 'sofia-studio' ) ),
+					array( 'valor' => 'con-borde', 'etiqueta' => __( 'Con borde', 'sofia-studio' ) ),
+				),
+			),
+		);
+	}
+
+	/**
+	 * Capa 3 — CAJA: lo transversal. PERFIL_SECCION porque una Card
+	 * SIEMPRE es una caja visual (a diferencia de Hero, que puede ser una
+	 * sección libre), más aspect_ratio/object_fit porque tiene una <img>
+	 * real que recortar.
 	 */
 	public static function claves_estilo_relevantes(): array {
 		return array_unique( array_merge( parent::PERFIL_SECCION, array( 'aspect_ratio', 'object_fit' ) ) );
@@ -49,14 +132,19 @@ class Sofia_Componente_Card extends Sofia_Componente {
 		$texto        = $this->texto_enriquecido( $this->props['texto'] );
 		$boton_texto  = $this->texto_enriquecido( $this->props['boton_texto'] );
 		$boton_enlace = esc_url( $this->props['boton_enlace'] );
-		// imagen_o_placeholder() (clase base): mismo motivo que Hero/Image —
-		// sin esto, una Card recién agregada sin imagen no tendría forma de
-		// cargar una la primera vez.
+		// imagen_o_placeholder(): sin esto, una Card recién agregada no
+		// tendría ninguna <img> que clickear para cargar la primera imagen.
 		$imagen = $this->imagen_o_placeholder( esc_url( $this->props['imagen'] ) );
 
-		$html = '<section ' . $this->atributos_seccion( 'sofia-card' ) . '>';
+		$clases = array_filter( array(
+			'sofia-card',
+			$this->clase_de_variante( self::CLASES_ORIENTACION, 'orientacion' ),
+			$this->clase_de_variante( self::CLASES_SUPERFICIE, 'superficie' ),
+		) );
+
+		$html = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		if ( $imagen ) {
-			$html .= '<img class="sofia-card__imagen" ' . $this->atributo_editable( 'imagen' ) . ' src="' . $imagen . '" alt="' . wp_strip_all_tags( $titulo ) . '">';
+			$html .= '<img class="sofia-card__imagen" ' . $this->atributo_editable( 'imagen' ) . ' src="' . $imagen . '" alt="' . esc_attr( wp_strip_all_tags( $titulo ) ) . '">';
 		}
 		$html .= '<div class="sofia-card__cuerpo">';
 		$html .= '<h3 class="sofia-card__titulo" ' . $this->atributo_editable( 'titulo' ) . ' ' . $this->atributo_estilo( 'titulo' ) . '>' . $titulo . '</h3>';
