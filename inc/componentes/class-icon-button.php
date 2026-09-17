@@ -49,11 +49,10 @@ class Sofia_Componente_Icon_Button extends Sofia_Componente {
 		$texto  = $this->texto_enriquecido( $this->props['texto'] );
 		$enlace = esc_url( $this->props['enlace'] );
 		$icono  = (string) ( $this->props['icono'] ?? '' );
-		$path   = Sofia_Componente_Icon::ICONOS_PERMITIDOS[ $icono ] ?? Sofia_Componente_Icon::ICONOS_PERMITIDOS['arrow-right'];
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-icon-button' ) . '>';
 		$html .= '<a class="sofia-icon-button__enlace" href="' . $enlace . '" ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>';
-		$html .= '<svg class="sofia-icon-button__svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $path . '</svg>';
+		$html .= $this->svg_icono( $icono, 20, 'sofia-icon-button__svg', 'arrow-right' );
 		$html .= '<span>' . $texto . '</span>';
 		$html .= '</a>';
 		$html .= '</section>';

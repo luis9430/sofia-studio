@@ -95,20 +95,11 @@ class Sofia_Componente_Badge extends Sofia_Componente {
 	public function render(): string {
 		$texto = $this->texto_enriquecido( (string) ( $this->props['texto'] ?? '' ) );
 
-		// _estilo_bloque, no $this->props directo — mismo bug real ya
-		// corregido en Container: el schema_propio() de Nivel 2 SIEMPRE
-		// viaja anidado ahí, nunca como clave suelta de $this->props.
-		$estilo_bloque = is_array( $this->props['_estilo_bloque'] ?? null ) ? $this->props['_estilo_bloque'] : array();
-		$forma         = (string) ( $estilo_bloque['forma'] ?? '' );
-		$color         = (string) ( $estilo_bloque['color'] ?? '' );
-
-		$clases = array( 'sofia-badge' );
-		if ( isset( self::CLASES_FORMA[ $forma ] ) ) {
-			$clases[] = self::CLASES_FORMA[ $forma ];
-		}
-		if ( isset( self::CLASES_COLOR[ $color ] ) ) {
-			$clases[] = self::CLASES_COLOR[ $color ];
-		}
+		$clases = array_filter( array(
+			'sofia-badge',
+			$this->clase_de_variante( self::CLASES_FORMA, 'forma' ),
+			$this->clase_de_variante( self::CLASES_COLOR, 'color' ),
+		) );
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-badge-wrapper' ) . '>';
 		$html .= '<span class="' . esc_attr( implode( ' ', $clases ) ) . '" ' . $this->atributo_editable( 'texto' ) . '>' . $texto . '</span>';

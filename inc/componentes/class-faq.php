@@ -44,15 +44,14 @@ class Sofia_Componente_FAQ extends Sofia_Componente {
 	public function render(): string {
 		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 
-		$campo_lista = $this->id . '.items';
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-faq' ) . '>';
-		$html .= '<div class="sofia-faq__lista" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
+		$html .= '<div class="sofia-faq__lista" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$pregunta  = $this->texto_enriquecido( (string) ( $item['pregunta'] ?? '' ) );
 			$respuesta = $this->texto_enriquecido( (string) ( $item['respuesta'] ?? '' ) );
 
-			$html .= '<div class="sofia-faq__item" data-sofia-item="' . (int) $indice . '">';
+			$html .= '<div class="sofia-faq__item" ' . $this->atributo_item( $indice ) . '>';
 			$html .= '<h3 class="sofia-faq__pregunta" ' . $this->atributo_editable( "items.{$indice}.pregunta" ) . ' ' . $this->atributo_estilo( "items.{$indice}.pregunta" ) . '>' . $pregunta . '</h3>';
 			$html .= '<p class="sofia-faq__respuesta" ' . $this->atributo_editable( "items.{$indice}.respuesta" ) . ' ' . $this->atributo_estilo( "items.{$indice}.respuesta" ) . '>' . $respuesta . '</p>';
 			$html .= '</div>';

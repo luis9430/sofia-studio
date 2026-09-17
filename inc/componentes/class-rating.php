@@ -39,19 +39,13 @@ class Sofia_Componente_Rating extends Sofia_Componente {
 		return parent::PERFIL_PRIMITIVA;
 	}
 
-	private function valor_normalizado(): int {
-		$valor = (int) ( $this->props['valor'] ?? 0 );
-		return max( 0, min( self::MAXIMO, $valor ) );
-	}
-
 	public function render(): string {
-		$valor = $this->valor_normalizado();
-		$path  = Sofia_Componente_Icon::ICONOS_PERMITIDOS['star'];
+		$valor = $this->valor_acotado( 'valor', 0, self::MAXIMO );
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-rating' ) . '>';
 		for ( $i = 1; $i <= self::MAXIMO; $i++ ) {
 			$clase = ( $i <= $valor ) ? 'sofia-rating__estrella sofia-rating__estrella--llena' : 'sofia-rating__estrella';
-			$html .= '<svg class="' . $clase . '" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $path . '</svg>';
+			$html .= $this->svg_icono( 'star', 20, $clase );
 		}
 		$html .= '</section>';
 		return $html;

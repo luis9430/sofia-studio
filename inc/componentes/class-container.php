@@ -303,7 +303,7 @@ class Sofia_Componente_Container extends Sofia_Componente {
 		// "" ausente), así que ningún control de Layout interno/Variante
 		// tenía efecto visual — confirmado por el usuario probando en
 		// vivo (Container con "Grilla" elegido seguía viéndose igual).
-		$estilo_bloque = is_array( $this->props['_estilo_bloque'] ?? null ) ? $this->props['_estilo_bloque'] : array();
+		$estilo_bloque = $this->estilo_bloque();
 
 		$variante = (string) ( $estilo_bloque['variante'] ?? '' );
 		$override = self::VARIANTES[ $variante ] ?? array();

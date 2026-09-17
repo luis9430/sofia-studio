@@ -68,16 +68,15 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		// "{id}.items" (el ID de INSTANCIA, no el tipo crudo) para que dos
 		// bloques Testimonios en la misma página nunca compartan selector
 		// ni contenido.
-		$campo_lista = $this->id . '.items';
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-testimonios' ) . '>';
-		$html .= '<div class="sofia-testimonios__grid" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
+		$html .= '<div class="sofia-testimonios__grid" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$foto   = esc_url( (string) ( $item['foto'] ?? '' ) );
 			$nombre = $this->texto_enriquecido( (string) ( $item['nombre'] ?? '' ) );
 			$cita   = $this->texto_enriquecido( (string) ( $item['cita'] ?? '' ) );
 
-			$html .= '<div class="sofia-testimonios__item" data-sofia-item="' . (int) $indice . '">';
+			$html .= '<div class="sofia-testimonios__item" ' . $this->atributo_item( $indice ) . '>';
 			if ( $foto ) {
 				$html .= '<img class="sofia-testimonios__foto" ' . $this->atributo_editable( "items.{$indice}.foto" ) . ' src="' . $foto . '" alt="' . wp_strip_all_tags( $nombre ) . '">';
 			} else {

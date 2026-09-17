@@ -63,13 +63,10 @@ class Sofia_Componente_Surface extends Sofia_Componente {
 	}
 
 	public function render(): string {
-		$estilo_bloque = is_array( $this->props['_estilo_bloque'] ?? null ) ? $this->props['_estilo_bloque'] : array();
-		$variante      = (string) ( $estilo_bloque['variante'] ?? '' );
-
-		$clases = array( 'sofia-surface' );
-		if ( isset( self::CLASES_VARIANTE[ $variante ] ) ) {
-			$clases[] = self::CLASES_VARIANTE[ $variante ];
-		}
+		$clases = array_filter( array(
+			'sofia-surface',
+			$this->clase_de_variante( self::CLASES_VARIANTE ),
+		) );
 
 		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
 		$html .= '<div class="sofia-container">';

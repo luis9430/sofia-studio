@@ -51,16 +51,14 @@ class Sofia_Componente_List extends Sofia_Componente {
 	}
 
 	public function render(): string {
-		$items       = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
-		$campo_lista = $this->id . '.items';
-		$path_check  = Sofia_Componente_Icon::ICONOS_PERMITIDOS['check'];
+		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-list' ) . '>';
-		$html .= '<ul class="sofia-list__lista" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
+		$html .= '<ul class="sofia-list__lista" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$texto = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
-			$html .= '<li class="sofia-list__item" data-sofia-item="' . (int) $indice . '">';
-			$html .= '<svg class="sofia-list__icono" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $path_check . '</svg>';
+			$html .= '<li class="sofia-list__item" ' . $this->atributo_item( $indice ) . '>';
+			$html .= $this->svg_icono( 'check', 18, 'sofia-list__icono' );
 			$html .= '<span ' . $this->atributo_editable( "items.{$indice}.texto" ) . ' ' . $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</span>';
 			$html .= '</li>';
 		}

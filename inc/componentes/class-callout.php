@@ -78,19 +78,17 @@ class Sofia_Componente_Callout extends Sofia_Componente {
 	public function render(): string {
 		$texto = $this->texto_enriquecido( (string) ( $this->props['texto'] ?? '' ) );
 
-		$estilo_bloque = is_array( $this->props['_estilo_bloque'] ?? null ) ? $this->props['_estilo_bloque'] : array();
-		$variante      = (string) ( $estilo_bloque['variante'] ?? '' );
+		$variante = (string) ( $this->estilo_bloque()['variante'] ?? '' );
 
-		$clases = array( 'sofia-callout' );
-		if ( isset( self::CLASES_VARIANTE[ $variante ] ) ) {
-			$clases[] = self::CLASES_VARIANTE[ $variante ];
-		}
+		$clases = array_filter( array(
+			'sofia-callout',
+			$this->clase_de_variante( self::CLASES_VARIANTE ),
+		) );
 
 		$nombre_icono = self::ICONOS_POR_VARIANTE[ $variante ] ?? 'info-circle';
-		$path         = Sofia_Componente_Icon::ICONOS_PERMITIDOS[ $nombre_icono ] ?? Sofia_Componente_Icon::ICONOS_PERMITIDOS['info-circle'];
 
 		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
-		$html .= '<svg class="sofia-callout__icono" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $path . '</svg>';
+		$html .= $this->svg_icono( $nombre_icono, 20, 'sofia-callout__icono', 'info-circle' );
 		$html .= '<p class="sofia-callout__texto" ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</p>';
 		$html .= '</section>';
 		return $html;

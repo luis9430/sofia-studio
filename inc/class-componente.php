@@ -873,6 +873,134 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * ICONOS_PERMITIDOS: whitelist del set de íconos del sistema — clave =
+	 * nombre guardado (el mismo de Tabler, sin extensión), valor = contenido
+	 * INTERNO del SVG (uno o más <path>, sin el wrapper, que arma
+	 * svg_icono()). Nunca se imprime un <path> que no haya sido revisado y
+	 * agregado acá a mano.
+	 *
+	 * Vive en la clase base, no en Sofia_Componente_Icon, porque son cinco
+	 * los Componentes que dibujan íconos (Icon, IconButton, Callout, List,
+	 * Rating) y el helper que los consume —svg_icono()— también está acá.
+	 * Mismo criterio que FUENTES_PERMITIDAS: un whitelist compartido del
+	 * sistema pertenece al lugar común, no a uno de sus consumidores.
+	 */
+	public const ICONOS_PERMITIDOS = array(
+		'arrow-right'      => '<path d="M5 12l14 0" /><path d="M13 18l6 -6" /><path d="M13 6l6 6" />',
+		'arrow-left'       => '<path d="M5 12l14 0" /><path d="M5 12l6 6" /><path d="M5 12l6 -6" />',
+		'arrow-up'         => '<path d="M12 5l0 14" /><path d="M18 11l-6 -6" /><path d="M6 11l6 -6" />',
+		'arrow-down'       => '<path d="M12 5l0 14" /><path d="M18 13l-6 6" /><path d="M6 13l6 6" />',
+		'check'            => '<path d="M5 12l5 5l10 -10" />',
+		'info-circle'      => '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" />',
+		'x'                => '<path d="M18 6l-12 12" /><path d="M6 6l12 12" />',
+		'menu-2'           => '<path d="M4 6l16 0" /><path d="M4 12l16 0" /><path d="M4 18l16 0" />',
+		'plus'             => '<path d="M12 5l0 14" /><path d="M5 12l14 0" />',
+		'minus'            => '<path d="M5 12l14 0" />',
+		'star'             => '<path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873l-6.158 -3.245" />',
+		'heart'            => '<path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" />',
+		'mail'             => '<path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" /><path d="M3 7l9 6l9 -6" />',
+		'phone'            => '<path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" />',
+		'map-pin'          => '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0" />',
+		'clock'            => '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 7v5l3 3" />',
+		'calendar'         => '<path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M11 15h1" /><path d="M12 15v3" />',
+		'download'         => '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" />',
+		'upload'           => '<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 9l5 -5l5 5" /><path d="M12 4l0 12" />',
+		'external-link'    => '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />',
+		'chevron-right'    => '<path d="M9 6l6 6l-6 6" />',
+		'chevron-down'     => '<path d="M6 9l6 6l6 -6" />',
+		'brand-facebook'   => '<path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3" />',
+		'brand-instagram'  => '<path d="M4 8a4 4 0 0 1 4 -4h8a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4l0 -8" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M16.5 7.5v.01" />',
+		'brand-whatsapp'   => '<path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9" /><path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />',
+		'send'             => '<path d="M10 14l11 -11" /><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" />',
+	);
+
+	/**
+	 * atributo_lista() / atributo_item(): los dos marcadores que
+	 * editor-iframe.js busca para operar sobre una lista repetible — mover,
+	 * agregar o eliminar un item (alMoverItemDeLista y compañía).
+	 *
+	 * Son un CONTRATO con el editor, no decoración: si el nombre del
+	 * atributo o el formato de la clave no coinciden exactamente, el editor
+	 * no encuentra la lista y los gestos del árbol de Estructura dejan de
+	 * funcionar, sin ningún error visible. Por eso el formato vive acá y no
+	 * escrito a mano en cada Componente con lista (hoy seis).
+	 *
+	 * La clave lleva el ID de instancia, no el tipo ("{id}.items", igual
+	 * que atributo_editable()): dos Franjas de beneficios en la misma
+	 * página necesitan selectores distintos, o el editor no puede saber
+	 * sobre cuál de las dos operar.
+	 */
+	protected function atributo_lista( string $nombre_campo ): string {
+		return sprintf( 'data-sofia-lista="%s.%s"', esc_attr( $this->id ), esc_attr( $nombre_campo ) );
+	}
+
+	protected function atributo_item( int $indice ): string {
+		return sprintf( 'data-sofia-item="%d"', $indice );
+	}
+
+	/**
+	 * svg_icono(): un <svg> inline de ICONOS_PERMITIDOS, con el wrapper
+	 * completo ya armado. Antes esto estaba escrito carácter
+	 * por carácter en 5 Componentes (Icon, IconButton, Callout, List,
+	 * Rating), idéntico salvo clase y tamaño.
+	 *
+	 * stroke="currentColor" (no un color propio) es lo que hace que el
+	 * ícono herede el color del texto que lo rodea, sin que cada Componente
+	 * tenga que resolverlo. Un nombre fuera del whitelist cae al de
+	 * respaldo en vez de imprimir un <svg> vacío e invisible — mismo
+	 * criterio de "fail closed mostrando algo razonable" que
+	 * imagen_o_placeholder().
+	 */
+	protected function svg_icono( string $nombre, int $tamano = 24, string $clase = '', string $respaldo = 'star' ): string {
+		$iconos = self::ICONOS_PERMITIDOS;
+		$path   = $iconos[ $nombre ] ?? ( $iconos[ $respaldo ] ?? reset( $iconos ) );
+
+		return sprintf(
+			'<svg class="%s" xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>',
+			esc_attr( $clase ),
+			$tamano,
+			$tamano,
+			$path // Siempre una entrada del whitelist, nunca contenido del usuario.
+		);
+	}
+
+	/**
+	 * estilo_bloque(): el array de estilo de Nivel 2 de ESTE bloque, o uno
+	 * vacío si no hay nada guardado.
+	 *
+	 * Todo lo que declara schema_propio() viaja anidado en
+	 * $this->props['_estilo_bloque'], NUNCA como clave suelta de props —
+	 * leerlo del lugar equivocado fue un bug real que dejó sin efecto todos
+	 * los controles de layout de Container hasta que se detectó probando en
+	 * vivo. Este método es el único lugar que debe conocer esa estructura.
+	 */
+	protected function estilo_bloque(): array {
+		return is_array( $this->props['_estilo_bloque'] ?? null ) ? $this->props['_estilo_bloque'] : array();
+	}
+
+	/**
+	 * clase_de_variante(): traduce el valor guardado de una prop de
+	 * apariencia (Nivel 2) a su clase CSS modificadora, contra un mapa
+	 * whitelist del propio Componente. Un valor desconocido —dato corrupto,
+	 * o de una versión más nueva del tema— no agrega ninguna clase, en vez
+	 * de imprimir una inventada.
+	 */
+	protected function clase_de_variante( array $mapa, string $clave = 'variante' ): string {
+		$valor = (string) ( $this->estilo_bloque()[ $clave ] ?? '' );
+		return $mapa[ $valor ] ?? '';
+	}
+
+	/**
+	 * valor_acotado(): un entero del contenido, forzado al rango válido.
+	 * Lo que se guarda como texto puede llegar fuera de rango o no ser un
+	 * número (dato corrupto, o escrito a mano), y de ahí sale un ancho de
+	 * barra o una cuenta de estrellas — nunca se imprime sin acotar.
+	 */
+	protected function valor_acotado( string $campo, int $min, int $max ): int {
+		return max( $min, min( $max, (int) ( $this->props[ $campo ] ?? $min ) ) );
+	}
+
+	/**
 	 * ETIQUETAS_FORMATO_PERMITIDAS es el whitelist completo de formato
 	 * rico que un campo de texto puede llevar — ver el drawer de estilo del
 	 * editor (admin-app/src/DrawerEstilo.jsx), que hoy solo ofrece

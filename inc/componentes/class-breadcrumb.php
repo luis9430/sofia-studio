@@ -46,16 +46,15 @@ class Sofia_Componente_Breadcrumb extends Sofia_Componente {
 	}
 
 	public function render(): string {
-		$items       = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
-		$campo_lista = $this->id . '.items';
+		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 		$total       = count( $items );
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-breadcrumb' ) . '>';
-		$html .= '<nav class="sofia-breadcrumb__lista" data-sofia-lista="' . esc_attr( $campo_lista ) . '" aria-label="' . esc_attr__( 'Breadcrumb', 'sofia-studio' ) . '">';
+		$html .= '<nav class="sofia-breadcrumb__lista" ' . $this->atributo_lista( 'items' ) . ' aria-label="' . esc_attr__( 'Breadcrumb', 'sofia-studio' ) . '">';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$texto  = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
 			$enlace = esc_url( (string) ( $item['enlace'] ?? '#' ) );
-			$html  .= '<div class="sofia-breadcrumb__item" data-sofia-item="' . (int) $indice . '">';
+			$html  .= '<div class="sofia-breadcrumb__item" ' . $this->atributo_item( $indice ) . '>';
 			$html  .= '<a class="sofia-breadcrumb__enlace" href="' . $enlace . '" ' . $this->atributo_editable( "items.{$indice}.texto" ) . ' ' . $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</a>';
 			if ( $indice < $total - 1 ) {
 				$html .= '<span class="sofia-breadcrumb__separador" aria-hidden="true">/</span>';

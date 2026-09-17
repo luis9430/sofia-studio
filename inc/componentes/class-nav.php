@@ -50,15 +50,14 @@ class Sofia_Componente_Nav extends Sofia_Componente {
 	}
 
 	public function render(): string {
-		$items       = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
-		$campo_lista = $this->id . '.items';
+		$items = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-nav' ) . '>';
-		$html .= '<nav class="sofia-nav__lista" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
+		$html .= '<nav class="sofia-nav__lista" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$texto  = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
 			$enlace = esc_url( (string) ( $item['enlace'] ?? '#' ) );
-			$html  .= '<div class="sofia-nav__item" data-sofia-item="' . (int) $indice . '">';
+			$html  .= '<div class="sofia-nav__item" ' . $this->atributo_item( $indice ) . '>';
 			$html  .= '<a class="sofia-nav__enlace" href="' . $enlace . '" ' . $this->atributo_editable( "items.{$indice}.texto" ) . ' ' . $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</a>';
 			$html  .= '</div>';
 		}

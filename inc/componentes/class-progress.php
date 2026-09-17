@@ -38,19 +38,8 @@ class Sofia_Componente_Progress extends Sofia_Componente {
 		return parent::PERFIL_PRIMITIVA;
 	}
 
-	/**
-	 * valor_normalizado(): el número guardado puede ser cualquier texto
-	 * (dato corrupto, o un valor fuera de rango escrito a mano) — se
-	 * fuerza a un entero entre 0 y 100 antes de usarlo como ancho real,
-	 * nunca se imprime un porcentaje inválido directo al CSS.
-	 */
-	private function valor_normalizado(): int {
-		$valor = (int) ( $this->props['valor'] ?? 0 );
-		return max( 0, min( 100, $valor ) );
-	}
-
 	public function render(): string {
-		$valor    = $this->valor_normalizado();
+		$valor    = $this->valor_acotado( 'valor', 0, 100 );
 		$etiqueta = $this->texto_enriquecido( (string) ( $this->props['etiqueta'] ?? '' ) );
 
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-progress' ) . '>';

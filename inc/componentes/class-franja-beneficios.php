@@ -74,7 +74,6 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 		// beneficios en la misma página compartían el mismo selector
 		// data-sofia-lista, y editor-iframe.js no podía distinguir en cuál
 		// de las dos instancias operar (ver la memoria de producto).
-		$campo_lista = $this->id . '.items';
 
 		// El botón "+ Agregar" vive FUERA de [data-sofia-lista] (hermano,
 		// no hijo) a propósito: dentro del contenedor sería un hijo más de
@@ -82,11 +81,11 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 		// otro item. Como hermano queda a lo ancho, debajo de la grilla.
 		// Solo se renderiza en modo editor (ver boton_agregar_item()).
 		$html  = '<section ' . $this->atributos_seccion( 'sofia-franja-beneficios' ) . '>';
-		$html .= '<div class="sofia-franja-beneficios__grid" data-sofia-lista="' . esc_attr( $campo_lista ) . '">';
+		$html .= '<div class="sofia-franja-beneficios__grid" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$titulo = $this->texto_enriquecido( (string) ( $item['titulo'] ?? '' ) );
 			$texto  = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
-			$html  .= '<div class="sofia-franja-beneficios__item" data-sofia-item="' . (int) $indice . '">';
+			$html  .= '<div class="sofia-franja-beneficios__item" ' . $this->atributo_item( $indice ) . '>';
 			$html  .= '<h3 ' . $this->atributo_editable( "items.{$indice}.titulo" ) . ' ' . $this->atributo_estilo( "items.{$indice}.titulo" ) . '>' . $titulo . '</h3>';
 			$html  .= '<p ' . $this->atributo_editable( "items.{$indice}.texto" ) . ' ' . $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</p>';
 			$html  .= '</div>';
