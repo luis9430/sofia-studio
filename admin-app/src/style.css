@@ -75,7 +75,7 @@ body {
    cómodo para controles, igual que la referencia visual que confirmó este
    layout. */
 .sofia-zona-propiedades {
-  width: 340px;
+  width: 400px;
   flex: 0 0 auto;
   background: var(--gp-panel);
   border: 1px solid var(--gp-panel-border);
@@ -94,10 +94,10 @@ body {
    (ancho fijo, tarjeta con borde/sombra), hermana a la izquierda del canvas
    en vez de a la derecha — juntas arman el layout de 3 columnas confirmado
    por el usuario a partir de la referencia visual compartida. Un poco más
-   angosta que Propiedades (260px vs 340px): una fila de árbol solo necesita
+   angosta que Propiedades (300px vs 400px): una fila de árbol solo necesita
    lugar para un ícono + una etiqueta corta, no controles de formulario. */
 .sofia-zona-estructura {
-  width: 260px;
+  width: 300px;
   flex: 0 0 auto;
   background: var(--gp-panel);
   border: 1px solid var(--gp-panel-border);
@@ -154,9 +154,9 @@ body {
   flex-direction: column;
 }
 
-/* Fila de un nodo — el padding-left real (indentación por profundidad) se
-   aplica inline desde PanelEstructura.jsx, no acá: depende de un valor
-   dinámico (profundidad × 16px) que CSS estático no puede expresar. */
+/* Fila de un nodo. La sangría por profundidad NO va acá: la da el
+   wrapper de hijos (.sofia-estructura-nodo__hijos), que así puede
+   alinear la línea de jerarquía con el mismo margen. */
 .sofia-estructura-nodo {
   display: flex;
   align-items: center;
@@ -208,10 +208,57 @@ body {
   cursor: grab;
 }
 
+/* Hijos de un contenedor: el margen izquierdo lo pone PanelEstructura
+   inline (depende de la profundidad del padre), acá va solo la línea
+   que hace legible la jerarquía de un vistazo. */
+.sofia-estructura-nodo__hijos {
+  margin-left: 19px;
+  border-left: 1px solid var(--gp-panel-border);
+  padding-left: 4px;
+}
+
+/* Ícono de tipo: pista de forma para reconocer un bloque sin leer su
+   nombre. Ancho fijo para que las etiquetas queden alineadas entre sí
+   aunque los glifos midan distinto. */
+.sofia-estructura-nodo__icono {
+  flex: 0 0 auto;
+  width: 14px;
+  text-align: center;
+  color: var(--gp-panel-text-dim);
+  font-size: 11px;
+}
+
+.sofia-estructura-nodo--activo .sofia-estructura-nodo__icono {
+  color: inherit;
+}
+
 .sofia-estructura-nodo__etiqueta {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Cuenta de hijos de un contenedor — dice de un vistazo si un Container
+   está vacío (caso en que sus controles de layout no hacen nada visible)
+   o cuántos bloques agrupa. */
+.sofia-estructura-nodo__cuenta {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--gp-panel-2);
+  color: var(--gp-panel-text-dim);
+  font-size: 10px;
+}
+
+/* Algo pendiente en el bloque: hoy, un enlace sin definir. Un Link con
+   href="#" se ve perfecto en el canvas y no lleva a ninguna parte —
+   este punto es lo único que lo delata antes de publicar. */
+.sofia-estructura-nodo__pendiente {
+  flex: 0 0 auto;
+  color: var(--gp-danger);
+  font-size: 9px;
+  line-height: 1;
 }
 
 /* Catálogo de Componentes — pestaña "Agregar" (paso 4 del rediseño de

@@ -169,10 +169,34 @@ function etiquetaDeItem(item, indice) {
 // los distinguen de un bloque real por esa marca, nunca por heurística
 // sobre el id (un id de item es sintético, "{idBloque}.items.{indice}",
 // nunca un ID de instancia real asignado por GoPress).
-function conNombres(estructura, catalogo, listasPorBloque) {
+// pendientesDe(contenido): {idBloque: "motivo"} para los bloques a los
+// que les falta algo para funcionar de verdad. Hoy detecta un solo caso,
+// el más frecuente y el más invisible: un enlace o URL que quedó en su
+// valor de relleno.
+//
+// Un Link o un Button con href="#" se ven perfectos en el canvas y no
+// llevan a ninguna parte; un Embed sin URL directamente no muestra nada.
+// Esto los marca en el árbol para que no pasen desapercibidos hasta que
+// alguien los clickee en el sitio publicado.
+//
+// Guarda solo el mapa de pendientes, no el contenido entero: es lo único
+// que el árbol necesita.
+function pendientesDe(contenido) {
+  const pendientes = {};
+  for (const [clave, valor] of Object.entries(contenido || {})) {
+    const esEnlace = clave.endsWith(".enlace") || clave.endsWith(".url") || clave.endsWith("_enlace");
+    if (!esEnlace) continue;
+    if (valor && valor !== "#") continue;
+    const idBloque = clave.slice(0, clave.indexOf("."));
+    pendientes[idBloque] = valor === "#" ? "Enlace sin definir" : "Falta la URL";
+  }
+  return pendientes;
+}
+
+function conNombres(estructura, catalogo, listasPorBloque, pendientes) {
   return estructura.map((bloque) => {
     var items = listasPorBloque[bloque.id];
-    var hijosBloques = bloque.hijos && bloque.hijos.length ? conNombres(bloque.hijos, catalogo, listasPorBloque) : bloque.hijos;
+    var hijosBloques = bloque.hijos && bloque.hijos.length ? conNombres(bloque.hijos, catalogo, listasPorBloque, pendientes) : bloque.hijos;
     var hijosItems = items
       ? items.map((item, indice) => ({
           id: `${bloque.id}.items.${indice}`,
@@ -185,6 +209,7 @@ function conNombres(estructura, catalogo, listasPorBloque) {
     return {
       ...bloque,
       nombre: catalogo.find((c) => c.tipo === bloque.tipo)?.nombre || bloque.tipo,
+      pendiente: (pendientes || {})[bloque.id],
       hijos: hijosItems || hijosBloques,
     };
   });
@@ -259,6 +284,9 @@ export function App({ config }) {
   // de estos arrays (nunca vienen en pagina.estructura, que solo trae
   // {id,tipo,hijos} de BLOQUES).
   const [listasPorBloque, setListasPorBloque] = useState({});
+  // pendientesPorBloque: {id: motivo} — ver pendientesDe(). Se recalcula
+  // junto a listasPorBloque, del mismo pagina.contenido.
+  const [pendientesPorBloque, setPendientesPorBloque] = useState({});
   // Panel de Estilo Global (Nivel 3) — configuración del SITIO completo
   // (paleta/tipografía), sin relación con ningún campo/bloque seleccionado
   // — vive detrás de su propio botón en la barra superior, ver
@@ -325,6 +353,7 @@ export function App({ config }) {
       // NUNCA vienen en ese mensaje — solo existen en pagina.contenido, así
       // que cada refresco de estructura también recalcula este mapa.
       setListasPorBloque(extraerListasDe(estructuraNueva, pagina.contenido || {}));
+      setPendientesPorBloque(pendientesDe(pagina.contenido || {}));
     } catch {
       // Silencioso: un fallo acá solo deja el árbol del panel desactualizado
       // un momento, no bloquea ninguna otra operación del editor — el
@@ -1029,7 +1058,7 @@ export function App({ config }) {
             nodo.esItem: un bloque real sigue el camino ya construido en
             el paso 2, un item de lista usa su propio mensaje. */}
         <PanelEstructura
-          estructura={conNombres(estructura, catalogoBloques, listasPorBloque)}
+          estructura={conNombres(estructura, catalogoBloques, listasPorBloque, pendientesPorBloque)}
           seleccionado={drawerEstilo?.nivel === "bloque" ? drawerEstilo.campo : null}
           onSeleccionar={(nodo) => (nodo.esItem ? undefined : seleccionarDesdeEstructura(nodo))}
           onMover={(id, posicion, nodo) =>

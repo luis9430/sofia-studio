@@ -16,6 +16,45 @@ import { useState } from "preact/hooks";
  * ninguna otra pieza del editor hace hoy; para una posición puntual, las
  * líneas "+" entre bloques siguen siendo el camino, sin cambios).
  */
+// Ícono por tipo de bloque. Un glifo, no un SVG: el árbol necesita una
+// pista de forma rápida de leer, no un dibujo detallado — y así no hay
+// que cargar el set de íconos en el panel.
+//
+// Los tipos no listados caen a "▪": es deliberado que un Componente
+// nuevo no obligue a tocar este mapa para funcionar.
+const ICONOS_TIPO = {
+  hero: "▤",
+  cta: "◈",
+  franja_beneficios: "▦",
+  testimonios: "❞",
+  faq: "?",
+  texto_libre: "¶",
+  rich_text: "¶",
+  heading: "H",
+  container: "▣",
+  surface: "▣",
+  image: "▢",
+  video: "▶",
+  embed: "▶",
+  button: "▭",
+  icon_button: "▭",
+  link: "↗",
+  icon: "★",
+  avatar: "◍",
+  badge: "◉",
+  card: "▤",
+  callout: "!",
+  list: "☰",
+  nav: "☰",
+  breadcrumb: "›",
+  stat: "#",
+  progress: "▬",
+  rating: "★",
+  divider: "—",
+  spacer: "⇕",
+  aspect_ratio: "▢",
+};
+
 function CatalogoAgregar({ catalogo, onAgregar }) {
   if (!catalogo.length) {
     return <p className="sofia-zona-estructura__vacio">Cargando catálogo…</p>;
@@ -116,7 +155,7 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
     setArrastrando(null);
   }
 
-  function renderNodo(nodo, padreId, indice, profundidad) {
+  function renderNodo(nodo, padreId, indice) {
     const tieneHijos = nodo.hijos && nodo.hijos.length > 0;
     const estaSeleccionado = seleccionado === nodo.id;
     const estaArrastrando = arrastrando?.nodo.id === nodo.id;
@@ -134,7 +173,6 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
           ]
             .filter(Boolean)
             .join(" ")}
-          style={{ paddingLeft: `${12 + profundidad * 16}px` }}
           draggable
           onDragStart={(evento) => alEmpezarArrastre(evento, nodo, padreId)}
           onDragOver={(evento) => alPasarPorEncima(evento, nodo, padreId)}
@@ -149,11 +187,27 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
           <span className="sofia-estructura-nodo__handle" title="Arrastrar para reordenar">
             ⠿
           </span>
+          {!nodo.esItem && (
+            <span className="sofia-estructura-nodo__icono" aria-hidden="true">
+              {ICONOS_TIPO[nodo.tipo] || "▪"}
+            </span>
+          )}
           <span className="sofia-estructura-nodo__etiqueta">{nodo.nombre || nodo.tipo}</span>
+          {nodo.pendiente && (
+            <span className="sofia-estructura-nodo__pendiente" title={nodo.pendiente} aria-label={nodo.pendiente}>
+              ●
+            </span>
+          )}
+          {tieneHijos && !nodo.esItem && (
+            <span className="sofia-estructura-nodo__cuenta">{nodo.hijos.length}</span>
+          )}
         </div>
         {tieneHijos && (
+          // Un solo wrapper por nivel: da la sangría Y la línea de
+          // jerarquía. Antes la sangría se calculaba inline por nodo,
+          // lo que dejaba la línea sin nada con qué alinearse.
           <div className="sofia-estructura-nodo__hijos">
-            {nodo.hijos.map((hijo, i) => renderNodo(hijo, nodo.id, i, profundidad + 1))}
+            {nodo.hijos.map((hijo, i) => renderNodo(hijo, nodo.id, i))}
           </div>
         )}
       </div>
@@ -181,7 +235,7 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
       <div className="sofia-zona-estructura__lista">
         {tab === "arbol" &&
           (estructura && estructura.length ? (
-            estructura.map((nodo, indice) => renderNodo(nodo, null, indice, 0))
+            estructura.map((nodo, indice) => renderNodo(nodo, null, indice))
           ) : (
             <p className="sofia-zona-estructura__vacio">Sin bloques todavía</p>
           ))}
