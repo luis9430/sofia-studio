@@ -47,6 +47,8 @@ require_once __DIR__ . '/inc/componentes/class-rating.php';
 require_once __DIR__ . '/inc/componentes/class-tabs.php';
 require_once __DIR__ . '/inc/componentes/class-accordion.php';
 require_once __DIR__ . '/inc/componentes/class-modal.php';
+require_once __DIR__ . '/inc/componentes/class-dropdown.php';
+require_once __DIR__ . '/inc/componentes/class-stepper.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en

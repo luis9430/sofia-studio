@@ -122,10 +122,39 @@
 		});
 	}
 
+	/**
+	 * Dropdown: un menú que se despliega.
+	 *
+	 * Otra vez <details>/<summary>: abre y cierra sin JS, con su
+	 * accesibilidad y su teclado ya resueltos. Lo único que el HTML no da
+	 * es cerrarlo al clickear afuera, que es lo que un menú necesita para
+	 * no quedar abierto mientras se navega el resto de la página.
+	 *
+	 * Un solo listener en el documento, no uno por menú: el patrón
+	 * "clickeaste fuera de mí" se resuelve mirando dónde cayó el click,
+	 * no escuchando a cada elemento.
+	 */
+	function activarDropdown(raiz) {
+		if (raiz !== document) return;
+		document.addEventListener("click", function (evento) {
+			document.querySelectorAll("[data-sofia-dropdown][open]").forEach(function (menu) {
+				if (!menu.contains(evento.target)) menu.open = false;
+			});
+		});
+		// Escape cierra el menú enfocado, igual que haría un <dialog>.
+		document.addEventListener("keydown", function (evento) {
+			if (evento.key !== "Escape") return;
+			document.querySelectorAll("[data-sofia-dropdown][open]").forEach(function (menu) {
+				menu.open = false;
+			});
+		});
+	}
+
 	function activarTodo(raiz) {
 		activarTabs(raiz);
 		activarAccordion(raiz);
 		activarModal(raiz);
+		activarDropdown(raiz);
 	}
 
 	if (MODO_EDITOR) return;

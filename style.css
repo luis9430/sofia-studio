@@ -1072,3 +1072,183 @@ h1, h2, h3, h4, h5, h6 {
 	font: inherit;
 	cursor: pointer;
 }
+
+/* Dropdown — <details>/<summary>: abre y cierra sin JS. El menú es
+   absoluto para que desplegarlo no empuje el contenido de abajo; el
+   contenedor es relative y z-index lo deja por encima de lo que sigue.
+   En el editor el <details> se renderiza con "open" (ver render()), así
+   que el menú se ve y se puede editar sin necesidad del script. */
+.sofia-dropdown__caja {
+	position: relative;
+	display: inline-block;
+}
+
+.sofia-dropdown__boton {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 18px;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-fondo);
+	color: inherit;
+	cursor: pointer;
+	list-style: none;
+}
+
+.sofia-dropdown__boton::-webkit-details-marker {
+	display: none;
+}
+
+.sofia-dropdown__boton::after {
+	content: "";
+	width: 7px;
+	height: 7px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: translateY(-2px) rotate(45deg);
+}
+
+.sofia-dropdown__caja[open] > .sofia-dropdown__boton::after {
+	transform: translateY(1px) rotate(-135deg);
+}
+
+.sofia-dropdown__menu {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 20;
+	min-width: 100%;
+	width: max-content;
+	max-width: 280px;
+	padding: 6px;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-fondo);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+	text-align: left;
+}
+
+.sofia-dropdown--derecha .sofia-dropdown__menu {
+	left: auto;
+	right: 0;
+}
+
+.sofia-dropdown__enlace {
+	display: block;
+	padding: 8px 12px;
+	border-radius: calc(var(--sofia-radio-borde) / 2);
+	color: inherit;
+	text-decoration: none;
+}
+
+.sofia-dropdown__enlace:hover,
+.sofia-dropdown__enlace:focus-visible {
+	background: var(--sofia-color-superficie, rgba(0, 0, 0, 0.05));
+}
+
+/* Stepper — sin JS: cuál es el paso actual es contenido, no interacción.
+   Los tres estados (hecho/actual/pendiente) los pone PHP como clase. */
+.sofia-stepper__lista {
+	display: flex;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	gap: 0;
+}
+
+.sofia-stepper__item {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	flex: 1;
+	padding-right: 16px;
+}
+
+/* La línea que une un paso con el siguiente sale del ::before del item,
+   no de un elemento en el HTML: es decoración, y agregarla al markup la
+   metería adentro de [data-sofia-item], donde el editor la leería como
+   si fuera un campo. El :last-child no la dibuja. */
+.sofia-stepper__item::before {
+	content: "";
+	position: absolute;
+	top: 15px;
+	left: 32px;
+	right: 0;
+	height: 2px;
+	background: var(--sofia-color-borde);
+}
+
+.sofia-stepper__item:last-child::before {
+	display: none;
+}
+
+.sofia-stepper__item--hecho::before {
+	background: var(--sofia-color-primario);
+}
+
+.sofia-stepper__numero {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 32px;
+	height: 32px;
+	border: 2px solid var(--sofia-color-borde);
+	border-radius: 50%;
+	background: var(--sofia-color-fondo);
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+.sofia-stepper__item--hecho .sofia-stepper__numero,
+.sofia-stepper__item--actual .sofia-stepper__numero {
+	border-color: var(--sofia-color-primario);
+}
+
+.sofia-stepper__item--actual .sofia-stepper__numero {
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-stepper__cuerpo {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-bottom: 8px;
+}
+
+.sofia-stepper__titulo {
+	font-weight: 600;
+}
+
+.sofia-stepper__texto {
+	font-size: 0.9rem;
+	opacity: 0.75;
+}
+
+.sofia-stepper__item--pendiente .sofia-stepper__titulo {
+	opacity: 0.6;
+}
+
+/* Vertical: la línea pasa de horizontal a vertical, y el item deja de
+   repartirse el ancho con sus hermanos. */
+.sofia-stepper--vertical .sofia-stepper__lista {
+	flex-direction: column;
+}
+
+.sofia-stepper--vertical .sofia-stepper__item {
+	flex: 0 0 auto;
+	padding-right: 0;
+	padding-bottom: 20px;
+}
+
+.sofia-stepper--vertical .sofia-stepper__item::before {
+	top: 36px;
+	bottom: -4px;
+	left: 15px;
+	right: auto;
+	width: 2px;
+	height: auto;
+}
