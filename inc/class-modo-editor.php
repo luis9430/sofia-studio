@@ -296,6 +296,33 @@ class Sofia_Modo_Editor {
 				outline: 1px dashed #d97a4d;
 			}
 
+			/* Campo editable VACÍO: sin contenido, el elemento colapsa a
+			   cero y deja de tener área clickeable — el texto queda
+			   inalcanzable para siempre, porque para escribir dentro
+			   primero hay que poder seleccionarlo. Pasó de verdad con una
+			   pestaña cuyo título se borró.
+			   :empty matchea solo cuando no hay NADA adentro (ni un
+			   espacio), así que no molesta a un campo con contenido real.
+			   El texto de ayuda es del editor, nunca del sitio: este CSS
+			   solo se inyecta en modo editor. */
+			[data-sofia-campo]:empty {
+				display: inline-block;
+				min-width: 90px;
+				min-height: 1.2em;
+				outline: 1px dashed #d97a4d;
+				outline-offset: 2px;
+			}
+			[data-sofia-campo]:empty::before {
+				content: "Escribí acá";
+				color: #a39c92;
+				font-size: 0.85em;
+				font-style: italic;
+			}
+			/* Al enfocarlo para escribir, la pista sobra. */
+			[data-sofia-campo]:empty:focus::before {
+				content: "";
+			}
+
 			/* Modal en el editor: su contenido NO va dentro del <dialog>
 			   (un dialog cerrado es invisible e inalcanzable, así que su
 			   texto no se podría editar nunca). Se muestra como una caja

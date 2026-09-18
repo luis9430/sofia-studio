@@ -101,28 +101,40 @@ class Sofia_Componente_Tabs extends Sofia_Componente {
 			$this->clase_de_variante( self::CLASES_ESTILO, 'estilo' ),
 		) );
 
-		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . ' data-sofia-tabs>';
+		$html = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . ' data-sofia-tabs>';
 
-		$html .= '<div class="sofia-tabs__lista" role="tablist" ' . $this->atributo_lista( 'items' ) . '>';
+		// Pestaña y panel van juntos DENTRO del mismo [data-sofia-item].
+		//
+		// Es un requisito del mecanismo de listas, no una preferencia:
+		// notificarListaActualizada() (editor-iframe.js) reconstruye cada
+		// item leyendo los [data-sofia-campo] que encuentra ADENTRO de él.
+		// La primera versión de este render ponía los títulos en una lista
+		// y los paneles en otra, como hermanos — así que al editar
+		// cualquier pestaña el array se reconstruía sin los textos de los
+		// paneles y se perdían. Pasó de verdad: quedaron items con
+		// {"titulo": ""} y sin campo "texto".
+		//
+		// El layout (pestañas arriba en fila, paneles abajo) lo resuelve
+		// el CSS con grid, no el orden del HTML.
+		$html .= '<div class="sofia-tabs__grupo" role="tablist" ' . $this->atributo_lista( 'items' ) . '>';
 		foreach ( array_values( $items ) as $indice => $item ) {
 			$titulo = $this->texto_enriquecido( (string) ( $item['titulo'] ?? '' ) );
-			$html  .= '<button type="button" class="sofia-tabs__pestana" role="tab" data-sofia-tab'
+			$texto  = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
+
+			$html .= '<div class="sofia-tabs__item" ' . $this->atributo_item( $indice ) . '>';
+			$html .= '<button type="button" class="sofia-tabs__pestana" role="tab" data-sofia-tab'
 				. ' id="' . esc_attr( $this->id ) . '-tab-' . (int) $indice . '"'
 				. ' aria-controls="' . esc_attr( $this->id ) . '-panel-' . (int) $indice . '"'
 				. ' aria-selected="' . ( 0 === $indice ? 'true' : 'false' ) . '" '
-				. $this->atributo_item( $indice ) . ' '
 				. $this->atributo_editable( "items.{$indice}.titulo" ) . '>' . $titulo . '</button>';
-		}
-		$html .= '</div>';
-
-		foreach ( array_values( $items ) as $indice => $item ) {
-			$texto = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
 			$html .= '<div class="sofia-tabs__panel" role="tabpanel" data-sofia-panel'
 				. ' id="' . esc_attr( $this->id ) . '-panel-' . (int) $indice . '"'
 				. ' aria-labelledby="' . esc_attr( $this->id ) . '-tab-' . (int) $indice . '" '
 				. $this->atributo_editable( "items.{$indice}.texto" ) . ' '
 				. $this->atributo_estilo( "items.{$indice}.texto" ) . '>' . $texto . '</div>';
+			$html .= '</div>';
 		}
+		$html .= '</div>';
 
 		$html .= $this->boton_agregar_item( 'items' );
 		$html .= '</section>';

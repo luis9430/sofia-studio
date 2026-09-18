@@ -923,13 +923,37 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Tabs — sin JS, todas las pestañas y paneles quedan visibles (el script
    oculta los no activos al cargar). Eso mantiene el contenido indexable y
-   editable en el canvas, donde el script no corre. */
-.sofia-tabs__lista {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
+   editable en el canvas, donde el script no corre.
+
+   El HTML agrupa cada pestaña con SU panel dentro del mismo item (lo exige
+   el mecanismo de listas del editor, ver el comentario en
+   Sofia_Componente_Tabs::render), pero visualmente las pestañas van todas
+   juntas arriba y los paneles abajo. Eso lo resuelve grid: dos filas
+   declaradas en el contenedor, y cada hijo colocado en la que le toca sin
+   importar su orden en el HTML. */
+.sofia-tabs__grupo {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(0, max-content));
+	grid-template-rows: auto auto;
+	gap: 0 4px;
+	align-items: end;
+}
+
+.sofia-tabs__item {
+	display: contents;
+}
+
+.sofia-tabs__pestana {
+	grid-row: 1;
 	border-bottom: 1px solid var(--sofia-color-borde);
-	margin-bottom: var(--sofia-espaciado-base);
+}
+
+/* El panel ocupa el ancho completo de la segunda fila, debajo de todas
+   las pestañas. */
+.sofia-tabs__panel {
+	grid-row: 2;
+	grid-column: 1 / -1;
+	padding-top: var(--sofia-espaciado-base);
 }
 
 .sofia-tabs__pestana {
@@ -949,9 +973,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Píldoras: la pestaña activa se rellena en vez de subrayarse. */
-.sofia-tabs--pildoras .sofia-tabs__lista {
+.sofia-tabs--pildoras .sofia-tabs__grupo {
+	gap: 0 6px;
+}
+
+.sofia-tabs--pildoras .sofia-tabs__pestana {
 	border-bottom: 0;
-	gap: 6px;
 }
 
 .sofia-tabs--pildoras .sofia-tabs__pestana {
