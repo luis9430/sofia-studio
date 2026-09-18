@@ -932,35 +932,25 @@ h1, h2, h3, h4, h5, h6 {
    declaradas en el contenedor, y cada hijo colocado en la que le toca sin
    importar su orden en el HTML. */
 .sofia-tabs__grupo {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(0, max-content));
-	grid-template-rows: auto auto;
+	display: flex;
+	flex-wrap: wrap;
 	gap: 0 4px;
-	align-items: end;
 }
 
+/* Cada item aporta su pestaña a la fila de arriba y su panel a la franja
+   de abajo. El orden del HTML los agrupa por item (lo exige el mecanismo
+   de listas del editor, ver Sofia_Componente_Tabs::render), así que el
+   reparto visual lo hace `order`: las pestañas van todas antes que
+   cualquier panel, sin importar en qué item estén. */
 .sofia-tabs__item {
 	display: contents;
 }
 
 .sofia-tabs__pestana {
-	grid-row: 1;
-	border-bottom: 1px solid var(--sofia-color-borde);
-}
-
-/* El panel ocupa el ancho completo de la segunda fila, debajo de todas
-   las pestañas. */
-.sofia-tabs__panel {
-	grid-row: 2;
-	grid-column: 1 / -1;
-	padding-top: var(--sofia-espaciado-base);
-}
-
-.sofia-tabs__pestana {
+	order: 1;
 	padding: 10px 16px;
 	border: 0;
 	border-bottom: 2px solid transparent;
-	margin-bottom: -1px;
 	background: none;
 	color: var(--sofia-color-texto-suave);
 	font: inherit;
@@ -972,19 +962,24 @@ h1, h2, h3, h4, h5, h6 {
 	border-bottom-color: var(--sofia-color-primario);
 }
 
-/* Píldoras: la pestaña activa se rellena en vez de subrayarse. */
+/* Los paneles ocupan la fila siguiente, a todo el ancho. El separador va
+   acá y no en la fila de pestañas porque flex-wrap no crea un elemento
+   sobre el que dibujarlo. */
+.sofia-tabs__panel {
+	order: 2;
+	flex: 1 0 100%;
+	padding-top: var(--sofia-espaciado-base);
+	border-top: 1px solid var(--sofia-color-borde);
+	margin-top: -1px;
+}
+
 .sofia-tabs--pildoras .sofia-tabs__grupo {
 	gap: 0 6px;
 }
 
 .sofia-tabs--pildoras .sofia-tabs__pestana {
-	border-bottom: 0;
-}
-
-.sofia-tabs--pildoras .sofia-tabs__pestana {
 	border-radius: 999px;
 	border-bottom: 0;
-	margin-bottom: 0;
 }
 
 .sofia-tabs--pildoras .sofia-tabs__pestana[aria-selected="true"] {

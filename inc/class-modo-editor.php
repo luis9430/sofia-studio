@@ -296,6 +296,22 @@ class Sofia_Modo_Editor {
 				outline: 1px dashed #d97a4d;
 			}
 
+			/* Tabs en el editor: el script que oculta los paneles no
+			   activos no corre acá, así que se ven TODOS a la vez — es lo
+			   correcto (un panel oculto no se podría editar), pero sin una
+			   pista visual no se entiende de qué pestaña es cada uno.
+			   La pestaña activa se marca, y cada panel queda indentado
+			   bajo su grupo. */
+			.sofia-tabs__panel {
+				border-left: 2px solid #d97a4d33;
+				padding-left: 12px;
+				margin-bottom: 8px;
+			}
+			.sofia-tabs__pestana {
+				outline: 1px dashed #d97a4d55;
+				outline-offset: -1px;
+			}
+
 			/* Campo editable VACÍO: sin contenido, el elemento colapsa a
 			   cero y deja de tener área clickeable — el texto queda
 			   inalcanzable para siempre, porque para escribir dentro
