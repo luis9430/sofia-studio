@@ -301,6 +301,83 @@ if ( $def ) {
 	afirmar( 'el schema declara la lista', isset( $schema['items']['campos']['titulo'] ) );
 }
 
+echo "\n--- Registro en el factory ---\n";
+
+// El factory necesita los Componentes fijos y un doble del cliente de
+// GoPress. Se cargan ACÁ y no arriba porque las pruebas anteriores no
+// los necesitan.
+if ( ! class_exists( 'Sofia_Cliente_GoPress' ) ) {
+	/**
+	 * Doble del cliente: devuelve lo que se le ponga en $respuesta, sin
+	 * tocar la red. Valida igual que el real, para que la prueba recorra
+	 * el mismo camino que producción.
+	 */
+	class Sofia_Cliente_GoPress {
+		/** @var array<int,array<string,mixed>> */
+		public static array $respuesta = array();
+
+		/** @return array<string,array<string,mixed>> */
+		public static function obtener_componentes_generados(): array {
+			$salida = array();
+			foreach ( self::$respuesta as $fila ) {
+				$avisos     = array();
+				$definicion = Sofia_Definicion_Generada::validar( $fila, $avisos );
+				if ( null !== $definicion ) {
+					$salida[ $definicion['tipo'] ] = $definicion;
+				}
+			}
+			return $salida;
+		}
+	}
+}
+
+foreach ( glob( dirname( __DIR__ ) . '/inc/componentes/*.php' ) as $archivo ) {
+	require_once $archivo;
+}
+require_once dirname( __DIR__ ) . '/inc/class-componente-factory.php';
+
+$hero = json_decode( file_get_contents( dirname( __DIR__ ) . '/inc/generados/hero-diagonal.json' ), true );
+
+// Sin componentes generados —el caso de casi todos los sitios— el
+// catálogo tiene que quedar exactamente como estaba.
+Sofia_Cliente_GoPress::$respuesta = array();
+$fijos = count( Sofia_Componente_Factory::catalogo() );
+afirmar( 'sin generados, el catálogo son solo los fijos', $fijos > 0, "$fijos tipos" );
+afirmar( 'un tipo inexistente sigue devolviendo null', null === Sofia_Componente_Factory::crear( 'no_existe_nada', 'x' ) );
+
+// Con uno cargado, aparece en el catálogo y se puede instanciar.
+Sofia_Cliente_GoPress::$respuesta = array( $hero );
+afirmar( 'un generado se suma al catálogo', count( Sofia_Componente_Factory::catalogo() ) === $fijos + 1 );
+
+$generado = Sofia_Componente_Factory::crear( 'hero_diagonal', 'blq1' );
+afirmar( 'el factory lo instancia', $generado instanceof Sofia_Componente_Generado );
+afirmar( 'con su nombre propio', $generado && 'Hero diagonal' === $generado->nombre() );
+afirmar( 'y renderiza', $generado && '' !== trim( $generado->render() ) );
+
+// schema_contenido_de() llama al método ESTÁTICO de la clase, que en un
+// generado devolvería vacío — tiene que resolverlo por instancia.
+$schema = Sofia_Componente_Factory::schema_contenido_de( 'hero_diagonal' );
+afirmar( 'schema_contenido_de resuelve el schema por instancia', is_array( $schema ) && isset( $schema['titulo'] ) );
+
+// LA garantía más importante del registro dinámico: una descripción
+// guardada en GoPress NO puede reemplazar un Componente del tema. Si
+// pudiera, cualquiera con acceso a esa tabla redefiniría el hero de
+// todos los sitios.
+$impostor         = $hero;
+$impostor['tipo'] = 'hero';
+Sofia_Cliente_GoPress::$respuesta = array( $impostor );
+$resuelto = Sofia_Componente_Factory::crear( 'hero', 'x' );
+afirmar(
+	'un generado no puede suplantar un tipo fijo',
+	$resuelto instanceof Sofia_Componente_Hero,
+	$resuelto ? get_class( $resuelto ) : 'null'
+);
+
+// Una fila corrupta se ignora sin arrastrar al resto del catálogo.
+Sofia_Cliente_GoPress::$respuesta = array( array( 'tipo' => 'roto_sin_campos' ) );
+afirmar( 'una definición corrupta no se instancia', null === Sofia_Componente_Factory::crear( 'roto_sin_campos', 'x' ) );
+afirmar( 'y no rompe el catálogo', count( Sofia_Componente_Factory::catalogo() ) === $fijos );
+
 printf( "\n%d pasadas, %d falladas\n\n", $pasadas, $falladas );
 exit( $falladas > 0 ? 1 : 0 );
 

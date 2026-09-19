@@ -105,6 +105,17 @@ class Sofia_Componente_Factory {
 			case 'carousel':
 				return new Sofia_Componente_Carousel( $tipo, $id, $props, $hijos );
 			default:
+				// Antes de darlo por desconocido: puede ser un Componente
+				// GENERADO, cuya forma vive en una descripción de GoPress
+				// en vez de en una clase de acá (ver
+				// Sofia_Componente_Generado). Se consulta último para que
+				// los 39 fijos siempre ganen — una descripción generada
+				// nunca puede suplantar un tipo del tema.
+				$generado = self::crear_generado( $tipo, $id, $props, $hijos );
+				if ( null !== $generado ) {
+					return $generado;
+				}
+
 				// Un tipo desconocido (plantilla más nueva que el tema
 				// instalado, o dato corrupto) no debe tumbar el render de
 				// TODA la página — se omite ese bloque en silencio, mismo
@@ -112,6 +123,50 @@ class Sofia_Componente_Factory {
 				// de un plugin desactivado.
 				return null;
 		}
+	}
+
+	/**
+	 * crear_generado(): instancia un Componente generado si existe uno de
+	 * ese tipo en el catálogo del sitio.
+	 *
+	 * La secuencia construir → definir() la encapsula acá: el constructor
+	 * de Sofia_Componente es `final` (todos los Componentes se construyen
+	 * igual, que es una garantía que vale la pena mantener), así que la
+	 * definición entra por un método aparte. Nadie fuera de este archivo
+	 * necesita saberlo.
+	 *
+	 * @param array<string,mixed> $props
+	 * @param Sofia_Componente[]  $hijos
+	 */
+	private static function crear_generado( string $tipo, string $id, array $props, array $hijos ): ?Sofia_Componente_Generado {
+		$definiciones = self::definiciones_generadas();
+		if ( ! isset( $definiciones[ $tipo ] ) ) {
+			return null;
+		}
+		$componente = new Sofia_Componente_Generado( $tipo, $id, $props, $hijos );
+		$componente->definir( $definiciones[ $tipo ] );
+		return $componente;
+	}
+
+	/**
+	 * definiciones_generadas(): el catálogo de Componentes generados de
+	 * ESTE sitio, tipo => definición ya validada.
+	 *
+	 * Sale de GoPress, que es la fuente de verdad de todo el contenido de
+	 * Sofia Studio — nunca de un archivo del tema ni de una opción de
+	 * WordPress, mismo criterio que Sofia_Estilo_Global.
+	 *
+	 * Si GoPress no está configurado o no responde, devuelve vacío y el
+	 * catálogo queda con los 39 fijos: un backend caído degrada el sitio,
+	 * no lo tumba.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private static function definiciones_generadas(): array {
+		if ( ! class_exists( 'Sofia_Cliente_GoPress' ) || ! class_exists( 'Sofia_Definicion_Generada' ) ) {
+			return array();
+		}
+		return Sofia_Cliente_GoPress::obtener_componentes_generados();
 	}
 
 	/**
@@ -175,6 +230,20 @@ class Sofia_Componente_Factory {
 				'nombre' => $componente->nombre(),
 			);
 		}
+
+		// Los generados van DESPUES de los fijos: el panel "+ Agregar
+		// bloque" muestra primero lo que existe en cualquier sitio, y al
+		// final lo propio de este. Un generado que compartiera tipo con
+		// uno fijo ni siquiera llega aca — crear() resuelve los fijos
+		// primero, asi que nunca puede suplantarlo.
+		foreach ( self::definiciones_generadas() as $tipo => $definicion ) {
+			$catalogo[] = array(
+				'tipo'      => $tipo,
+				'nombre'    => $definicion['nombre'],
+				'generado'  => true,
+			);
+		}
+
 		return $catalogo;
 	}
 
@@ -387,6 +456,13 @@ class Sofia_Componente_Factory {
 		if ( null === $componente ) {
 			return null;
 		}
+		// Un Componente generado tiene su schema por INSTANCIA (cada uno
+		// declara campos distintos aunque compartan la clase), asi que no
+		// alcanza con el metodo estatico de la clase.
+		if ( $componente instanceof Sofia_Componente_Generado ) {
+			return $componente->schema_contenido_propio();
+		}
+
 		return $componente::schema_contenido();
 	}
 

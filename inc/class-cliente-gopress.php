@@ -184,6 +184,69 @@ class Sofia_Cliente_GoPress {
 	}
 
 	/**
+	 * obtener_componentes_generados(): los Componentes cuya forma viene de
+	 * una descripción guardada en GoPress, no de una clase PHP del tema
+	 * (ver Sofia_Componente_Generado).
+	 *
+	 * Se cachea en memoria durante la request: el factory la consulta una
+	 * vez por cada bloque generado de la página, y sin caché una página
+	 * con cinco de estos haría cinco requests HTTP idénticos.
+	 *
+	 * Un sitio sin componentes generados —que es el caso normal— devuelve
+	 * un array vacío y no vuelve a pedir nada: el array vacío también se
+	 * cachea, así que no se reintenta en cada bloque.
+	 *
+	 * @return array<string,array<string,mixed>> tipo => definición.
+	 */
+	public static function obtener_componentes_generados(): array {
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
+		}
+		$cache = array();
+
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return $cache;
+		}
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return $cache;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/tema/componentes-generados';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_get( $url, array( 'timeout' => 5 ) );
+		if ( is_wp_error( $respuesta ) || 200 !== wp_remote_retrieve_response_code( $respuesta ) ) {
+			return $cache;
+		}
+
+		$cuerpo = json_decode( wp_remote_retrieve_body( $respuesta ), true );
+		$lista  = is_array( $cuerpo ) ? ( $cuerpo['componentes'] ?? null ) : null;
+		if ( ! is_array( $lista ) ) {
+			return $cache;
+		}
+
+		foreach ( $lista as $fila ) {
+			if ( ! is_array( $fila ) || ! is_array( $fila['definicion'] ?? null ) ) {
+				continue;
+			}
+			// Se REVALIDA acá aunque el tema ya la haya validado antes de
+			// guardarla: el dato viaja por la red y vive en una base de
+			// datos que otras cosas pueden tocar. Validar solo al escribir
+			// deja el render confiando en que nadie alteró la fila.
+			$avisos = array();
+			$definicion = Sofia_Definicion_Generada::validar( $fila['definicion'], $avisos );
+			if ( null === $definicion ) {
+				continue;
+			}
+			$cache[ $definicion['tipo'] ] = $definicion;
+		}
+
+		return $cache;
+	}
+
+	/**
 	 * Guarda el estilo GLOBAL completo del sitio — llamado por el proxy
 	 * REST del editor (panel "Estilo global" en la barra superior, distinto
 	 * del drawer por campo/bloque). Manda a

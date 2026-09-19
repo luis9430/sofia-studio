@@ -346,3 +346,47 @@ class Sofia_Componente_Generado extends Sofia_Componente {
 	 */
 	private const ETIQUETAS_VACIAS = array( 'img', 'br', 'hr' );
 }
+
+/**
+ * Imprime el CSS de los Componentes generados que este sitio tenga.
+ *
+ * Va inline en el <head> y no en un archivo encolado por dos razones: el
+ * CSS es distinto por sitio (no hay un archivo estático que sirva para
+ * todos), y ya está acotado al bloque por Sofia_CSS_Generado, así que no
+ * puede afectar nada fuera de su propia sección.
+ *
+ * Se imprime SIEMPRE que haya definiciones, aunque la página en curso no
+ * use ninguno de esos bloques. Filtrar por los tipos realmente presentes
+ * exigiría recorrer la estructura de la página antes del <head>, y el
+ * ahorro no lo justifica: son unos pocos kilobytes y el caso normal es
+ * un sitio con cero componentes generados, donde esto no imprime nada.
+ *
+ * Prioridad 20: después de Sofia_Estilo_Global (que corre en la 10 por
+ * defecto), para que el CSS generado pueda usar las custom properties de
+ * la paleta del sitio — si se imprimiera antes, las variables todavía no
+ * estarían definidas.
+ */
+function sofia_imprimir_css_generado(): void {
+	if ( ! class_exists( 'Sofia_Cliente_GoPress' ) ) {
+		return;
+	}
+
+	$css = '';
+	foreach ( Sofia_Cliente_GoPress::obtener_componentes_generados() as $definicion ) {
+		if ( '' !== ( $definicion['css'] ?? '' ) ) {
+			$css .= $definicion['css'] . "\n";
+		}
+	}
+
+	if ( '' === trim( $css ) ) {
+		return;
+	}
+
+	// wp_strip_all_tags como última barrera: el CSS ya pasó por
+	// Sofia_CSS_Generado (que descarta cualquier regla con "</"), pero
+	// esto va DENTRO de un <style> y cerrar esa etiqueta es la única
+	// forma de escapar de acá. Dos defensas para el mismo agujero, a
+	// propósito.
+	echo "<style id=\"sofia-componentes-generados\">\n" . wp_strip_all_tags( $css ) . "</style>\n";
+}
+add_action( 'wp_head', 'sofia_imprimir_css_generado', 20 );

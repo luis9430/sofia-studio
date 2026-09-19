@@ -55,6 +55,20 @@ require_once __DIR__ . '/inc/componentes/class-marquee.php';
 require_once __DIR__ . '/inc/componentes/class-carousel.php';
 
 /**
+ * Componentes GENERADOS: su forma viene de una descripción guardada en
+ * GoPress, no de una clase de inc/componentes/. Ver el comentario largo
+ * de class-componente-generado.php — en resumen, los Componentes fijos
+ * saben maquetar pero no diseñar, y esto es lo que permite que la IA
+ * describa un bloque que el catálogo no sabe dibujar.
+ *
+ * Van DESPUÉS de los fijos porque el factory los consulta último: un
+ * tipo generado nunca puede suplantar uno del tema.
+ */
+require_once __DIR__ . '/inc/class-css-generado.php';
+require_once __DIR__ . '/inc/class-definicion-generada.php';
+require_once __DIR__ . '/inc/class-componente-generado.php';
+
+/**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en
  * dependencias_js() (ej. "gsap") a su script real — agregar una librería
  * nueva es agregar una entrada acá, nunca tocar wp_enqueue_script a mano
