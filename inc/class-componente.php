@@ -228,13 +228,39 @@ abstract class Sofia_Componente {
 			: '';
 		$clases = trim( $clase_base . ' ' . $this->clases_utilitarias_bloque() );
 		return sprintf(
-			'class="%s" data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s" %s %s',
+			'class="%s" data-sofia-bloque-id="%s" data-sofia-bloque-tipo="%s"%s %s %s',
 			esc_attr( $clases ),
 			esc_attr( $this->id ),
 			esc_attr( $this->tipo ),
+			$this->atributo_grilla(),
 			$this->atributo_estilo_bloque(),
 			$oculto
 		);
+	}
+
+	/**
+	 * data-sofia-grilla: marca las secciones que son una GRILLA de items,
+	 * derivándolo de que el bloque declare PERFIL_LISTA.
+	 *
+	 * Existe para que el CSS de los 3 controles de grilla deje de
+	 * enumerar componentes a mano. Antes de esto, la alineación del
+	 * contenido eran seis reglas que nombraban a Franja de beneficios y
+	 * Testimonios una por una:
+	 *
+	 *   .sofia-franja-beneficios.items-left .sofia-franja-beneficios__item,
+	 *   .sofia-testimonios.items-left .sofia-testimonios__item { … }
+	 *
+	 * Con dos componentes se tolera; con cuatro (llegaron Gallery y List)
+	 * son doce selectores que hay que acordarse de ampliar cada vez, y
+	 * olvidarse no rompe nada visible — el control simplemente deja de
+	 * funcionar en el bloque nuevo, en silencio. Es la misma clase de
+	 * desconexión que el plan describe: el perfil ya sabía cuáles son
+	 * grillas, y el CSS no lo consultaba.
+	 *
+	 * Ahora lo consulta: [data-sofia-grilla].items-left > * { … }.
+	 */
+	private function atributo_grilla(): string {
+		return static::claves_estilo_relevantes() === self::PERFIL_LISTA ? ' data-sofia-grilla' : '';
 	}
 
 	/**
@@ -1013,6 +1039,55 @@ abstract class Sofia_Componente {
 	protected function clase_de_variante( array $mapa, string $clave = 'variante' ): string {
 		$valor = (string) ( $this->estilo_bloque()[ $clave ] ?? '' );
 		return $mapa[ $valor ] ?? '';
+	}
+
+	/**
+	 * SCHEMA_TONO: la prop de apariencia "tono" — de qué color se pinta
+	 * un bloque que tiene UN color de marca y nada más.
+	 *
+	 * Es una constante compartida y no un select copiado en cada
+	 * Componente porque los roles semánticos son del SITIO (Nivel 3, ver
+	 * Sofia_Estilo_Global), no de cada bloque: si mañana aparece un rol
+	 * "aviso", el lugar donde agregarlo tiene que ser uno solo.
+	 *
+	 * El valor vacío es "Primario" a propósito, no una opción "sin tono":
+	 * estos bloques SIEMPRE tienen color, y el default es el de marca. Así
+	 * ninguna instancia ya guardada cambia de aspecto al aparecer la prop.
+	 *
+	 * Por qué existe: Progress, Rating, IconButton y Link salían los
+	 * cuatro fijos en --sofia-color-primario, sin forma de marcar un
+	 * progreso en rojo o un rating destacado. Un catálogo donde cada
+	 * bloque tiene exactamente un aspecto posible es también la razón por
+	 * la que el generador por IA "hace siempre lo mismo" — no le estamos
+	 * dando de dónde elegir.
+	 */
+	protected const SCHEMA_TONO = array(
+		'tipo'     => 'select',
+		'etiqueta' => 'Tono',
+		'opciones' => array(
+			array( 'valor' => '', 'etiqueta' => 'Primario' ),
+			array( 'valor' => 'secundario', 'etiqueta' => 'Secundario' ),
+			array( 'valor' => 'acento', 'etiqueta' => 'Acento' ),
+			array( 'valor' => 'exito', 'etiqueta' => 'Éxito' ),
+			array( 'valor' => 'error', 'etiqueta' => 'Error' ),
+		),
+	);
+
+	/**
+	 * clase_de_tono(): la clase modificadora del tono elegido.
+	 *
+	 * Devuelve una clase GENÉRICA (sofia-tono--exito), no una por
+	 * componente (sofia-progress--exito): los cinco tonos son los mismos
+	 * en todos lados, así que el CSS los define una vez apoyándose en
+	 * currentColor y cada bloque decide qué pintar con él. Sin esto serían
+	 * cinco reglas por componente, veinte en total, todas iguales salvo el
+	 * prefijo — la misma duplicación que el atributo data-sofia-grilla
+	 * vino a sacar del CSS de las grillas.
+	 */
+	protected function clase_de_tono(): string {
+		$valor = (string) ( $this->estilo_bloque()['tono'] ?? '' );
+		$validos = array( 'secundario', 'acento', 'exito', 'error' );
+		return in_array( $valor, $validos, true ) ? 'sofia-tono--' . $valor : '';
 	}
 
 	/**

@@ -123,37 +123,36 @@ h1, h2, h3, h4, h5, h6 {
      .sofia-*__item (la celda SIGUE ocupando el 100% del alto de su fila,
      igual que siempre; lo que se mueve es el bloque de texto DENTRO de
      esa celda cuando las columnas vecinas son más altas). */
-.sofia-franja-beneficios.items-left .sofia-franja-beneficios__item,
-.sofia-testimonios.items-left .sofia-testimonios__item {
+/* Apuntan al hijo directo de la grilla (> *) en vez de a la clase de item
+   de cada componente, porque cada uno nombra al suyo distinto
+   (__item, __grid, figure…). El selector universal acá es seguro: está
+   acotado a un solo nivel dentro de un contenedor que ya tiene el
+   atributo. */
+[data-sofia-grilla].items-left > * > * {
 	text-align: left;
 }
 
-.sofia-franja-beneficios.items-center .sofia-franja-beneficios__item,
-.sofia-testimonios.items-center .sofia-testimonios__item {
+[data-sofia-grilla].items-center > * > * {
 	text-align: center;
 }
 
-.sofia-franja-beneficios.items-right .sofia-franja-beneficios__item,
-.sofia-testimonios.items-right .sofia-testimonios__item {
+[data-sofia-grilla].items-right > * > * {
 	text-align: right;
 }
 
-.sofia-franja-beneficios.items-top .sofia-franja-beneficios__item,
-.sofia-testimonios.items-top .sofia-testimonios__item {
+[data-sofia-grilla].items-top > * > * {
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
 }
 
-.sofia-franja-beneficios.items-middle .sofia-franja-beneficios__item,
-.sofia-testimonios.items-middle .sofia-testimonios__item {
+[data-sofia-grilla].items-middle > * > * {
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 }
 
-.sofia-franja-beneficios.items-bottom .sofia-franja-beneficios__item,
-.sofia-testimonios.items-bottom .sofia-testimonios__item {
+[data-sofia-grilla].items-bottom > * > * {
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-end;
@@ -649,7 +648,7 @@ h1, h2, h3, h4, h5, h6 {
    diferencia de .sofia-button__enlace) — la diferencia visual real entre
    Link y Button. */
 .sofia-link__enlace {
-	color: var(--sofia-color-primario);
+	color: var(--sofia-tono);
 	text-decoration: underline;
 }
 
@@ -661,7 +660,7 @@ h1, h2, h3, h4, h5, h6 {
 	gap: 8px;
 	padding: 12px 28px;
 	border-radius: var(--sofia-radio-borde);
-	background: var(--sofia-color-primario);
+	background: var(--sofia-tono);
 	color: var(--sofia-color-fondo);
 	text-decoration: none;
 }
@@ -786,14 +785,34 @@ h1, h2, h3, h4, h5, h6 {
 	color: var(--sofia-color-error);
 }
 
-/* List (Fase 4) — lista vertical simple, ícono check + texto en fila. */
+/* List (Fase 4) — lista vertical simple, ícono check + texto en fila.
+
+   Pasó de flex a grid en la Fase F para que el control "columnas" del
+   Nivel 2 (PERFIL_LISTA) haga algo: declaraba el control y el CSS era
+   una columna fija, así que elegir "3 columnas" no tenía ningún efecto.
+   Con una sola columna grid se comporta igual que el flex anterior, así
+   que ninguna lista existente cambia de aspecto.
+
+   Para Nav y Breadcrumb el mismo control se QUITÓ en vez de
+   implementarse: son filas horizontales, donde "columnas" no significa
+   nada. La regla es que declarar PERFIL_LISTA es una promesa de que el
+   bloque respeta sus tres controles. */
 .sofia-list__lista {
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: repeat(var(--sofia-columnas, 1), minmax(0, 1fr));
 	gap: 10px;
+	column-gap: var(--sofia-espaciado-base);
+}
+
+/* Una lista a varias columnas en un teléfono deja renglones de dos
+   palabras; abajo de 600px vuelve a ser una sola. */
+@media (max-width: 600px) {
+	.sofia-list__lista {
+		grid-template-columns: 1fr;
+	}
 }
 
 .sofia-list__item {
@@ -902,7 +921,7 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-progress__barra {
 	height: 100%;
 	border-radius: 999px;
-	background: var(--sofia-color-primario);
+	background: var(--sofia-tono);
 }
 
 /* Rating (Fase 4) — 5 estrellas en fila, las "llenas" (según el valor) con
@@ -917,8 +936,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sofia-rating__estrella--llena {
-	color: var(--sofia-color-primario);
-	fill: var(--sofia-color-primario);
+	color: var(--sofia-tono);
+	fill: var(--sofia-tono);
 }
 
 /* Tabs — sin JS, todas las pestañas y paneles quedan visibles (el script
@@ -1267,8 +1286,28 @@ h1, h2, h3, h4, h5, h6 {
    Lo de acá es solo el recorte y el pie de foto. */
 .sofia-gallery__grilla {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	/* Lee --sofia-columnas, la custom property que el control "columnas"
+	   del Nivel 2 escribe en el style de la <section> — igual que Franja
+	   de beneficios y Testimonios. La primera version usaba auto-fit, que
+	   se ve bien pero ignora el control: el panel ofrecia elegir columnas
+	   y no pasaba nada. Es justo el defecto que el plan describe como "el
+	   sistema sabe la respuesta en un lado y no la consulta en el otro".
+	   minmax con el segundo valor en 1fr evita que 4 columnas aplasten
+	   las fotos en pantallas angostas. */
+	grid-template-columns: repeat(var(--sofia-columnas, 3), minmax(0, 1fr));
 	gap: var(--sofia-espaciado-base);
+}
+
+@media (max-width: 782px) {
+	.sofia-gallery__grilla {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 480px) {
+	.sofia-gallery__grilla {
+		grid-template-columns: 1fr;
+	}
 }
 
 .sofia-gallery__item {
@@ -1584,4 +1623,38 @@ h1, h2, h3, h4, h5, h6 {
 	.sofia-carousel__flecha--siguiente {
 		right: 6px;
 	}
+}
+
+/* ---------------------------------------------------------------------
+   Tono (Fase F) — los cinco roles semánticos del sitio, aplicables a los
+   bloques que tienen UN color y nada más: Progress, Rating, Link e
+   IconButton salían los cuatro fijos en el primario.
+
+   Una sola definición por tono, no una por componente: se redefine
+   --sofia-tono en la <section> y cada bloque usa esa variable en vez de
+   --sofia-color-primario. Veinte reglas (5 tonos x 4 bloques) se vuelven
+   cinco. El fallback al primario mantiene intacto el aspecto de
+   cualquier bloque ya guardado sin la prop.
+   --------------------------------------------------------------------- */
+.sofia-progress,
+.sofia-rating,
+.sofia-link,
+.sofia-icon-button {
+	--sofia-tono: var(--sofia-color-primario);
+}
+
+.sofia-tono--secundario {
+	--sofia-tono: var(--sofia-color-secundario);
+}
+
+.sofia-tono--acento {
+	--sofia-tono: var(--sofia-color-acento);
+}
+
+.sofia-tono--exito {
+	--sofia-tono: var(--sofia-color-exito);
+}
+
+.sofia-tono--error {
+	--sofia-tono: var(--sofia-color-error);
 }

@@ -37,17 +37,29 @@ class Sofia_Componente_List extends Sofia_Componente {
 	}
 
 	/**
-	 * claves_estilo_relevantes(): PERFIL_SECCION, no PERFIL_LISTA — tener
-	 * una lista de items NO alcanza para justificar ese perfil. Las 3
-	 * claves extra de PERFIL_LISTA (columnas/alineacion_contenido/
-	 * alineacion_vertical_contenido) describen una GRILLA de columnas, y su
-	 * CSS existe solo para Franja de beneficios y Testimonios (selectores
-	 * hardcodeados en style.css). Una Lista se apila en vertical, así que
-	 * esos 3 controles aparecían en el drawer sin hacer absolutamente nada
-	 * — exactamente el ruido que los perfiles existen para evitar.
+	 * claves_estilo_relevantes(): PERFIL_LISTA.
+	 *
+	 * Esta clave cambió DOS veces, y el recorrido es la parte que importa.
+	 * Originalmente era PERFIL_LISTA sin que nada lo respaldara: el CSS de
+	 * grilla estaba hardcodeado solo para Franja de beneficios y
+	 * Testimonios, así que los 3 controles aparecían en el panel sin hacer
+	 * absolutamente nada. La Fase A lo bajó a PERFIL_SECCION, que era lo
+	 * correcto MIENTRAS el CSS no existiera: mejor no ofrecer un control
+	 * que ofrecer uno muerto.
+	 *
+	 * La Fase F escribió ese CSS (.sofia-list__lista pasó de flex a grid,
+	 * leyendo --sofia-columnas como ya hacían Franja y Testimonios), así
+	 * que la razón para no tener el perfil desapareció. Una lista larga en
+	 * dos o tres columnas es un pedido real, y ahora el bloque sabe
+	 * dibujarla.
+	 *
+	 * La regla que queda: declarar PERFIL_LISTA es una PROMESA de que el
+	 * bloque respeta sus tres controles. Nav y Breadcrumb siguen en
+	 * PERFIL_SECCION y no por falta de CSS — son filas horizontales, donde
+	 * "columnas" no significa nada.
 	 */
 	public static function claves_estilo_relevantes(): array {
-		return parent::PERFIL_SECCION;
+		return parent::PERFIL_LISTA;
 	}
 
 	public function render(): string {

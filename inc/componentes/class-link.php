@@ -33,6 +33,18 @@ class Sofia_Componente_Link extends Sofia_Componente {
 	}
 
 	/**
+	 * Capa 2 — APARIENCIA: solo "tono".
+	 *
+	 * Antes de la Fase F este bloque no tenía capa de apariencia y salía
+	 * siempre en el color primario. SCHEMA_TONO vive en la clase base
+	 * porque los cinco roles son del SITIO, no de este bloque — ver el
+	 * comentario largo ahí.
+	 */
+	public static function schema_propio(): array {
+		return array( 'tono' => parent::SCHEMA_TONO );
+	}
+
+	/**
 	 * claves_estilo_relevantes(): PERFIL_PRIMITIVA — mismo criterio que
 	 * Button: pieza visual simple, sin caja de sección propia.
 	 */
@@ -44,7 +56,7 @@ class Sofia_Componente_Link extends Sofia_Componente {
 		$texto  = $this->texto_enriquecido( $this->props['texto'] );
 		$enlace = esc_url( $this->props['enlace'] );
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-link' ) . '>';
+		$html  = '<section ' . $this->atributos_seccion( trim( 'sofia-link ' . $this->clase_de_tono() ) ) . '>';
 		$html .= '<a class="sofia-link__enlace" href="' . $enlace . '" ' . $this->atributo_editable( 'texto' ) . ' ' . $this->atributo_estilo( 'texto' ) . '>' . $texto . '</a>';
 		$html .= '</section>';
 		return $html;

@@ -32,6 +32,18 @@ class Sofia_Componente_Rating extends Sofia_Componente {
 	}
 
 	/**
+	 * Capa 2 — APARIENCIA: solo "tono".
+	 *
+	 * Antes de la Fase F este bloque no tenía capa de apariencia y salía
+	 * siempre en el color primario. SCHEMA_TONO vive en la clase base
+	 * porque los cinco roles son del SITIO, no de este bloque — ver el
+	 * comentario largo ahí.
+	 */
+	public static function schema_propio(): array {
+		return array( 'tono' => parent::SCHEMA_TONO );
+	}
+
+	/**
 	 * claves_estilo_relevantes(): PERFIL_PRIMITIVA — mismo criterio que
 	 * Icon: pieza visual simple sin caja de sección propia.
 	 */
@@ -42,7 +54,7 @@ class Sofia_Componente_Rating extends Sofia_Componente {
 	public function render(): string {
 		$valor = $this->valor_acotado( 'valor', 0, self::MAXIMO );
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-rating' ) . '>';
+		$html  = '<section ' . $this->atributos_seccion( trim( 'sofia-rating ' . $this->clase_de_tono() ) ) . '>';
 		for ( $i = 1; $i <= self::MAXIMO; $i++ ) {
 			$clase = ( $i <= $valor ) ? 'sofia-rating__estrella sofia-rating__estrella--llena' : 'sofia-rating__estrella';
 			$html .= $this->svg_icono( 'star', 20, $clase );

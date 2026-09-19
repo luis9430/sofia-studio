@@ -2,14 +2,19 @@
 /**
  * Gallery — una grilla de imágenes.
  *
- * El componente más liviano de la Fase 6: no tiene CSS de grilla propio
- * ni una sola línea de JS. La grilla sale de PERFIL_LISTA (el control
- * "columnas" del Nivel 2 genérico, que emite las utility classes
- * columns-N de Core Framework), que es exactamente la regla 3 del
- * contrato — si CF ya lo resuelve, el tema no lo reescribe.
+ * El componente más liviano de la Fase 6: sin JS y con un CSS mínimo.
+ * La grilla la controla el usuario desde el control "columnas" del Nivel
+ * 2 genérico (PERFIL_LISTA), que escribe --sofia-columnas en el style de
+ * la <section>; el CSS del tema solo la lee, igual que ya hacen Franja de
+ * beneficios y Testimonios.
  *
- * Eso lo separa de Masonry, que sí necesita CSS propio porque
- * column-count no es algo que CF exponga.
+ * La primera versión de este CSS usaba grid-template-columns con
+ * auto-fit, que se ve bien pero IGNORA ese control: el panel ofrecía
+ * elegir columnas y no pasaba nada. Es exactamente el defecto que el plan
+ * describe — "el sistema sabe la respuesta correcta en un lado y no la
+ * consulta en el otro" — y el mismo que dejó 3 controles muertos en List,
+ * Nav y Breadcrumb. Declarar PERFIL_LISTA es una promesa: si el bloque no
+ * la cumple, el control sobra.
  *
  * Lo único que este archivo agrega sobre "una lista de imágenes" es el
  * recorte uniforme: sin aspect-ratio fijo, fotos de proporciones

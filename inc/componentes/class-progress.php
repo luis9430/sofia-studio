@@ -29,6 +29,18 @@ class Sofia_Componente_Progress extends Sofia_Componente {
 	}
 
 	/**
+	 * Capa 2 — APARIENCIA: solo "tono".
+	 *
+	 * Antes de la Fase F este bloque no tenía capa de apariencia y salía
+	 * siempre en el color primario. SCHEMA_TONO vive en la clase base
+	 * porque los cinco roles son del SITIO, no de este bloque — ver el
+	 * comentario largo ahí.
+	 */
+	public static function schema_propio(): array {
+		return array( 'tono' => parent::SCHEMA_TONO );
+	}
+
+	/**
 	 * claves_estilo_relevantes(): PERFIL_PRIMITIVA — pieza simple sin caja
 	 * de sección propia; el color de la barra en sí es fijo (--sofia-color-
 	 * primario), no configurable desde Nivel 2 todavía (mismo límite ya
@@ -42,7 +54,7 @@ class Sofia_Componente_Progress extends Sofia_Componente {
 		$valor    = $this->valor_acotado( 'valor', 0, 100 );
 		$etiqueta = $this->texto_enriquecido( (string) ( $this->props['etiqueta'] ?? '' ) );
 
-		$html  = '<section ' . $this->atributos_seccion( 'sofia-progress' ) . '>';
+		$html  = '<section ' . $this->atributos_seccion( trim( 'sofia-progress ' . $this->clase_de_tono() ) ) . '>';
 		$html .= '<span class="sofia-progress__etiqueta" ' . $this->atributo_editable( 'etiqueta' ) . ' ' . $this->atributo_estilo( 'etiqueta' ) . '>' . $etiqueta . '</span>';
 		$html .= '<div class="sofia-progress__pista" role="progressbar" aria-valuenow="' . $valor . '" aria-valuemin="0" aria-valuemax="100">';
 		$html .= '<div class="sofia-progress__barra" style="width:' . $valor . '%"></div>';
