@@ -1252,3 +1252,336 @@ h1, h2, h3, h4, h5, h6 {
 	width: 2px;
 	height: auto;
 }
+
+/* ---------------------------------------------------------------------
+   Fase 6 — bloques de medios.
+
+   Los cuatro se resuelven con CSS que el navegador ya trae: grid,
+   column-count, @keyframes y scroll-snap. Ninguno necesitó una librería,
+   y solo Carousel necesitó JS (para las flechas y los puntos, no para
+   el desplazamiento).
+   --------------------------------------------------------------------- */
+
+/* Gallery — la grilla NO se define acá: sale de las utility classes
+   columns-N de Core Framework, vía el control "columnas" del Nivel 2.
+   Lo de acá es solo el recorte y el pie de foto. */
+.sofia-gallery__grilla {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--sofia-espaciado-base);
+}
+
+.sofia-gallery__item {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.sofia-gallery__imagen {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: var(--sofia-radio-borde);
+}
+
+/* Las tres proporciones recortan con object-fit. "libre" no tiene regla
+   porque es la ausencia de recorte: la imagen pasa con su alto natural. */
+.sofia-gallery--cuadrada .sofia-gallery__imagen {
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+}
+
+.sofia-gallery--apaisada .sofia-gallery__imagen {
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+}
+
+.sofia-gallery--panoramica .sofia-gallery__imagen {
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+}
+
+/* min-height para que un pie vacío siga siendo clickeable en el editor —
+   ver el comentario en render() de class-gallery.php. */
+.sofia-gallery__pie {
+	min-height: 1.2em;
+	font-size: 0.9rem;
+	opacity: 0.75;
+}
+
+/* Masonry — column-count. El item lleva break-inside:avoid porque sin eso
+   el navegador parte una pieza al medio entre dos columnas. */
+.sofia-masonry__muro {
+	column-count: 3;
+	column-gap: var(--sofia-espaciado-base);
+}
+
+.sofia-masonry--2 .sofia-masonry__muro {
+	column-count: 2;
+}
+
+.sofia-masonry--4 .sofia-masonry__muro {
+	column-count: 4;
+}
+
+.sofia-masonry__item {
+	break-inside: avoid;
+	/* margin-bottom y no gap: gap no aplica entre elementos de una
+	   columna CSS, solo entre las columnas mismas. */
+	margin-bottom: var(--sofia-espaciado-base);
+	display: flow-root;
+}
+
+.sofia-masonry__imagen {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: var(--sofia-radio-borde);
+}
+
+.sofia-masonry__texto {
+	min-height: 1.2em;
+	padding-top: 6px;
+}
+
+@media (max-width: 782px) {
+	.sofia-masonry__muro,
+	.sofia-masonry--4 .sofia-masonry__muro {
+		column-count: 2;
+	}
+}
+
+@media (max-width: 480px) {
+	.sofia-masonry__muro,
+	.sofia-masonry--2 .sofia-masonry__muro,
+	.sofia-masonry--4 .sofia-masonry__muro {
+		column-count: 1;
+	}
+}
+
+/* Marquee — el bucle sin costura: la pista lleva dos copias del grupo y
+   la animación corre hasta -50%, así que al reiniciar la segunda copia
+   está exactamente donde arrancó la primera. */
+.sofia-marquee {
+	overflow: hidden;
+}
+
+.sofia-marquee__pista {
+	display: flex;
+	width: max-content;
+	animation: sofia-marquee-desplazar 30s linear infinite;
+}
+
+.sofia-marquee__grupo {
+	display: flex;
+	align-items: center;
+	gap: var(--sofia-espaciado-base);
+	padding-right: var(--sofia-espaciado-base);
+}
+
+.sofia-marquee__item {
+	white-space: nowrap;
+}
+
+.sofia-marquee--lenta .sofia-marquee__pista {
+	animation-duration: 50s;
+}
+
+.sofia-marquee--rapida .sofia-marquee__pista {
+	animation-duration: 15s;
+}
+
+.sofia-marquee--derecha .sofia-marquee__pista {
+	animation-direction: reverse;
+}
+
+@keyframes sofia-marquee-desplazar {
+	from { transform: translateX(0); }
+	to { transform: translateX(-50%); }
+}
+
+/* Pausa al pasar el mouse: da tiempo a leer algo que llamó la atención
+   sin tener que perseguirlo. */
+.sofia-marquee__pista:hover {
+	animation-play-state: paused;
+}
+
+/* En el editor la cinta se renderiza quieta — el texto en movimiento no
+   se puede clickear para editarlo. */
+.sofia-marquee--estatico .sofia-marquee__pista {
+	animation: none;
+	width: auto;
+	flex-wrap: wrap;
+}
+
+/* Movimiento perpetuo es exactamente lo que esta preferencia existe para
+   frenar: para parte de los usuarios no es una molestia estética sino un
+   disparador de mareo. El contenido queda legible y quieto. */
+@media (prefers-reduced-motion: reduce) {
+	.sofia-marquee__pista {
+		animation: none;
+		width: auto;
+		flex-wrap: wrap;
+	}
+}
+
+/* Carousel — scroll-snap hace el trabajo: el navegador da el arrastre,
+   la inercia y el imán que encaja cada diapositiva. El JS solo agrega
+   las flechas y los puntos. */
+.sofia-carousel {
+	position: relative;
+}
+
+.sofia-carousel__pista {
+	display: flex;
+	gap: var(--sofia-espaciado-base);
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scroll-behavior: smooth;
+	/* La barra se oculta porque ya hay flechas y puntos; el scroll con
+	   el dedo y con el teclado sigue funcionando igual. */
+	scrollbar-width: none;
+}
+
+.sofia-carousel__pista::-webkit-scrollbar {
+	display: none;
+}
+
+.sofia-carousel__slide {
+	flex: 0 0 100%;
+	scroll-snap-align: start;
+}
+
+/* Las fracciones descuentan el gap para que las diapositivas entren
+   completas: dos al 50% con un gap de por medio desbordarían. */
+.sofia-carousel--dos .sofia-carousel__slide {
+	flex-basis: calc((100% - var(--sofia-espaciado-base)) / 2);
+}
+
+.sofia-carousel--tres .sofia-carousel__slide {
+	flex-basis: calc((100% - var(--sofia-espaciado-base) * 2) / 3);
+}
+
+.sofia-carousel__imagen {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	border-radius: var(--sofia-radio-borde);
+}
+
+.sofia-carousel__cuerpo {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-top: 10px;
+}
+
+.sofia-carousel__titulo {
+	min-height: 1.2em;
+	font-weight: 600;
+}
+
+.sofia-carousel__texto {
+	min-height: 1.2em;
+	font-size: 0.95rem;
+	opacity: 0.8;
+}
+
+.sofia-carousel__flecha {
+	position: absolute;
+	top: 30%;
+	z-index: 2;
+	width: 40px;
+	height: 40px;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 50%;
+	background: var(--sofia-color-fondo);
+	cursor: pointer;
+}
+
+.sofia-carousel__flecha::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 9px;
+	height: 9px;
+	border-top: 2px solid currentColor;
+	border-right: 2px solid currentColor;
+}
+
+.sofia-carousel__flecha--anterior {
+	left: -18px;
+}
+
+.sofia-carousel__flecha--anterior::before {
+	transform: translate(-30%, -50%) rotate(-135deg);
+}
+
+.sofia-carousel__flecha--siguiente {
+	right: -18px;
+}
+
+.sofia-carousel__flecha--siguiente::before {
+	transform: translate(-70%, -50%) rotate(45deg);
+}
+
+/* Deshabilitada y no oculta: si desapareciera en los extremos, el resto
+   de los controles saltaría de lugar. */
+.sofia-carousel__flecha:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.sofia-carousel__puntos {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	padding-top: 14px;
+}
+
+.sofia-carousel__punto {
+	width: 9px;
+	height: 9px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: var(--sofia-color-borde);
+	cursor: pointer;
+}
+
+.sofia-carousel__punto[aria-current="true"] {
+	background: var(--sofia-color-primario);
+}
+
+/* En el editor las diapositivas se apilan: fuera de la ventana visible
+   no se pueden clickear para editarlas. */
+.sofia-carousel--estatico .sofia-carousel__pista {
+	display: flex;
+	flex-direction: column;
+	overflow: visible;
+	scroll-snap-type: none;
+}
+
+.sofia-carousel--estatico .sofia-carousel__slide {
+	flex-basis: auto;
+}
+
+@media (max-width: 782px) {
+	.sofia-carousel--dos .sofia-carousel__slide,
+	.sofia-carousel--tres .sofia-carousel__slide {
+		flex-basis: 100%;
+	}
+
+	/* Adentro del ancho de la hoja: colgadas afuera se cortan en móvil. */
+	.sofia-carousel__flecha--anterior {
+		left: 6px;
+	}
+
+	.sofia-carousel__flecha--siguiente {
+		right: 6px;
+	}
+}

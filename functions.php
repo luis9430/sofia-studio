@@ -49,6 +49,10 @@ require_once __DIR__ . '/inc/componentes/class-accordion.php';
 require_once __DIR__ . '/inc/componentes/class-modal.php';
 require_once __DIR__ . '/inc/componentes/class-dropdown.php';
 require_once __DIR__ . '/inc/componentes/class-stepper.php';
+require_once __DIR__ . '/inc/componentes/class-gallery.php';
+require_once __DIR__ . '/inc/componentes/class-masonry.php';
+require_once __DIR__ . '/inc/componentes/class-marquee.php';
+require_once __DIR__ . '/inc/componentes/class-carousel.php';
 
 /**
  * SOFIA_LIBRERIAS_JS mapea el slug que un Componente declara en
@@ -69,9 +73,10 @@ const SOFIA_LIBRERIAS_JS = array(
  * que editar el archivo invalida la caché del navegador sin tocar nada
  * más.
  *
- * "interacciones" es un solo archivo para los ocho patrones que necesitan
- * comportamiento (Tabs, Accordion, Dropdown, Tooltip, Popover, Modal,
- * Toast, Stepper) — nunca un archivo por Componente, que es exactamente
+ * "interacciones" es un solo archivo para TODOS los patrones que
+ * necesitan comportamiento (hoy Tabs, Modal, Dropdown y Carousel;
+ * Accordion y Stepper terminaron sin JS) — nunca un archivo por
+ * Componente, que es exactamente
  * el spaghetti que la regla 4 del contrato existe para evitar. Como
  * Sofia_Pagina::dependencias_js() deduplica, se encola una sola vez por
  * página, y nunca en una página que no tenga ninguno de esos bloques.

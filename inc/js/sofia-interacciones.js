@@ -4,7 +4,9 @@
  * Un solo archivo para todos los patrones, no uno por Componente: esa es
  * la regla 4 del contrato, y existe para evitar el spaghetti de
  * carousel.js + carousel-init.js + modal.js + modal-events.js que este
- * tipo de código genera si se lo deja crecer suelto.
+ * tipo de código genera si se lo deja crecer suelto. Carousel vive acá
+ * por eso mismo: es el candidato natural a archivo propio, y justamente
+ * por eso es el que confirma la regla.
  *
  * Cada patrón es una función independiente que se activa buscando su
  * propio atributo data-sofia-*. No hay estado compartido entre ellas ni
@@ -150,11 +152,102 @@
 		});
 	}
 
+	/**
+	 * Carousel: diapositivas con scroll-snap.
+	 *
+	 * El desplazamiento NO lo hace esta función — lo hace el navegador,
+	 * porque la pista es un contenedor con overflow y scroll-snap. Acá
+	 * solo se empuja el scroll con scrollTo() y se lee de vuelta con
+	 * scrollLeft para saber en qué diapositiva quedó.
+	 *
+	 * Esa asimetría es deliberada: si el estado viviera en una variable
+	 * "indiceActual", se desincronizaría apenas el usuario arrastrara con
+	 * el dedo, que es algo que pasa sin avisarle a este código. Leer la
+	 * posición real del scroll es la única fuente que no puede mentir.
+	 */
+	function activarCarousel(raiz) {
+		raiz.querySelectorAll("[data-sofia-carousel]").forEach(function (carrusel) {
+			var pista = carrusel.querySelector(".sofia-carousel__pista");
+			var slides = Array.prototype.slice.call(carrusel.querySelectorAll("[data-sofia-slide]"));
+			var puntos = Array.prototype.slice.call(carrusel.querySelectorAll("[data-sofia-carousel-punto]"));
+			var anterior = carrusel.querySelector("[data-sofia-carousel-anterior]");
+			var siguiente = carrusel.querySelector("[data-sofia-carousel-siguiente]");
+			if (!pista || slides.length === 0) return;
+
+			// Cuál está a la vista = cuál arranca más cerca del borde
+			// izquierdo de la pista. Con varias visibles a la vez, esa es
+			// la primera de las visibles, que es la que corresponde
+			// marcar en los puntos.
+			function indiceVisible() {
+				var mejor = 0;
+				var menor = Infinity;
+				slides.forEach(function (slide, i) {
+					var distancia = Math.abs(slide.offsetLeft - pista.scrollLeft);
+					if (distancia < menor) {
+						menor = distancia;
+						mejor = i;
+					}
+				});
+				return mejor;
+			}
+
+			function irA(indice) {
+				var destino = slides[Math.max(0, Math.min(indice, slides.length - 1))];
+				if (destino) pista.scrollTo({ left: destino.offsetLeft, behavior: "smooth" });
+			}
+
+			function sincronizar() {
+				var actual = indiceVisible();
+				puntos.forEach(function (punto, i) {
+					punto.setAttribute("aria-current", i === actual ? "true" : "false");
+				});
+				// Los extremos se deshabilitan en vez de envolver: un
+				// carrusel que vuelve al principio sin avisar hace perder
+				// el lugar, y con scroll real el rebote se ve raro.
+				if (anterior) anterior.disabled = pista.scrollLeft <= 1;
+				if (siguiente) {
+					siguiente.disabled = pista.scrollLeft + pista.clientWidth >= pista.scrollWidth - 1;
+				}
+			}
+
+			if (anterior) {
+				anterior.addEventListener("click", function () {
+					irA(indiceVisible() - 1);
+				});
+			}
+			if (siguiente) {
+				siguiente.addEventListener("click", function () {
+					irA(indiceVisible() + 1);
+				});
+			}
+			puntos.forEach(function (punto, i) {
+				punto.addEventListener("click", function () {
+					irA(i);
+				});
+			});
+
+			// El scroll dispara muy seguido; requestAnimationFrame alcanza
+			// para no recalcular más veces de las que la pantalla dibuja.
+			var pendiente = false;
+			pista.addEventListener("scroll", function () {
+				if (pendiente) return;
+				pendiente = true;
+				window.requestAnimationFrame(function () {
+					pendiente = false;
+					sincronizar();
+				});
+			});
+
+			sincronizar();
+		});
+	}
+
 	function activarTodo(raiz) {
 		activarTabs(raiz);
 		activarAccordion(raiz);
 		activarModal(raiz);
 		activarDropdown(raiz);
+		activarCarousel(raiz);
 	}
 
 	if (MODO_EDITOR) return;
