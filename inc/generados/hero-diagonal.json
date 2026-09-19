@@ -1,0 +1,27 @@
+{
+  "tipo": "hero_diagonal",
+  "nombre": "Hero diagonal",
+  "campos": {
+    "titulo": { "tipo": "texto", "etiqueta": "Título", "por_defecto": "Diseño que no cabía en 39 componentes" },
+    "bajada": { "tipo": "texto_largo", "etiqueta": "Bajada", "por_defecto": "Esta sección la describió la IA: el corte diagonal y la superposición no existen en el catálogo fijo." },
+    "imagen": { "tipo": "imagen", "etiqueta": "Imagen de fondo" }
+  },
+  "estructura": [
+    {
+      "etiqueta": "div",
+      "clase": "marco",
+      "hijos": [
+        { "etiqueta": "img", "clase": "fondo", "campo": "imagen" },
+        {
+          "etiqueta": "div",
+          "clase": "capa",
+          "hijos": [
+            { "etiqueta": "h1", "clase": "titulo", "campo": "titulo" },
+            { "etiqueta": "p", "clase": "bajada", "campo": "bajada" }
+          ]
+        }
+      ]
+    }
+  ],
+  "css": "& { padding: 0; overflow: hidden; } .marco { position: relative; min-height: 420px; display: flex; align-items: center; } .fondo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; clip-path: polygon(0 0, 100% 0, 100% 72%, 0 100%); } .capa { position: relative; z-index: 2; padding: 48px 40px; max-width: 60%; background: linear-gradient(100deg, rgba(0,0,0,0.72), rgba(0,0,0,0.15)); color: #fff; } .titulo { font-size: clamp(1.8rem, 5vw, 3.2rem); line-height: 1.05; margin: 0 0 14px; } .bajada { font-size: 1.05rem; opacity: 0.92; margin: 0; }"
+}
