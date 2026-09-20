@@ -511,6 +511,32 @@ class Sofia_Componente_Factory {
 				'schema_contenido' => $componente::schema_contenido(),
 			);
 		}
+
+		// Los Componentes GENERADOS también van al catálogo de la IA.
+		//
+		// Bug real, visible en el sitio: el generador de páginas propuso un
+		// bloque con id "hero-diagonal" pero tipo "hero" — quiso usar el
+		// hero diagonal que este sitio tenía, no lo encontró entre los
+		// tipos que le enseñamos, y cayó al más parecido. La página quedó
+		// con un Hero común donde debía ir el diagonal.
+		//
+		// Es la misma desconexión que el plan describe: el sitio sabía que
+		// ese tipo existe y el generador no lo consultaba. Un Componente
+		// generado que no aparece acá es, para la IA, un Componente que no
+		// existe.
+		foreach ( self::definiciones_generadas() as $tipo => $definicion ) {
+			$componente = self::crear_generado( $tipo, 'catalogo', array(), array() );
+			if ( null === $componente ) {
+				continue;
+			}
+			$catalogo[] = array(
+				'tipo'             => $tipo,
+				'nombre'           => $definicion['nombre'],
+				'schema_estilo'    => self::schema_estilo_ia_de( $tipo ),
+				'schema_contenido' => $componente->schema_contenido_propio(),
+			);
+		}
+
 		return $catalogo;
 	}
 }

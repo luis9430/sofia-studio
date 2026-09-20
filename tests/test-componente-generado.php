@@ -482,6 +482,22 @@ Sofia_Cliente_GoPress::$respuesta = array( array( 'tipo' => 'roto_sin_campos' ) 
 afirmar( 'una definición corrupta no se instancia', null === Sofia_Componente_Factory::crear( 'roto_sin_campos', 'x' ) );
 afirmar( 'y no rompe el catálogo', count( Sofia_Componente_Factory::catalogo() ) === $fijos );
 
+// Los generados tienen que llegar TAMBIEN al catalogo que ve la IA.
+//
+// Bug real, visible en el sitio: el generador de paginas propuso un
+// bloque con id "hero-diagonal" pero tipo "hero" — quiso usar el hero
+// diagonal del sitio, no lo encontro entre los tipos que le ensenamos, y
+// cayo al mas parecido. Un Componente generado que no esta en este
+// catalogo es, para la IA, un Componente que no existe.
+Sofia_Cliente_GoPress::$respuesta = array( $hero );
+$para_ia = Sofia_Componente_Factory::catalogo_para_ia();
+$tipos_ia = array_column( $para_ia, 'tipo' );
+afirmar( 'el generado llega al catalogo de la IA', in_array( 'hero_diagonal', $tipos_ia, true ) );
+
+$entrada = array_values( array_filter( $para_ia, function ( $t ) { return 'hero_diagonal' === $t['tipo']; } ) );
+afirmar( 'con su schema de contenido', ! empty( $entrada ) && isset( $entrada[0]['schema_contenido']['titulo'] ) );
+afirmar( 'y su schema de estilo', ! empty( $entrada ) && ! empty( $entrada[0]['schema_estilo'] ) );
+
 printf( "\n%d pasadas, %d falladas\n\n", $pasadas, $falladas );
 exit( $falladas > 0 ? 1 : 0 );
 
