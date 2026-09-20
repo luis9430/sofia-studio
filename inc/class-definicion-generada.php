@@ -183,9 +183,10 @@ class Sofia_Definicion_Generada {
 					continue;
 				}
 				$campos[ $clave ] = array(
-					'tipo'     => 'lista',
-					'etiqueta' => self::etiqueta( $campo, $clave ),
-					'campos'   => $sub,
+					'tipo'        => 'lista',
+					'etiqueta'    => self::etiqueta( $campo, $clave ),
+					'campos'      => $sub,
+					'por_defecto' => self::items_por_defecto( $campo['por_defecto'] ?? null, $sub ),
 				);
 				continue;
 			}
@@ -202,6 +203,57 @@ class Sofia_Definicion_Generada {
 			);
 		}
 		return $campos;
+	}
+
+	/**
+	 * Los items con los que arranca una lista.
+	 *
+	 * Bug real, visible en el sitio: una tarjeta de precios generada por
+	 * IA mostraba "Soporte 24/7" DOS VECES. Pasaba por dos razones que se
+	 * sumaban — esta función descartaba el "por_defecto" de la lista (el
+	 * modelo había mandado tres características distintas y se tiraban), y
+	 * el Componente rellenaba el hueco duplicando el "por_defecto" de cada
+	 * subcampo. El resultado era contenido repetido que el usuario tenía
+	 * que corregir a mano en cada bloque que insertara.
+	 *
+	 * Ahora se respeta lo que el modelo propuso. Solo si no propuso nada
+	 * se cae al relleno de dos items, que sigue siendo mejor que una lista
+	 * vacía: sin ningún item el editor no tiene dónde dibujar el botón de
+	 * agregar.
+	 *
+	 * @param mixed                              $bruto Lo que declaró la descripción.
+	 * @param array<string,array<string,string>> $sub   Subcampos ya validados.
+	 * @return array<int,array<string,string>>
+	 */
+	private static function items_por_defecto( $bruto, array $sub ): array {
+		$items = array();
+
+		if ( is_array( $bruto ) ) {
+			foreach ( $bruto as $item ) {
+				if ( ! is_array( $item ) || count( $items ) >= 10 ) {
+					continue;
+				}
+				// Cada item se recorta a los subcampos DECLARADOS: una
+				// clave de más viajaría al editor sin control que la
+				// muestre, y al guardar se perdería igual.
+				$limpio = array();
+				foreach ( $sub as $clave => $definicion ) {
+					$limpio[ $clave ] = self::texto_plano( $item[ $clave ] ?? '' );
+				}
+				$items[] = $limpio;
+			}
+		}
+
+		if ( ! empty( $items ) ) {
+			return $items;
+		}
+
+		// Relleno: dos items con el por_defecto de cada subcampo.
+		$item = array();
+		foreach ( $sub as $clave => $definicion ) {
+			$item[ $clave ] = (string) ( $definicion['por_defecto'] ?? '' );
+		}
+		return array( $item, $item );
 	}
 
 	/**

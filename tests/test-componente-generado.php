@@ -301,6 +301,75 @@ if ( $def ) {
 	afirmar( 'el schema declara la lista', isset( $schema['items']['campos']['titulo'] ) );
 }
 
+echo "\n--- items por defecto de una lista ---\n";
+
+// Bug real, visible en el sitio: una tarjeta de precios generada por IA
+// mostraba "Soporte 24/7" DOS VECES. El modelo había propuesto tres
+// características distintas, pero el validador descartaba el
+// "por_defecto" de la lista y el Componente rellenaba el hueco
+// duplicando el "por_defecto" de cada subcampo.
+$avisos = array();
+$def    = Sofia_Definicion_Generada::validar( array(
+	'tipo'   => 'con_items',
+	'campos' => array(
+		'caracteristicas' => array(
+			'tipo'        => 'lista',
+			'etiqueta'    => 'Características',
+			'campos'      => array(
+				'texto' => array( 'tipo' => 'texto', 'etiqueta' => 'Texto', 'por_defecto' => 'Genérico' ),
+			),
+			'por_defecto' => array(
+				array( 'texto' => '10 GB de almacenamiento' ),
+				array( 'texto' => 'Acceso premium' ),
+				array( 'texto' => 'Actualizaciones gratuitas' ),
+			),
+		),
+	),
+	'estructura' => array(
+		array(
+			'etiqueta' => 'ul',
+			'lista'    => 'caracteristicas',
+			'item'     => array( array( 'etiqueta' => 'li', 'campo' => 'texto' ) ),
+		),
+	),
+), $avisos );
+
+afirmar( 'la lista con items propios se acepta', null !== $def );
+
+if ( $def ) {
+	$c = new Sofia_Componente_Generado( $def['tipo'], 'li1' );
+	$c->definir( $def );
+	$html = $c->render();
+
+	afirmar( 'se respetan los 3 items propuestos', 3 === substr_count( $html, 'data-sofia-item' ),
+		substr_count( $html, 'data-sofia-item' ) . ' items' );
+	afirmar( 'con su contenido real', false !== strpos( $html, '10 GB de almacenamiento' ) );
+	afirmar( 'sin duplicar el genérico', substr_count( $html, 'Genérico' ) < 2 );
+}
+
+// Sin "por_defecto" propio sigue habiendo relleno: una lista vacía no le
+// da al editor dónde dibujar el botón de agregar.
+$avisos = array();
+$def    = Sofia_Definicion_Generada::validar( array(
+	'tipo'   => 'sin_items',
+	'campos' => array(
+		'items' => array(
+			'tipo'     => 'lista',
+			'etiqueta' => 'Items',
+			'campos'   => array( 'texto' => array( 'tipo' => 'texto', 'etiqueta' => 'T', 'por_defecto' => 'Ejemplo' ) ),
+		),
+	),
+	'estructura' => array(
+		array( 'etiqueta' => 'ul', 'lista' => 'items', 'item' => array( array( 'etiqueta' => 'li', 'campo' => 'texto' ) ) ),
+	),
+), $avisos );
+
+if ( $def ) {
+	$c = new Sofia_Componente_Generado( $def['tipo'], 'li2' );
+	$c->definir( $def );
+	afirmar( 'una lista sin items propuestos arranca con relleno', substr_count( $c->render(), 'data-sofia-item' ) >= 1 );
+}
+
 echo "\n--- var() que apunta a un campo ---\n";
 
 // Error real del generador por IA: declaraba un campo "color_circulo" y

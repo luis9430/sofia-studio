@@ -98,19 +98,24 @@ class Sofia_Componente_Generado extends Sofia_Componente {
 	}
 
 	/**
-	 * Una lista arranca con 2 items: con uno solo no se ve que es una
-	 * lista, y con ninguno el editor no tiene dónde mostrar el botón de
-	 * agregar.
+	 * Los items con los que arranca una lista.
+	 *
+	 * Salen de la descripción, que ya los dejó listos (ver
+	 * Sofia_Definicion_Generada::items_por_defecto): si el modelo propuso
+	 * items concretos se usan esos, y si no, esa función arma el relleno.
+	 *
+	 * Esta versión duplicaba el "por_defecto" de cada subcampo para armar
+	 * dos items idénticos, y eso produjo un bug visible: una tarjeta de
+	 * precios generada por IA mostraba "Soporte 24/7" dos veces, mientras
+	 * las tres características que el modelo había propuesto se
+	 * descartaban antes de llegar acá.
 	 *
 	 * @param array<string,mixed> $campo
 	 * @return array<int,array<string,string>>
 	 */
 	private function items_por_defecto( array $campo ): array {
-		$item = array();
-		foreach ( $campo['campos'] as $sub_clave => $sub_campo ) {
-			$item[ $sub_clave ] = (string) ( $sub_campo['por_defecto'] ?? '' );
-		}
-		return array( $item, $item );
+		$items = $campo['por_defecto'] ?? null;
+		return is_array( $items ) && ! empty( $items ) ? $items : array();
 	}
 
 	/**
