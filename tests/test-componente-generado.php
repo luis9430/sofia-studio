@@ -301,6 +301,41 @@ if ( $def ) {
 	afirmar( 'el schema declara la lista', isset( $schema['items']['campos']['titulo'] ) );
 }
 
+echo "\n--- var() que apunta a un campo ---\n";
+
+// Error real del generador por IA: declaraba un campo "color_circulo" y
+// escribía var(--color_circulo) en el CSS. Esa variable no la define
+// nadie, así que el elemento quedaba sin color de fondo — y el fallo era
+// invisible, porque una var() indefinida hace que el navegador ignore la
+// propiedad en silencio.
+$avisos = array();
+$def    = Sofia_Definicion_Generada::validar( array(
+	'tipo'   => 'con_var',
+	'campos' => array(
+		'titulo'      => array( 'tipo' => 'texto', 'etiqueta' => 'T', 'por_defecto' => 'x' ),
+		'color_fondo' => array( 'tipo' => 'texto', 'etiqueta' => 'C', 'por_defecto' => '#fff' ),
+	),
+	'estructura' => array( array( 'etiqueta' => 'p', 'clase' => 'z', 'campo' => 'titulo' ) ),
+	'css'        => '.z { background: var(--color_fondo); color: var(--sofia-color-texto); }',
+), $avisos );
+
+afirmar( 'la definición se acepta igual', null !== $def );
+
+$aviso_de_var = false;
+$sobre_sofia  = false;
+foreach ( $avisos as $a ) {
+	if ( false !== strpos( $a, 'color_fondo' ) && false !== strpos( $a, 'campo de contenido' ) ) {
+		$aviso_de_var = true;
+	}
+	if ( false !== strpos( $a, 'sofia-color-texto' ) ) {
+		$sobre_sofia = true;
+	}
+}
+
+afirmar( 'avisa que var(--color_fondo) no va a funcionar', $aviso_de_var, implode( ' | ', $avisos ) );
+// Las --sofia-* sí existen: las define Sofia_Estilo_Global en el <head>.
+afirmar( 'no avisa sobre var(--sofia-*), que sí existen', ! $sobre_sofia );
+
 echo "\n--- Registro en el factory ---\n";
 
 // El factory necesita los Componentes fijos y un doble del cliente de

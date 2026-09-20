@@ -95,13 +95,57 @@ class Sofia_Definicion_Generada {
 			return null;
 		}
 
+		$css = Sofia_CSS_Generado::sanitizar( (string) ( $bruto['css'] ?? '' ), $tipo, self::MAX_CSS, $avisos );
+		self::avisar_variables_inexistentes( $css, $campos, $avisos );
+
 		return array(
 			'tipo'       => $tipo,
 			'nombre'     => $nombre,
 			'campos'     => $campos,
 			'estructura' => $estructura,
-			'css'        => Sofia_CSS_Generado::sanitizar( (string) ( $bruto['css'] ?? '' ), $tipo, self::MAX_CSS, $avisos ),
+			'css'        => $css,
 		);
+	}
+
+	/**
+	 * Avisa cuando el CSS usa var(--x) donde "x" es el nombre de un campo.
+	 *
+	 * Error real y repetido del generador por IA: declaraba un campo
+	 * "color_circulo" y escribía background: var(--color_circulo) — una
+	 * variable que nada define nunca, así que el elemento quedaba sin
+	 * color de fondo y nadie entendía por qué.
+	 *
+	 * Es un intento razonable de hacer el diseño configurable, pero un
+	 * campo es CONTENIDO: se imprime adentro de una etiqueta, no hay
+	 * ningún mecanismo que lo conecte a una propiedad CSS.
+	 *
+	 * Solo avisa, no descarta la regla: la variable indefinida hace que
+	 * esa propiedad se ignore, que es exactamente lo que pasaría igual. Y
+	 * descartar la regla entera se llevaría puesto el resto de sus
+	 * propiedades, que sí son válidas. Lo que hacía falta era que dejara
+	 * de ser invisible.
+	 *
+	 * @param array<string,array<string,mixed>> $campos
+	 * @param string[]                          $avisos
+	 */
+	private static function avisar_variables_inexistentes( string $css, array $campos, array &$avisos ): void {
+		if ( '' === $css || ! preg_match_all( '/var\(\s*--([a-z0-9_-]+)/i', $css, $coincidencias ) ) {
+			return;
+		}
+
+		foreach ( array_unique( $coincidencias[1] ) as $variable ) {
+			// Las del sistema (--sofia-*) sí existen: las define
+			// Sofia_Estilo_Global en el <head> de cada página.
+			if ( 0 === strpos( $variable, 'sofia-' ) ) {
+				continue;
+			}
+			if ( isset( $campos[ $variable ] ) ) {
+				$avisos[] = sprintf(
+					'El CSS usa var(--%1$s), pero "%1$s" es un campo de contenido, no una variable CSS — esa propiedad no va a tener efecto. Los colores y medidas van fijos en el CSS.',
+					$variable
+				);
+			}
+		}
 	}
 
 	/**
