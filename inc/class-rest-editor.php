@@ -119,6 +119,30 @@ class Sofia_REST_Editor {
 			)
 		);
 
+		// Componentes generados: la IA describe un bloque que el catálogo
+		// fijo no sabe dibujar. Dos pasos separados a propósito —
+		// "generar" no guarda nada, así que el usuario puede ver el
+		// preview y descartarlo sin ensuciar el catálogo del sitio.
+		register_rest_route(
+			'sofia/v1',
+			'/ia/generar-componente',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'ia_generar_componente' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
+		register_rest_route(
+			'sofia/v1',
+			'/componentes-generados',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'guardar_componente_generado' ),
+				'permission_callback' => array( __CLASS__, 'permiso_editar' ),
+			)
+		);
+
 		register_rest_route(
 			'sofia/v1',
 			'/estilo-global',
@@ -1080,6 +1104,109 @@ class Sofia_REST_Editor {
 	 * botones "+ Agregar item", etc.), que es lo que el usuario espera ver
 	 * en la vista previa antes de aplicar.
 	 */
+	/**
+	 * POST sofia/v1/ia/generar-componente — la IA DESCRIBE un bloque que
+	 * el catálogo fijo no sabe dibujar (un corte diagonal, una
+	 * superposición, una forma), en vez de elegir entre los que existen.
+	 *
+	 * NO guarda nada. Devuelve la descripción ya validada más un HTML de
+	 * muestra, para que el usuario decida antes de sumarlo al catálogo del
+	 * sitio — guardar es un segundo request explícito
+	 * (guardar_componente_generado). Así un componente que no convence se
+	 * descarta sin dejar rastro.
+	 *
+	 * Los avisos de la validación viajan a la interfaz: si se descartó una
+	 * etiqueta prohibida o una regla de CSS, el usuario tiene que poder
+	 * verlo. El modo silencioso es justo lo que hizo difícil encontrar los
+	 * primeros bugs de este sistema.
+	 */
+	public static function ia_generar_componente( WP_REST_Request $request ) {
+		$prompt = trim( (string) $request->get_param( 'prompt' ) );
+		if ( '' === $prompt ) {
+			return new WP_Error( 'sofia_prompt_requerido', 'Describí qué componente querés.', array( 'status' => 400 ) );
+		}
+
+		$estilo_global = Sofia_Cliente_GoPress::obtener_estilo_global();
+		$cruda         = Sofia_Cliente_GoPress::generar_componente_ia( $prompt, $estilo_global );
+		if ( null === $cruda ) {
+			return new WP_Error(
+				'sofia_ia_fallo',
+				'No se pudo generar el componente — GoPress no respondió o el modelo no está disponible.',
+				array( 'status' => 502 )
+			);
+		}
+
+		$avisos     = array();
+		$definicion = Sofia_Definicion_Generada::validar( $cruda, $avisos );
+		if ( null === $definicion ) {
+			return new WP_Error(
+				'sofia_definicion_invalida',
+				'El componente generado no se pudo usar: ' . implode( ' ', $avisos ),
+				array( 'status' => 422 )
+			);
+		}
+
+		// El preview se arma con el MISMO render que usaría en la página
+		// real, no con una aproximación: si algo se ve mal acá, se va a
+		// ver mal ahí.
+		$componente = new Sofia_Componente_Generado( $definicion['tipo'], 'preview' );
+		$componente->definir( $definicion );
+
+		return rest_ensure_response(
+			array(
+				'ok'         => true,
+				'definicion' => $definicion,
+				'html'       => $componente->render(),
+				'css'        => $definicion['css'],
+				'avisos'     => $avisos,
+			)
+		);
+	}
+
+	/**
+	 * POST sofia/v1/componentes-generados — suma el componente al catálogo
+	 * del sitio, en GoPress.
+	 *
+	 * Desde acá queda disponible en TODAS las páginas, no solo en la que
+	 * se estaba editando. Esa persistencia es la diferencia de fondo con
+	 * el generador de árboles: un árbol se aplica a una página y ahí
+	 * termina; un Componente se crea una vez y se usa siempre.
+	 *
+	 * Se REVALIDA la descripción aunque ya haya pasado por
+	 * ia_generar_componente: este endpoint es público para cualquiera con
+	 * permiso de editar, así que nada garantiza que el cuerpo venga de
+	 * aquel paso.
+	 */
+	public static function guardar_componente_generado( WP_REST_Request $request ) {
+		$cruda = $request->get_param( 'definicion' );
+		if ( ! is_array( $cruda ) ) {
+			return new WP_Error( 'sofia_definicion_requerida', 'Falta la descripción del componente.', array( 'status' => 400 ) );
+		}
+
+		$avisos     = array();
+		$definicion = Sofia_Definicion_Generada::validar( $cruda, $avisos );
+		if ( null === $definicion ) {
+			return new WP_Error(
+				'sofia_definicion_invalida',
+				'La descripción no es válida: ' . implode( ' ', $avisos ),
+				array( 'status' => 422 )
+			);
+		}
+
+		if ( ! Sofia_Cliente_GoPress::guardar_componente_generado( $definicion ) ) {
+			return new WP_Error( 'sofia_guardado_fallo', 'GoPress no pudo guardar el componente.', array( 'status' => 502 ) );
+		}
+
+		return rest_ensure_response(
+			array(
+				'ok'     => true,
+				'tipo'   => $definicion['tipo'],
+				'nombre' => $definicion['nombre'],
+				'avisos' => $avisos,
+			)
+		);
+	}
+
 	public static function ia_preview_arbol( WP_REST_Request $request ) {
 		$arbol = $request->get_param( 'arbol' );
 		if ( ! is_array( $arbol ) || empty( $arbol ) ) {

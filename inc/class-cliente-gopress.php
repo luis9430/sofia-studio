@@ -255,6 +255,107 @@ class Sofia_Cliente_GoPress {
 	 * acepta cookie de sesión O token, mismo mecanismo dual que
 	 * guardar_contenido()).
 	 *
+	 * generar_componente_ia(): le pide a la IA que DESCRIBA un Componente
+	 * nuevo, uno que el catálogo fijo no sabe dibujar.
+	 *
+	 * Distinto de generar_arbol_ia(), que ELIGE entre los tipos que ya
+	 * existen y arma una página. Este produce un tipo nuevo.
+	 *
+	 * No manda el catálogo: lo que el modelo tiene que conocer son los
+	 * límites de la DESCRIPCIÓN (qué etiquetas HTML puede usar, qué tipos
+	 * de campo existen), no los Componentes del tema — está inventando uno
+	 * que justamente no está ahí. Esos límites viven en el system prompt
+	 * del lado de GoPress.
+	 *
+	 * Sí manda el estilo global, para que el CSS generado use los tokens
+	 * del sitio en vez de colores inventados.
+	 *
+	 * @param array<string,mixed> $estilo_global
+	 * @return array<string,mixed>|null La descripción cruda, o null si
+	 *         GoPress no respondió. Se valida del lado del tema
+	 *         (Sofia_Definicion_Generada) antes de usarla.
+	 */
+	public static function generar_componente_ia( string $prompt, array $estilo_global = array() ): ?array {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return null;
+		}
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return null;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/ia/generar-componente';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'POST',
+				// Mismo timeout largo que generar_arbol_ia: describir un
+				// componente es una respuesta más corta que un árbol de
+				// página, pero sigue siendo una llamada a un LLM.
+				'timeout' => 180,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode(
+					array(
+						'prompt'        => $prompt,
+						'estilo_global' => $estilo_global,
+					)
+				),
+			)
+		);
+		if ( is_wp_error( $respuesta ) || 200 !== wp_remote_retrieve_response_code( $respuesta ) ) {
+			return null;
+		}
+
+		$cuerpo     = json_decode( wp_remote_retrieve_body( $respuesta ), true );
+		$definicion = is_array( $cuerpo ) ? ( $cuerpo['definicion'] ?? null ) : null;
+		return is_array( $definicion ) ? $definicion : null;
+	}
+
+	/**
+	 * guardar_componente_generado(): sube la descripción al catálogo del
+	 * sitio, para que quede disponible en TODAS sus páginas.
+	 *
+	 * Esa persistencia es la diferencia de fondo con el generador de
+	 * árboles: un árbol generado se aplica a una página y ahí termina; un
+	 * Componente generado se crea una vez y se usa siempre.
+	 *
+	 * @param array<string,mixed> $definicion Ya validada por
+	 *                                        Sofia_Definicion_Generada.
+	 * @return bool true si GoPress confirmó el guardado.
+	 */
+	public static function guardar_componente_generado( array $definicion ): bool {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return false;
+		}
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio || empty( $definicion['tipo'] ) ) {
+			return false;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/componentes-generados';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'PUT',
+				'timeout' => 15,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode(
+					array(
+						'tipo'       => $definicion['tipo'],
+						'nombre'     => $definicion['nombre'] ?? $definicion['tipo'],
+						'definicion' => $definicion,
+					)
+				),
+			)
+		);
+		return ! is_wp_error( $respuesta ) && 200 === wp_remote_retrieve_response_code( $respuesta );
+	}
+
+	/**
 	 * @param array<string,mixed> $estilo_global
 	 * @return bool true si GoPress confirmó el guardado (200 OK).
 	 */

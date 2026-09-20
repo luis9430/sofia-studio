@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { GenerarComponente } from "./GenerarComponente.jsx";
 
 /**
  * CatalogoAgregar — pestaña "Agregar" del panel de Estructura (paso 4 del
@@ -117,7 +118,7 @@ function CatalogoAgregar({ catalogo, onAgregar }) {
  * visualmente (una fila por nodo), así que el mecanismo nativo del
  * navegador alcanza sin dependencias extra.
  */
-export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover, catalogo, onAgregar, onContraer }) {
+export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMover, catalogo, onAgregar, onContraer, config, onComponenteCreado }) {
   const [tab, setTab] = useState("arbol");
 
   // arrastrando: { nodo, padreId } del nodo que se está arrastrando —
@@ -244,7 +245,14 @@ export function PanelEstructura({ estructura, seleccionado, onSeleccionar, onMov
           ) : (
             <p className="sofia-zona-estructura__vacio">Sin bloques todavía</p>
           ))}
-        {tab === "agregar" && <CatalogoAgregar catalogo={catalogo} onAgregar={onAgregar} />}
+        {tab === "agregar" && (
+          <>
+            <CatalogoAgregar catalogo={catalogo} onAgregar={onAgregar} />
+            {config && onComponenteCreado && (
+              <GenerarComponente config={config} onCreado={onComponenteCreado} />
+            )}
+          </>
+        )}
       </div>
     </div>
   );

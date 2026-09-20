@@ -379,11 +379,19 @@ export function App({ config }) {
   // editor-iframe.js para los nombres del overlay de resaltado) — se pide
   // una sola vez al montar el panel, nunca una lista curada aparte que
   // pueda desincronizarse.
-  useEffect(() => {
-    fetch(`${config.restUrl}catalogo-bloques`, { headers: { "X-WP-Nonce": config.nonce } })
+  // Se extrae a una funcion (en vez de vivir suelta en el useEffect)
+  // porque crear un Componente generado agrega un tipo al catalogo del
+  // sitio: sin recargar, el bloque nuevo no aparece en la pestana
+  // "Agregar" hasta refrescar la pagina entera.
+  function recargarCatalogo() {
+    return fetch(`${config.restUrl}catalogo-bloques`, { headers: { "X-WP-Nonce": config.nonce } })
       .then((resp) => (resp.ok ? resp.json() : []))
       .then(setCatalogoBloques)
       .catch(() => setCatalogoBloques([]));
+  }
+
+  useEffect(() => {
+    recargarCatalogo();
 
     recargarEstructura();
 
@@ -1136,6 +1144,14 @@ export function App({ config }) {
           }
           catalogo={catalogoBloques}
           onAgregar={(tipo) => agregarBloque(tipo)}
+          config={config}
+          onComponenteCreado={async (tipo) => {
+            // Primero el catalogo (para que el tipo exista) y recien
+            // despues insertarlo: agregarBloque() resuelve el nombre
+            // contra esa lista.
+            await recargarCatalogo();
+            agregarBloque(tipo);
+          }}
         />
         )}
         <div className="sofia-lienzo-wrap__canvas">
