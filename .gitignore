@@ -1,1 +1,4 @@
 admin-app/node_modules/
+
+# Salida de tests/lote-componentes.php — se regenera al correrlo.
+tests/salida-lote/
