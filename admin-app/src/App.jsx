@@ -1144,14 +1144,6 @@ export function App({ config }) {
           }
           catalogo={catalogoBloques}
           onAgregar={(tipo) => agregarBloque(tipo)}
-          config={config}
-          onComponenteCreado={async (tipo) => {
-            // Primero el catalogo (para que el tipo exista) y recien
-            // despues insertarlo: agregarBloque() resuelve el nombre
-            // contra esa lista.
-            await recargarCatalogo();
-            agregarBloque(tipo);
-          }}
         />
         )}
         <div className="sofia-lienzo-wrap__canvas">
@@ -1224,7 +1216,17 @@ export function App({ config }) {
               SIEMPRE montada acá, hermana del viewport dentro del mismo
               "marco de navegador" — retraída por defecto, se expande sola
               hacia arriba al generar (ver FranjaGenerarIA.jsx). */}
-          <FranjaGenerarIA config={config} onAplicar={aplicarArbolGeneradoPorIA} />
+          <FranjaGenerarIA
+            config={config}
+            onAplicar={aplicarArbolGeneradoPorIA}
+            onComponenteCreado={async (tipo) => {
+              // Primero recargar el catalogo (para que el tipo nuevo
+              // exista) y recien despues insertarlo: agregarBloque()
+              // resuelve el nombre contra esa lista.
+              await recargarCatalogo();
+              await agregarBloque(tipo);
+            }}
+          />
         </div>
         </div>
 

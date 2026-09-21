@@ -40,7 +40,7 @@ import { useState } from "preact/hooks";
  * 100% de fiar) en su propio documento, con los mismos <link> de CSS del
  * tema activo inyectados para que se vea parecido a la página real.
  */
-export function FranjaGenerarIA({ config, onAplicar }) {
+export function FranjaGenerarIA({ config, onAplicar, onComponenteCreado }) {
   const [prompt, setPrompt] = useState("");
   const [estado, setEstado] = useState("listo"); // "listo" | "generando" | "generado" | "aplicando" | "error"
   const [avisos, setAvisos] = useState([]);
@@ -53,6 +53,13 @@ export function FranjaGenerarIA({ config, onAplicar }) {
   // tocar el input), y sigue expandida mientras "generando"/"aplicando"
   // para no ocultar el progreso de una operación en curso.
   const [expandida, setExpandida] = useState(false);
+  // modo: que devolvio el servidor, "pagina" o "componente". Una sola
+  // caja genera las dos cosas (el backend clasifica el pedido, ver
+  // pide_un_componente en Sofia_REST_Editor), asi que la franja tiene que
+  // saber cual llego para mostrar los controles correctos.
+  const [modo, setModo] = useState("pagina");
+  const [definicion, setDefinicion] = useState(null);
+  const [cssComponente, setCssComponente] = useState("");
 
   async function generar() {
     if (!prompt.trim()) return;
@@ -75,8 +82,21 @@ export function FranjaGenerarIA({ config, onAplicar }) {
         return;
       }
 
-      const arbolReparado = datosGenerar.arbol_reparado || [];
       setAvisos(datosGenerar.avisos || []);
+      setModo(datosGenerar.modo || "pagina");
+
+      // Un COMPONENTE ya viene con su HTML renderizado: no hace falta el
+      // segundo request de preview, que solo existe para armar el HTML de
+      // un arbol de pagina.
+      if (datosGenerar.modo === "componente") {
+        setDefinicion(datosGenerar.definicion || null);
+        setCssComponente(datosGenerar.css || "");
+        setHtml(datosGenerar.html || "");
+        setEstado("generado");
+        return;
+      }
+
+      const arbolReparado = datosGenerar.arbol_reparado || [];
       setArbol(arbolReparado);
 
       if (arbolReparado.length === 0) {
@@ -106,13 +126,33 @@ export function FranjaGenerarIA({ config, onAplicar }) {
   }
 
   async function aplicar() {
-    if (!arbol || arbol.length === 0) return;
     setEstado("aplicando");
     try {
+      if (modo === "componente") {
+        if (!definicion) return;
+        // Dos pasos: primero entra al catalogo del sitio (queda
+        // disponible en TODAS las paginas), despues se inserta en esta.
+        const resp = await fetch(`${config.restUrl}componentes-generados`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce },
+          body: JSON.stringify({ definicion }),
+        });
+        const datos = await resp.json().catch(() => null);
+        if (!resp.ok || !datos) {
+          setMensajeError((datos && datos.message) || "No se pudo guardar el componente.");
+          setEstado("error");
+          return;
+        }
+        await onComponenteCreado(datos.tipo);
+        cerrar();
+        return;
+      }
+
+      if (!arbol || arbol.length === 0) return;
       await onAplicar(arbol);
       cerrar();
     } catch {
-      setMensajeError("No se pudo aplicar el árbol a la página.");
+      setMensajeError("No se pudo aplicar lo generado a la página.");
       setEstado("error");
     }
   }
@@ -129,9 +169,15 @@ export function FranjaGenerarIA({ config, onAplicar }) {
     setArbol(null);
     setHtml("");
     setMensajeError("");
+    setModo("pagina");
+    setDefinicion(null);
+    setCssComponente("");
   }
 
-  const srcDocPreview = `<!doctype html><html><head><meta charset="utf-8">${(config.hojasEstiloTema || [])
+  // El CSS de un componente generado todavia no esta en el <head> del
+  // sitio (recien se imprime cuando esta guardado), asi que el preview lo
+  // inyecta aparte. Para una pagina queda vacio.
+  const srcDocPreview = `<!doctype html><html><head><meta charset="utf-8">${cssComponente ? `<style>${cssComponente}</style>` : ""}${(config.hojasEstiloTema || [])
     .map((href) => `<link rel="stylesheet" href="${href}">`)
     .join("")}</head><body class="sofia-pagina">${html}</body></html>`;
 
@@ -177,17 +223,36 @@ export function FranjaGenerarIA({ config, onAplicar }) {
             </div>
           )}
 
-          {estado === "generado" && arbol && arbol.length > 0 && (
+          {estado === "generado" && (modo === "componente" ? definicion : arbol && arbol.length > 0) && (
             <div className="sofia-franja-ia__preview">
+              {/*
+                Decir QUÉ se generó, no solo mostrarlo. Una sola caja
+                produce dos cosas distintas y el backend clasifica el
+                pedido: cuando se equivoque, el usuario tiene que poder
+                verlo ANTES de aplicar. Reformular el pedido nombrando
+                "página" o "un hero" corrige la clasificación.
+              */}
+              <p className="sofia-franja-ia__modo">
+                {modo === "componente" ? (
+                  <>
+                    Componente nuevo: <strong>{definicion.nombre}</strong>. Queda disponible en todas las páginas del sitio.
+                  </>
+                ) : (
+                  <>
+                    Bloques para esta página: <strong>{arbol.length}</strong>.
+                  </>
+                )}
+              </p>
+
               <iframe
                 className="sofia-franja-ia__preview-iframe"
                 srcDoc={srcDocPreview}
-                title="Vista previa de bloques generados por IA"
+                title={modo === "componente" ? "Vista previa del componente generado" : "Vista previa de bloques generados por IA"}
                 sandbox=""
               />
               <div className="sofia-franja-ia__acciones">
                 <button type="button" className="sofia-franja-ia__aplicar" onClick={aplicar} disabled={estado === "aplicando"}>
-                  {estado === "aplicando" ? "Agregando…" : "Agregar a la página"}
+                  {estado === "aplicando" ? "Agregando…" : modo === "componente" ? "Agregar al sitio" : "Agregar a la página"}
                 </button>
                 <button type="button" className="sofia-franja-ia__cancelar" onClick={cerrar} disabled={estado === "aplicando"}>
                   Cancelar

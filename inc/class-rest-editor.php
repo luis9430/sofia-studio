@@ -680,6 +680,24 @@ class Sofia_REST_Editor {
 			return new WP_Error( 'sofia_prompt_requerido', 'El parámetro "prompt" es obligatorio.', array( 'status' => 400 ) );
 		}
 
+		// Una sola caja para las dos cosas: describir una PÁGINA (un árbol
+		// con los bloques que ya existen) o describir un COMPONENTE nuevo
+		// (un tipo que el catálogo no tiene).
+		//
+		// Decisión de producto confirmada con el usuario: el modelo
+		// interpreta cuál de las dos, en vez de obligar a elegir antes de
+		// escribir. "Un hero con corte diagonal" y "una página para un
+		// hotel" son pedidos que se distinguen sin esfuerzo, y pedirle al
+		// usuario que entienda la diferencia entre "página" y "componente"
+		// es exponerle una distinción que es NUESTRA, no suya.
+		//
+		// La respuesta lleva "modo" para que la interfaz pueda decir qué
+		// hizo: cuando se equivoque, el usuario tiene que poder verlo
+		// antes de aplicar, no después.
+		if ( self::pide_un_componente( $prompt ) ) {
+			return self::ia_generar_componente( $request );
+		}
+
 		$catalogo = Sofia_Componente_Factory::catalogo_para_ia();
 		// obtener_estilo_global() (Nivel 3): "capa 2" de la conversación de
 		// arquitectura sobre creatividad del generador (ver la memoria de
@@ -702,6 +720,7 @@ class Sofia_REST_Editor {
 		return rest_ensure_response(
 			array(
 				'ok'             => true,
+				'modo'           => 'pagina',
 				'arbol_reparado' => $arbol_reparado,
 				'avisos'         => array_merge( $avisos_go, $avisos_php ),
 			)
@@ -1105,6 +1124,55 @@ class Sofia_REST_Editor {
 	 * en la vista previa antes de aplicar.
 	 */
 	/**
+	 * pide_un_componente(): ¿el usuario está pidiendo UN bloque nuevo, o
+	 * una página entera?
+	 *
+	 * Se resuelve con palabras clave y no con una llamada al modelo. Una
+	 * clasificación por IA sería más flexible, pero agrega una llamada de
+	 * red (segundos y costo) antes de la que de verdad importa, para una
+	 * decisión binaria que en la práctica se juega en dos o tres palabras.
+	 *
+	 * El default es PÁGINA a propósito: es lo que este editor hizo
+	 * siempre, y equivocarse hacia ahí devuelve algo que el usuario puede
+	 * usar igual (una página con bloques existentes), mientras que
+	 * equivocarse al revés le devuelve un solo bloque cuando esperaba un
+	 * sitio.
+	 *
+	 * Los indicadores de PÁGINA ganan sobre los de componente: "una página
+	 * con un hero diagonal" nombra un hero, pero pide una página.
+	 */
+	private static function pide_un_componente( string $prompt ): bool {
+		$texto = ' ' . mb_strtolower( trim( $prompt ) ) . ' ';
+
+		// Si nombra una página o un sitio, es una página — sin importar
+		// qué bloques mencione después.
+		$de_pagina = array( 'pagina', 'página', 'landing', 'sitio', 'web completa', 'home', 'inicio completo' );
+		foreach ( $de_pagina as $palabra ) {
+			if ( false !== mb_strpos( $texto, $palabra ) ) {
+				return false;
+			}
+		}
+
+		// Pedir explícitamente un bloque/componente/sección.
+		$de_componente = array( 'componente', 'bloque', 'un hero', 'una tarjeta', 'una seccion', 'una sección', 'un banner', 'una franja', 'una cinta', 'un carrusel', 'una galeria', 'una galería' );
+		foreach ( $de_componente as $palabra ) {
+			if ( false !== mb_strpos( $texto, $palabra ) ) {
+				return true;
+			}
+		}
+
+		// Un pedido corto que empieza con artículo singular ("un hero con
+		// borde diagonal") describe UNA cosa, no una página. El corte de
+		// largo evita capturar descripciones largas de sitios que apenas
+		// arrancan con un artículo.
+		if ( mb_strlen( $texto ) < 90 && preg_match( '/^\s+(un|una)\s+/u', $texto ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * POST sofia/v1/ia/generar-componente — la IA DESCRIBE un bloque que
 	 * el catálogo fijo no sabe dibujar (un corte diagonal, una
 	 * superposición, una forma), en vez de elegir entre los que existen.
@@ -1155,6 +1223,11 @@ class Sofia_REST_Editor {
 		return rest_ensure_response(
 			array(
 				'ok'         => true,
+				// "modo" le dice a la interfaz QUE se genero: la franja es
+				// una sola caja para pagina y componente, asi que sin esto
+				// no podria mostrar los controles correctos ni avisarle al
+				// usuario cuando la clasificacion se equivoco.
+				'modo'       => 'componente',
 				'definicion' => $definicion,
 				'html'       => $componente->render(),
 				'css'        => $definicion['css'],
