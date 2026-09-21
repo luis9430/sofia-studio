@@ -1,0 +1,1123 @@
+[
+    {
+        "pedido": "un hero con la imagen cortada en diagonal y el título encima",
+        "definicion": {
+            "tipo": "hero_diagonal",
+            "nombre": "Hero en Diagonal",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título Principal",
+                    "por_defecto": "Bienvenidos a Nuestro Espacio Creativo"
+                },
+                "imagen": {
+                    "tipo": "imagen",
+                    "etiqueta": "Imagen de Fondo",
+                    "por_defecto": ""
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "hero-contenedor",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "hero-imagen-wrapper",
+                            "hijos": [
+                                {
+                                    "etiqueta": "img",
+                                    "clase": "hero-imagen",
+                                    "campo": "imagen"
+                                },
+                                {
+                                    "etiqueta": "div",
+                                    "clase": "hero-overlay"
+                                }
+                            ]
+                        },
+                        {
+                            "etiqueta": "h1",
+                            "clase": "hero-titulo",
+                            "campo": "titulo"
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--hero_diagonal { position: relative; width: 100%; overflow: hidden; }\n.sofia-gen--hero_diagonal .sg-hero-contenedor { position: relative; height: clamp(400px, 70vh, 700px); display: flex; align-items: center; justify-content: center; overflow: hidden; }\n.sofia-gen--hero_diagonal .sg-hero-imagen-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); background-color: #000; }\n.sofia-gen--hero_diagonal .sg-hero-imagen { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }\n.sofia-gen--hero_diagonal .sg-hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%); }\n.sofia-gen--hero_diagonal .sg-hero-titulo { position: relative; z-index: 1; color: #fff; text-align: center; font-size: clamp(2.5rem, 8vw, 5rem); line-height: 1.1; max-width: 90%; text-shadow: 2px 2px 8px rgba(0,0,0,0.7); }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--hero_diagonal\" data-sofia-bloque-id=\"lote0\" data-sofia-bloque-tipo=\"hero_diagonal\"  ><div class=\"sg-hero-contenedor\"><div class=\"sg-hero-imagen-wrapper\"><img class=\"sg-hero-imagen\" data-sofia-campo=\"lote0.imagen\" src=\"\" alt=\"\" loading=\"lazy\"><div class=\"sg-hero-overlay\"></div></div><h1 class=\"sg-hero-titulo\" data-sofia-campo=\"lote0.titulo\" >Bienvenidos a Nuestro Espacio Creativo</h1></div></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una sección con el fondo en forma de onda abajo",
+        "definicion": {
+            "tipo": "seccion_onda_inferior",
+            "nombre": "Sección con Onda Abajo",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título principal",
+                    "por_defecto": "Tu Mensaje Importante Aquí"
+                },
+                "subtitulo": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción",
+                    "por_defecto": "Captura la atención de tus visitantes con un diseño único y un mensaje claro que destaque. Esta sección está diseñada para resaltar."
+                },
+                "imagen_fondo": {
+                    "tipo": "imagen",
+                    "etiqueta": "Imagen de fondo",
+                    "por_defecto": ""
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "section",
+                    "clase": "seccion-onda",
+                    "hijos": [
+                        {
+                            "etiqueta": "img",
+                            "clase": "imagen-fondo",
+                            "campo": "imagen_fondo"
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "contenido",
+                            "hijos": [
+                                {
+                                    "etiqueta": "h2",
+                                    "clase": "titulo-seccion",
+                                    "campo": "titulo"
+                                },
+                                {
+                                    "etiqueta": "p",
+                                    "clase": "subtitulo-seccion",
+                                    "campo": "subtitulo"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--seccion_onda_inferior { padding: clamp(4rem, 10vh, 8rem) 0; position: relative; overflow: hidden; }\n.sofia-gen--seccion_onda_inferior .sg-seccion-onda { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; min-height: 50vh; }\n.sofia-gen--seccion_onda_inferior .sg-imagen-fondo { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; filter: brightness(0.5); }\n.sofia-gen--seccion_onda_inferior .sg-contenido { position: relative; z-index: 1; padding: 0 clamp(1rem, 5vw, 4rem); max-width: 900px; }\n.sofia-gen--seccion_onda_inferior .sg-titulo-seccion { font-size: clamp(2rem, 6vw, 4rem); margin-bottom: 1rem; line-height: 1.2; font-weight: 700; text-shadow: 2px 2px 8px rgba(0,0,0,0.4); }\n.sofia-gen--seccion_onda_inferior .sg-subtitulo-seccion { font-size: clamp(1rem, 2.5vw, 1.5rem); line-height: 1.6; max-width: 700px; opacity: 0.9; text-shadow: 1px 1px 6px rgba(0,0,0,0.3); }\n.sofia-gen--seccion_onda_inferior .sg-seccion-onda::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 15%; background: linear-gradient(to top, rgba(var(--wp--preset--color--foreground), 1) 0%, rgba(var(--wp--preset--color--foreground), 0) 100%); clip-path: ellipse(100% 50% at 50% 100%); z-index: -1; background-color: var(--wp--preset--color--background); }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--seccion_onda_inferior\" data-sofia-bloque-id=\"lote1\" data-sofia-bloque-tipo=\"seccion_onda_inferior\"  ><section class=\"sg-seccion-onda\"><img class=\"sg-imagen-fondo\" data-sofia-campo=\"lote1.imagen_fondo\" src=\"\" alt=\"\" loading=\"lazy\"><div class=\"sg-contenido\"><h2 class=\"sg-titulo-seccion\" data-sofia-campo=\"lote1.titulo\" >Tu Mensaje Importante Aquí</h2><p class=\"sg-subtitulo-seccion\" data-sofia-campo=\"lote1.subtitulo\" >Captura la atención de tus visitantes con un diseño único y un mensaje claro que destaque. Esta sección está diseñada para resaltar.</p></div></section></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una tarjeta con la esquina superior derecha doblada como papel",
+        "definicion": {
+            "tipo": "tarjeta_esquina_doblada",
+            "nombre": "Tarjeta Esquina Doblada",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la tarjeta",
+                    "por_defecto": "Oferta Especial de Temporada"
+                },
+                "descripcion": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción de la oferta",
+                    "por_defecto": "Descubre nuestros productos frescos y de estación con descuentos increíbles. Calidad garantizada para tu mesa."
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "tarjeta-contenedor",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "tarjeta-plegada"
+                        },
+                        {
+                            "etiqueta": "h3",
+                            "clase": "tarjeta-titulo",
+                            "campo": "titulo"
+                        },
+                        {
+                            "etiqueta": "p",
+                            "clase": "tarjeta-descripcion",
+                            "campo": "descripcion"
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--tarjeta_esquina_doblada { display: flex; justify-content: center; align-items: center; padding: 2rem; min-height: 200px; background-color: #f0f2f5; }\n.sofia-gen--tarjeta_esquina_doblada .sg-tarjeta-contenedor { position: relative; width: clamp(280px, 80vw, 400px); min-height: 220px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.05); padding: 25px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; text-align: left; transition: transform 0.3s ease; }\n.sofia-gen--tarjeta_esquina_doblada .sg-tarjeta-contenedor:hover { transform: translateY(-5px); }\n.sofia-gen--tarjeta_esquina_doblada .sg-tarjeta-plegada { position: absolute; top: 0; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 40px 40px 0; border-color: transparent #e0e0e0 transparent transparent; box-shadow: -2px 2px 3px rgba(0,0,0,0.15); transform: rotate(90deg); transform-origin: top right; }\n.sofia-gen--tarjeta_esquina_doblada .sg-tarjeta-titulo { font-size: clamp(1.4rem, 5vw, 1.8rem); color: #333; margin-bottom: 0.8rem; line-height: 1.2; font-weight: 700; }\n.sofia-gen--tarjeta_esquina_doblada .sg-tarjeta-descripcion { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #555; line-height: 1.6; margin-top: 0; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--tarjeta_esquina_doblada\" data-sofia-bloque-id=\"lote2\" data-sofia-bloque-tipo=\"tarjeta_esquina_doblada\"  ><div class=\"sg-tarjeta-contenedor\"><div class=\"sg-tarjeta-plegada\"></div><h3 class=\"sg-tarjeta-titulo\" data-sofia-campo=\"lote2.titulo\" >Oferta Especial de Temporada</h3><p class=\"sg-tarjeta-descripcion\" data-sofia-campo=\"lote2.descripcion\" >Descubre nuestros productos frescos y de estación con descuentos increíbles. Calidad garantizada para tu mesa.</p></div></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una tarjeta de precio con efecto vidrio esmerilado",
+        "definicion": {
+            "tipo": "tarjeta_precio_vidrio",
+            "nombre": "Tarjeta de Precio Esmerilado",
+            "campos": {
+                "titulo_plan": {
+                    "tipo": "texto",
+                    "etiqueta": "Título del Plan",
+                    "por_defecto": "Plan Básico"
+                },
+                "precio": {
+                    "tipo": "texto",
+                    "etiqueta": "Precio",
+                    "por_defecto": "$19/mes"
+                },
+                "descripcion_corta": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción Corta",
+                    "por_defecto": "Ideal para pequeños proyectos y startups."
+                },
+                "caracteristicas": {
+                    "tipo": "lista",
+                    "etiqueta": "Características",
+                    "campos": {
+                        "caracteristica": {
+                            "tipo": "texto",
+                            "etiqueta": "Característica",
+                            "por_defecto": "Soporte 24/7"
+                        }
+                    },
+                    "por_defecto": [
+                        {
+                            "caracteristica": "10 GB de Almacenamiento"
+                        },
+                        {
+                            "caracteristica": "5 Usuarios Incluidos"
+                        },
+                        {
+                            "caracteristica": "Dominio Personalizado"
+                        }
+                    ]
+                },
+                "texto_boton": {
+                    "tipo": "texto",
+                    "etiqueta": "Texto del Botón",
+                    "por_defecto": "Empezar Ahora"
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "tarjeta-precio",
+                    "hijos": [
+                        {
+                            "etiqueta": "h3",
+                            "clase": "tarjeta-titulo",
+                            "campo": "titulo_plan"
+                        },
+                        {
+                            "etiqueta": "p",
+                            "clase": "tarjeta-precio-valor",
+                            "campo": "precio"
+                        },
+                        {
+                            "etiqueta": "p",
+                            "clase": "tarjeta-descripcion",
+                            "campo": "descripcion_corta"
+                        },
+                        {
+                            "etiqueta": "ul",
+                            "clase": "lista-caracteristicas",
+                            "lista": "caracteristicas",
+                            "item": [
+                                {
+                                    "etiqueta": "li",
+                                    "clase": "caracteristica-item",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "span",
+                                            "clase": "caracteristica-texto",
+                                            "campo": "caracteristica"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "tarjeta-boton",
+                            "hijos": [
+                                {
+                                    "etiqueta": "span",
+                                    "campo": "texto_boton"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--tarjeta_precio_vidrio { display: flex; justify-content: center; align-items: center; min-height: 400px; padding: 20px; }\n.sofia-gen--tarjeta_precio_vidrio .sg-tarjeta-precio { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2); padding: clamp(20px, 5vw, 40px); text-align: center; color: #fff; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); max-width: 350px; display: flex; flex-direction: column; gap: 15px; }\n.sofia-gen--tarjeta_precio_vidrio .sg-tarjeta-titulo { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 10px; }\n.sofia-gen--tarjeta_precio_vidrio .sg-tarjeta-precio-valor { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: bold; margin-bottom: 15px; }\n.sofia-gen--tarjeta_precio_vidrio .sg-tarjeta-descripcion { font-size: clamp(0.9rem, 2vw, 1.1rem); line-height: 1.5; margin-bottom: 20px; }\n.sofia-gen--tarjeta_precio_vidrio .sg-lista-caracteristicas { list-style: none; padding: 0; margin-bottom: 25px; text-align: left; align-self: flex-start; width: 100%; }\n.sofia-gen--tarjeta_precio_vidrio .sg-caracteristica-item { font-size: clamp(0.9rem, 2vw, 1rem); margin-bottom: 8px; padding-left: 25px; position: relative; }\n.sofia-gen--tarjeta_precio_vidrio .sg-caracteristica-item::before { content: '✓'; color: #8aff8a; position: absolute; left: 0; top: 0; }\n.sofia-gen--tarjeta_precio_vidrio .sg-tarjeta-boton { background: rgba(255, 255, 255, 0.3); border: none; border-radius: 8px; padding: 12px 25px; font-size: clamp(1rem, 2vw, 1.2rem); font-weight: bold; cursor: pointer; transition: background 0.3s ease; align-self: center; }\n.sofia-gen--tarjeta_precio_vidrio .sg-tarjeta-boton:hover { background: rgba(255, 255, 255, 0.5); }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--tarjeta_precio_vidrio\" data-sofia-bloque-id=\"lote3\" data-sofia-bloque-tipo=\"tarjeta_precio_vidrio\"  ><div class=\"sg-tarjeta-precio\"><h3 class=\"sg-tarjeta-titulo\" data-sofia-campo=\"lote3.titulo_plan\" >Plan Básico</h3><p class=\"sg-tarjeta-precio-valor\" data-sofia-campo=\"lote3.precio\" >$19/mes</p><p class=\"sg-tarjeta-descripcion\" data-sofia-campo=\"lote3.descripcion_corta\" >Ideal para pequeños proyectos y startups.</p><ul class=\"sg-lista-caracteristicas\" data-sofia-lista=\"lote3.caracteristicas\"><li class=\"sg-caracteristica-item\" data-sofia-item=\"0\"><span class=\"sg-caracteristica-texto\" data-sofia-campo=\"lote3.caracteristicas.0.caracteristica\" >10 GB de Almacenamiento</span></li><li class=\"sg-caracteristica-item\" data-sofia-item=\"1\"><span class=\"sg-caracteristica-texto\" data-sofia-campo=\"lote3.caracteristicas.1.caracteristica\" >5 Usuarios Incluidos</span></li><li class=\"sg-caracteristica-item\" data-sofia-item=\"2\"><span class=\"sg-caracteristica-texto\" data-sofia-campo=\"lote3.caracteristicas.2.caracteristica\" >Dominio Personalizado</span></li></ul><div class=\"sg-tarjeta-boton\"><span data-sofia-campo=\"lote3.texto_boton\" >Empezar Ahora</span></div></div></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "un bloque donde la imagen sobresale del borde de la sección",
+        "definicion": {
+            "tipo": "imagen_sobresaliente",
+            "nombre": "Imagen que sobresale",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la sección",
+                    "por_defecto": "Nuestros proyectos más destacados"
+                },
+                "texto": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción",
+                    "por_defecto": "Explora el impacto de nuestro trabajo, donde la creatividad se une a la funcionalidad para ofrecer soluciones innovadoras."
+                },
+                "imagen_destacada": {
+                    "tipo": "imagen",
+                    "etiqueta": "Imagen destacada",
+                    "por_defecto": ""
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "contenedor-seccion",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "contenido-texto",
+                            "hijos": [
+                                {
+                                    "etiqueta": "h2",
+                                    "clase": "titulo",
+                                    "campo": "titulo"
+                                },
+                                {
+                                    "etiqueta": "p",
+                                    "clase": "descripcion",
+                                    "campo": "texto"
+                                }
+                            ]
+                        },
+                        {
+                            "etiqueta": "figure",
+                            "clase": "contenedor-imagen",
+                            "hijos": [
+                                {
+                                    "etiqueta": "img",
+                                    "clase": "imagen",
+                                    "campo": "imagen_destacada"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--imagen_sobresaliente { padding: clamp(2rem, 5vw, 4rem) 0; overflow: hidden; background-color: #f8f8f8; }\n.sofia-gen--imagen_sobresaliente .sg-contenedor-seccion { display: grid; grid-template-columns: minmax(min(20rem, 100%), 1fr) clamp(25rem, 50vw, 40rem); gap: clamp(2rem, 5vw, 4rem); align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 clamp(1rem, 5vw, 2rem); }\n.sofia-gen--imagen_sobresaliente .sg-contenido-texto { padding-right: clamp(1rem, 3vw, 2rem); }\n.sofia-gen--imagen_sobresaliente .sg-titulo { font-size: clamp(2rem, 5vw, 3.5rem); color: #333; line-height: 1.1; margin-bottom: 1rem; }\n.sofia-gen--imagen_sobresaliente .sg-descripcion { font-size: clamp(1rem, 2.5vw, 1.25rem); color: #666; line-height: 1.6; }\n.sofia-gen--imagen_sobresaliente .sg-contenedor-imagen { position: relative; width: 100%; height: 0; padding-bottom: 75%; overflow: visible; margin-right: -20%; }\n.sofia-gen--imagen_sobresaliente .sg-imagen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 8px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); }\n.sofia-gen--imagen_sobresaliente .sg-contenedor-seccion { grid-template-columns: 1fr; }\n.sofia-gen--imagen_sobresaliente .sg-contenedor-imagen { margin-right: 0; margin-top: 2rem; padding-bottom: 60%; }\n.sofia-gen--imagen_sobresaliente .sg-contenido-texto { padding-right: 0; text-align: center; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--imagen_sobresaliente\" data-sofia-bloque-id=\"lote4\" data-sofia-bloque-tipo=\"imagen_sobresaliente\"  ><div class=\"sg-contenedor-seccion\"><div class=\"sg-contenido-texto\"><h2 class=\"sg-titulo\" data-sofia-campo=\"lote4.titulo\" >Nuestros proyectos más destacados</h2><p class=\"sg-descripcion\" data-sofia-campo=\"lote4.texto\" >Explora el impacto de nuestro trabajo, donde la creatividad se une a la funcionalidad para ofrecer soluciones innovadoras.</p></div><figure class=\"sg-contenedor-imagen\"><img class=\"sg-imagen\" data-sofia-campo=\"lote4.imagen_destacada\" src=\"\" alt=\"\" loading=\"lazy\"></figure></div></section>",
+        "avisos": [
+            "El CSS usa @media, que todavía no está soportado — esas reglas se descartaron."
+        ]
+    },
+    {
+        "pedido": "dos tarjetas superpuestas, una corrida hacia abajo y a la derecha",
+        "definicion": {
+            "tipo": "tarjetas_superpuestas",
+            "nombre": "Dos Tarjetas Superpuestas",
+            "campos": {
+                "titulo_tarjeta_1": {
+                    "tipo": "texto",
+                    "etiqueta": "Título Tarjeta Principal",
+                    "por_defecto": "Nuestra Propuesta Diferencial"
+                },
+                "texto_tarjeta_1": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Contenido Tarjeta Principal",
+                    "por_defecto": "En cada proyecto, buscamos la excelencia, fusionando diseño innovador y funcionalidad para superar expectativas."
+                },
+                "titulo_tarjeta_2": {
+                    "tipo": "texto",
+                    "etiqueta": "Título Tarjeta Secundaria",
+                    "por_defecto": "Innovación y Compromiso"
+                },
+                "texto_tarjeta_2": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Contenido Tarjeta Secundaria",
+                    "por_defecto": "Nos adaptamos a tus necesidades, ofreciendo soluciones creativas y eficientes para un impacto duradero."
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "contenedor-tarjetas",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "tarjetaprincipal",
+                            "hijos": [
+                                {
+                                    "etiqueta": "h3",
+                                    "clase": "tarjeta-titulo",
+                                    "campo": "titulo_tarjeta_1"
+                                },
+                                {
+                                    "etiqueta": "p",
+                                    "clase": "tarjeta-texto",
+                                    "campo": "texto_tarjeta_1"
+                                }
+                            ]
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "tarjetasecundaria",
+                            "hijos": [
+                                {
+                                    "etiqueta": "h3",
+                                    "clase": "tarjeta-titulo",
+                                    "campo": "titulo_tarjeta_2"
+                                },
+                                {
+                                    "etiqueta": "p",
+                                    "clase": "tarjeta-texto",
+                                    "campo": "texto_tarjeta_2"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--tarjetas_superpuestas { padding: 4rem 1rem; display: flex; justify-content: center; overflow: visible; }\n.sofia-gen--tarjetas_superpuestas .sg-contenedor-tarjetas { position: relative; width: clamp(280px, 90%, 800px); min-height: 300px; }\n.sofia-gen--tarjetas_superpuestas .sg-tarjeta { background-color: #ffffff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 2rem; position: absolute; width: 100%; box-sizing: border-box; }\n.sofia-gen--tarjetas_superpuestas .sg-principal { z-index: 2; top: 0; left: 0; }\n.sofia-gen--tarjetas_superpuestas .sg-secundaria { z-index: 1; top: 2.5rem; left: 2.5rem; background-color: #f0f0f0; border: 1px solid #e0e0e0; transform: translate(2rem, 2rem); }\n.sofia-gen--tarjetas_superpuestas .sg-tarjeta-titulo { font-size: clamp(1.5rem, 5vw, 2rem); color: #333; margin-bottom: 1rem; line-height: 1.2; }\n.sofia-gen--tarjetas_superpuestas .sg-tarjeta-texto { font-size: clamp(0.95rem, 3vw, 1.15rem); color: #555; line-height: 1.6; }\n.sofia-gen--tarjetas_superpuestas .sg-secundaria { transform: translate(1.5rem, 1.5rem); top: 2rem; left: 2rem; }\n.sofia-gen--tarjetas_superpuestas .sg-contenedor-tarjetas { min-height: 350px; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--tarjetas_superpuestas\" data-sofia-bloque-id=\"lote5\" data-sofia-bloque-tipo=\"tarjetas_superpuestas\"  ><div class=\"sg-contenedor-tarjetas\"><div class=\"sg-tarjetaprincipal\"><h3 class=\"sg-tarjeta-titulo\" data-sofia-campo=\"lote5.titulo_tarjeta_1\" >Nuestra Propuesta Diferencial</h3><p class=\"sg-tarjeta-texto\" data-sofia-campo=\"lote5.texto_tarjeta_1\" >En cada proyecto, buscamos la excelencia, fusionando diseño innovador y funcionalidad para superar expectativas.</p></div><div class=\"sg-tarjetasecundaria\"><h3 class=\"sg-tarjeta-titulo\" data-sofia-campo=\"lote5.titulo_tarjeta_2\" >Innovación y Compromiso</h3><p class=\"sg-tarjeta-texto\" data-sofia-campo=\"lote5.texto_tarjeta_2\" >Nos adaptamos a tus necesidades, ofreciendo soluciones creativas y eficientes para un impacto duradero.</p></div></div></section>",
+        "avisos": [
+            "El CSS usa @media, que todavía no está soportado — esas reglas se descartaron."
+        ]
+    },
+    {
+        "pedido": "una cita con comillas gigantes semitransparentes detrás del texto",
+        "error": "HTTP 502: llamando a OpenRouter: leyendo la respuesta de OpenRouter: context deadline exceeded"
+    },
+    {
+        "pedido": "un título enorme donde una palabra tiene el color de marca",
+        "definicion": {
+            "tipo": "titulo_destacado_color",
+            "nombre": "Título con Palabra Destacada",
+            "campos": {
+                "parte_inicial": {
+                    "tipo": "texto",
+                    "etiqueta": "Parte inicial del título",
+                    "por_defecto": "El título"
+                },
+                "palabra_destacada": {
+                    "tipo": "texto",
+                    "etiqueta": "Palabra destacada",
+                    "por_defecto": "impactante"
+                },
+                "parte_final": {
+                    "tipo": "texto",
+                    "etiqueta": "Parte final del título",
+                    "por_defecto": "que vos querés"
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "h1",
+                    "clase": "titulo-principal",
+                    "hijos": [
+                        {
+                            "etiqueta": "span",
+                            "clase": "parte-inicial",
+                            "campo": "parte_inicial"
+                        },
+                        {
+                            "etiqueta": "span",
+                            "clase": "palabra-destacada",
+                            "campo": "palabra_destacada"
+                        },
+                        {
+                            "etiqueta": "span",
+                            "clase": "parte-final",
+                            "campo": "parte_final"
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--titulo_destacado_color { text-align: center; padding: 2rem 1rem; }\n.sofia-gen--titulo_destacado_color .sg-titulo-principal { font-size: clamp(3rem, 10vw, 8rem); font-weight: 900; line-height: 1.1; color: var(--wp--preset--color--on-background); }\n.sofia-gen--titulo_destacado_color .sg-palabra-destacada { color: var(--wp--preset--color--primary); margin: 0 0.05em; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--titulo_destacado_color\" data-sofia-bloque-id=\"lote7\" data-sofia-bloque-tipo=\"titulo_destacado_color\"  ><h1 class=\"sg-titulo-principal\"><span class=\"sg-parte-inicial\" data-sofia-campo=\"lote7.parte_inicial\" >El título</span><span class=\"sg-palabra-destacada\" data-sofia-campo=\"lote7.palabra_destacada\" >impactante</span><span class=\"sg-parte-final\" data-sofia-campo=\"lote7.parte_final\" >que vos querés</span></h1></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una sección con un número gigante de fondo, muy tenue",
+        "definicion": {
+            "tipo": "seccion_con_numero_fondo",
+            "nombre": "Sección con número de fondo",
+            "campos": {
+                "numero_fondo": {
+                    "tipo": "texto",
+                    "etiqueta": "Número de fondo",
+                    "por_defecto": "01"
+                },
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la sección",
+                    "por_defecto": "Nuestra Historia"
+                },
+                "contenido": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Contenido de la sección",
+                    "por_defecto": "Desde nuestros inicios, nos hemos dedicado a ofrecer soluciones innovadoras y de alta calidad para nuestros clientes. Creemos firmemente en el poder de la creatividad y la colaboración para alcanzar grandes metas."
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "section",
+                    "clase": "seccion-numero",
+                    "hijos": [
+                        {
+                            "etiqueta": "span",
+                            "clase": "numero-fondo",
+                            "campo": "numero_fondo"
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "contenido-seccion",
+                            "hijos": [
+                                {
+                                    "etiqueta": "h2",
+                                    "clase": "titulo-seccion",
+                                    "campo": "titulo"
+                                },
+                                {
+                                    "etiqueta": "p",
+                                    "clase": "parrafo-seccion",
+                                    "campo": "contenido"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--seccion_con_numero_fondo { position: relative; padding: 5rem 2rem; overflow: hidden; background-color: #f8f8f8; }\n.sofia-gen--seccion_con_numero_fondo .sg-seccion-numero { display: flex; align-items: center; justify-content: center; min-height: 400px; }\n.sofia-gen--seccion_con_numero_fondo .sg-numero-fondo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: clamp(10rem, 25vw, 20rem); color: rgba(0, 0, 0, 0.05); font-weight: 900; z-index: 0; pointer-events: none; }\n.sofia-gen--seccion_con_numero_fondo .sg-contenido-seccion { position: relative; z-index: 1; text-align: center; max-width: 800px; padding: 2rem; background-color: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); }\n.sofia-gen--seccion_con_numero_fondo .sg-titulo-seccion { font-size: clamp(2rem, 5vw, 3.5rem); color: #333; margin-bottom: 1.5rem; line-height: 1.2; }\n.sofia-gen--seccion_con_numero_fondo .sg-parrafo-seccion { font-size: clamp(1rem, 2.5vw, 1.2rem); color: #666; line-height: 1.6; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--seccion_con_numero_fondo\" data-sofia-bloque-id=\"lote8\" data-sofia-bloque-tipo=\"seccion_con_numero_fondo\"  ><section class=\"sg-seccion-numero\"><span class=\"sg-numero-fondo\" data-sofia-campo=\"lote8.numero_fondo\" >01</span><div class=\"sg-contenido-seccion\"><h2 class=\"sg-titulo-seccion\" data-sofia-campo=\"lote8.titulo\" >Nuestra Historia</h2><p class=\"sg-parrafo-seccion\" data-sofia-campo=\"lote8.contenido\" >Desde nuestros inicios, nos hemos dedicado a ofrecer soluciones innovadoras y de alta calidad para nuestros clientes. Creemos firmemente en el poder de la creatividad y la colaboración para alcanzar grandes metas.</p></div></section></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una franja de estadísticas donde cada número está en un hexágono",
+        "definicion": {
+            "tipo": "franja_estadisticas_hexagonos",
+            "nombre": "Franja de Estadísticas Hexagonales",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la sección",
+                    "por_defecto": "Nuestros Números Hablan por Sí Solos"
+                },
+                "estadisticas": {
+                    "tipo": "lista",
+                    "etiqueta": "Estadísticas",
+                    "campos": {
+                        "numero": {
+                            "tipo": "texto",
+                            "etiqueta": "Número o valor",
+                            "por_defecto": "1.2K"
+                        },
+                        "descripcion": {
+                            "tipo": "texto",
+                            "etiqueta": "Descripción",
+                            "por_defecto": "Clientes Satisfechos"
+                        }
+                    },
+                    "por_defecto": [
+                        {
+                            "numero": "1.2K",
+                            "descripcion": "Clientes Satisfechos"
+                        },
+                        {
+                            "numero": "1.2K",
+                            "descripcion": "Clientes Satisfechos"
+                        }
+                    ]
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "section",
+                    "clase": "franja-estadisticas",
+                    "hijos": [
+                        {
+                            "etiqueta": "h2",
+                            "clase": "titulo-seccion",
+                            "campo": "titulo"
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "contenedor-hexagonos",
+                            "lista": "estadisticas",
+                            "item": [
+                                {
+                                    "etiqueta": "div",
+                                    "clase": "hexagono-wrapper",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "div",
+                                            "clase": "hexagono",
+                                            "hijos": [
+                                                {
+                                                    "etiqueta": "p",
+                                                    "clase": "numero",
+                                                    "campo": "numero"
+                                                },
+                                                {
+                                                    "etiqueta": "small",
+                                                    "clase": "descripcion",
+                                                    "campo": "descripcion"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--franja_estadisticas_hexagonos { background-color: #f7f7f7; padding: clamp(3rem, 8vw, 6rem) 0; text-align: center; }\n.sofia-gen--franja_estadisticas_hexagonos .sg-titulo-seccion { font-size: clamp(2rem, 5vw, 3.5rem); color: #333; margin-bottom: clamp(2rem, 5vw, 4rem); }\n.sofia-gen--franja_estadisticas_hexagonos .sg-contenedor-hexagonos { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(1rem, 3vw, 2.5rem); padding: 0 clamp(1rem, 5vw, 4rem); }\n.sofia-gen--franja_estadisticas_hexagonos .sg-hexagono-wrapper { position: relative; width: clamp(120px, 20vw, 180px); height: clamp(104px, 17.32vw, 156px); margin: clamp(0.5rem, 1vw, 1rem) clamp(1rem, 1.5vw, 1.5rem); }\n.sofia-gen--franja_estadisticas_hexagonos .sg-hexagono { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #007bff; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); transition: transform 0.3s ease, box-shadow 0.3s ease; transform: translateY(0); }\n.sofia-gen--franja_estadisticas_hexagonos .sg-hexagono:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3); }\n.sofia-gen--franja_estadisticas_hexagonos .sg-numero { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: bold; margin: 0; line-height: 1; }\n.sofia-gen--franja_estadisticas_hexagonos .sg-descripcion { font-size: clamp(0.8rem, 2vw, 1.2rem); margin-top: 0.5rem; opacity: 0.9; line-height: 1.2; padding: 0 10%; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--franja_estadisticas_hexagonos\" data-sofia-bloque-id=\"lote9\" data-sofia-bloque-tipo=\"franja_estadisticas_hexagonos\"  ><section class=\"sg-franja-estadisticas\"><h2 class=\"sg-titulo-seccion\" data-sofia-campo=\"lote9.titulo\" >Nuestros Números Hablan por Sí Solos</h2><div class=\"sg-contenedor-hexagonos\" data-sofia-lista=\"lote9.estadisticas\"><div class=\"sg-hexagono-wrapper\" data-sofia-item=\"0\"><div class=\"sg-hexagono\"><p class=\"sg-numero\" data-sofia-campo=\"lote9.estadisticas.0.numero\" >1.2K</p><small class=\"sg-descripcion\" data-sofia-campo=\"lote9.estadisticas.0.descripcion\" >Clientes Satisfechos</small></div></div><div class=\"sg-hexagono-wrapper\" data-sofia-item=\"1\"><div class=\"sg-hexagono\"><p class=\"sg-numero\" data-sofia-campo=\"lote9.estadisticas.1.numero\" >1.2K</p><small class=\"sg-descripcion\" data-sofia-campo=\"lote9.estadisticas.1.descripcion\" >Clientes Satisfechos</small></div></div></div></section></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una grilla de fotos donde la primera ocupa el doble",
+        "definicion": {
+            "tipo": "galeria_doble_destacado",
+            "nombre": "Galería doble destacado",
+            "campos": {
+                "imagen_principal": {
+                    "tipo": "imagen",
+                    "etiqueta": "Imagen destacada",
+                    "por_defecto": ""
+                },
+                "imagenes_secundarias": {
+                    "tipo": "lista",
+                    "etiqueta": "Imágenes secundarias",
+                    "campos": {
+                        "imagen": {
+                            "tipo": "imagen",
+                            "etiqueta": "Imagen",
+                            "por_defecto": ""
+                        }
+                    },
+                    "por_defecto": [
+                        {
+                            "imagen": ""
+                        },
+                        {
+                            "imagen": ""
+                        }
+                    ]
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "galeria-grilla",
+                    "hijos": [
+                        {
+                            "etiqueta": "figure",
+                            "clase": "galeria-itemgaleria-item-destacado",
+                            "hijos": [
+                                {
+                                    "etiqueta": "img",
+                                    "clase": "galeria-imagen",
+                                    "campo": "imagen_principal"
+                                }
+                            ]
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "galeria-secundarias",
+                            "lista": "imagenes_secundarias",
+                            "item": [
+                                {
+                                    "etiqueta": "figure",
+                                    "clase": "galeria-item",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "img",
+                                            "clase": "galeria-imagen",
+                                            "campo": "imagen"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--galeria_doble_destacado { padding: 2rem; }\n.sofia-gen--galeria_doble_destacado .sg-galeria-grilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(clamp(150px, 30vw, 250px), 1fr)); grid-auto-rows: 200px; gap: 1rem; }\n.sofia-gen--galeria_doble_destacado .sg-galeria-item { overflow: hidden; border-radius: 8px; background-color: #eee; }\n.sofia-gen--galeria_doble_destacado .sg-galeria-item-destacado { grid-column: span 2; grid-row: span 2; }\n.sofia-gen--galeria_doble_destacado .sg-galeria-imagen { width: 100%; height: 100%; object-fit: cover; display: block; }\n.sofia-gen--galeria_doble_destacado .sg-galeria-secundarias { display: contents; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--galeria_doble_destacado\" data-sofia-bloque-id=\"lote10\" data-sofia-bloque-tipo=\"galeria_doble_destacado\"  ><div class=\"sg-galeria-grilla\"><figure class=\"sg-galeria-itemgaleria-item-destacado\"><img class=\"sg-galeria-imagen\" data-sofia-campo=\"lote10.imagen_principal\" src=\"\" alt=\"\" loading=\"lazy\"></figure><div class=\"sg-galeria-secundarias\" data-sofia-lista=\"lote10.imagenes_secundarias\"><figure class=\"sg-galeria-item\" data-sofia-item=\"0\"><img class=\"sg-galeria-imagen\" data-sofia-campo=\"lote10.imagenes_secundarias.0.imagen\" src=\"\" alt=\"\" loading=\"lazy\"></figure><figure class=\"sg-galeria-item\" data-sofia-item=\"1\"><img class=\"sg-galeria-imagen\" data-sofia-campo=\"lote10.imagenes_secundarias.1.imagen\" src=\"\" alt=\"\" loading=\"lazy\"></figure></div></div></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "un timeline vertical con una línea que conecta los puntos",
+        "definicion": {
+            "tipo": "timeline_vertical",
+            "nombre": "Timeline Vertical",
+            "campos": {
+                "eventos": {
+                    "tipo": "lista",
+                    "etiqueta": "Eventos del Timeline",
+                    "campos": {
+                        "fecha": {
+                            "tipo": "texto",
+                            "etiqueta": "Fecha",
+                            "por_defecto": "2023"
+                        },
+                        "titulo": {
+                            "tipo": "texto",
+                            "etiqueta": "Título del Evento",
+                            "por_defecto": "Evento Importante"
+                        },
+                        "descripcion": {
+                            "tipo": "texto_largo",
+                            "etiqueta": "Descripción del Evento",
+                            "por_defecto": "Breve descripción sobre lo que ocurrió en este punto del tiempo."
+                        }
+                    },
+                    "por_defecto": [
+                        {
+                            "fecha": "2023",
+                            "titulo": "Evento Importante",
+                            "descripcion": "Breve descripción sobre lo que ocurrió en este punto del tiempo."
+                        },
+                        {
+                            "fecha": "2023",
+                            "titulo": "Evento Importante",
+                            "descripcion": "Breve descripción sobre lo que ocurrió en este punto del tiempo."
+                        }
+                    ]
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "timeline",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "timeline-linea"
+                        },
+                        {
+                            "etiqueta": "ul",
+                            "clase": "timeline-eventos",
+                            "lista": "eventos",
+                            "item": [
+                                {
+                                    "etiqueta": "li",
+                                    "clase": "timeline-item",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "div",
+                                            "clase": "timeline-punto"
+                                        },
+                                        {
+                                            "etiqueta": "div",
+                                            "clase": "timeline-contenido",
+                                            "hijos": [
+                                                {
+                                                    "etiqueta": "small",
+                                                    "clase": "timeline-fecha",
+                                                    "campo": "fecha"
+                                                },
+                                                {
+                                                    "etiqueta": "h3",
+                                                    "clase": "timeline-titulo",
+                                                    "campo": "titulo"
+                                                },
+                                                {
+                                                    "etiqueta": "p",
+                                                    "clase": "timeline-descripcion",
+                                                    "campo": "descripcion"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--timeline_vertical { padding: 40px 0; }\n.sofia-gen--timeline_vertical .sg-timeline { position: relative; max-width: 900px; margin: 0 auto; padding: 0 20px; }\n.sofia-gen--timeline_vertical .sg-timeline-linea { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; background: #e0e0e0; transform: translateX(-50%); }\n.sofia-gen--timeline_vertical .sg-timeline-eventos { list-style: none; padding: 0; margin: 0; }\n.sofia-gen--timeline_vertical .sg-timeline-item { display: flex; position: relative; margin-bottom: 40px; }\n.sofia-gen--timeline_vertical .sg-timeline-item:nth-child(odd) { justify-content: flex-start; }\n.sofia-gen--timeline_vertical .sg-timeline-item:nth-child(even) { justify-content: flex-end; }\n.sofia-gen--timeline_vertical .sg-timeline-punto { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #6c63ff; border-radius: 50%; border: 3px solid #ffffff; z-index: 1; }\n.sofia-gen--timeline_vertical .sg-timeline-contenido { background: #f8f8f8; padding: 20px; border-radius: 8px; width: calc(50% - 40px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }\n.sofia-gen--timeline_vertical .sg-timeline-item:nth-child(odd) .sg-timeline-contenido { margin-right: auto; }\n.sofia-gen--timeline_vertical .sg-timeline-item:nth-child(even) .sg-timeline-contenido { margin-left: auto; }\n.sofia-gen--timeline_vertical .sg-timeline-fecha { display: block; font-size: 0.9em; color: #888; margin-bottom: 5px; }\n.sofia-gen--timeline_vertical .sg-timeline-titulo { font-size: clamp(1.2rem, 3vw, 1.6rem); margin: 0 0 10px 0; color: #333; }\n.sofia-gen--timeline_vertical .sg-timeline-descripcion { font-size: clamp(0.9rem, 2.5vw, 1rem); color: #555; line-height: 1.6; }\n.sofia-gen--timeline_vertical .sg-timeline-linea { left: 20px; transform: translateX(0); }\n.sofia-gen--timeline_vertical .sg-timeline-item { justify-content: flex-start !important; }\n.sofia-gen--timeline_vertical .sg-timeline-punto { left: 20px; transform: translateX(-50%); }\n.sofia-gen--timeline_vertical .sg-timeline-contenido { width: calc(100% - 60px); margin-left: 60px !important; margin-right: 0 !important; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--timeline_vertical\" data-sofia-bloque-id=\"lote11\" data-sofia-bloque-tipo=\"timeline_vertical\"  ><div class=\"sg-timeline\"><div class=\"sg-timeline-linea\"></div><ul class=\"sg-timeline-eventos\" data-sofia-lista=\"lote11.eventos\"><li class=\"sg-timeline-item\" data-sofia-item=\"0\"><div class=\"sg-timeline-punto\"></div><div class=\"sg-timeline-contenido\"><small class=\"sg-timeline-fecha\" data-sofia-campo=\"lote11.eventos.0.fecha\" >2023</small><h3 class=\"sg-timeline-titulo\" data-sofia-campo=\"lote11.eventos.0.titulo\" >Evento Importante</h3><p class=\"sg-timeline-descripcion\" data-sofia-campo=\"lote11.eventos.0.descripcion\" >Breve descripción sobre lo que ocurrió en este punto del tiempo.</p></div></li><li class=\"sg-timeline-item\" data-sofia-item=\"1\"><div class=\"sg-timeline-punto\"></div><div class=\"sg-timeline-contenido\"><small class=\"sg-timeline-fecha\" data-sofia-campo=\"lote11.eventos.1.fecha\" >2023</small><h3 class=\"sg-timeline-titulo\" data-sofia-campo=\"lote11.eventos.1.titulo\" >Evento Importante</h3><p class=\"sg-timeline-descripcion\" data-sofia-campo=\"lote11.eventos.1.descripcion\" >Breve descripción sobre lo que ocurrió en este punto del tiempo.</p></div></li></ul></div></section>",
+        "avisos": [
+            "El CSS usa @media, que todavía no está soportado — esas reglas se descartaron."
+        ]
+    },
+    {
+        "pedido": "una sección de tres beneficios con ícono, título y texto",
+        "definicion": {
+            "tipo": "seccion_tres_beneficios",
+            "nombre": "Tres beneficios con ícono",
+            "campos": {
+                "beneficios": {
+                    "tipo": "lista",
+                    "etiqueta": "Lista de beneficios",
+                    "campos": {
+                        "icono": {
+                            "tipo": "imagen",
+                            "etiqueta": "Ícono del beneficio",
+                            "por_defecto": ""
+                        },
+                        "titulo": {
+                            "tipo": "texto",
+                            "etiqueta": "Título del beneficio",
+                            "por_defecto": "Beneficio asombroso"
+                        },
+                        "descripcion": {
+                            "tipo": "texto_largo",
+                            "etiqueta": "Descripción del beneficio",
+                            "por_defecto": "Con este beneficio, tu vida será mucho mejor. Descubre cómo podemos ayudarte a alcanzar tus metas."
+                        }
+                    },
+                    "por_defecto": [
+                        {
+                            "icono": "https://via.placeholder.com/64x64/FF8C00/FFFFFF?text=💡",
+                            "titulo": "Ideas Innovadoras",
+                            "descripcion": "Transformamos tus desafíos en soluciones creativas y eficientes para el futuro."
+                        },
+                        {
+                            "icono": "https://via.placeholder.com/64x64/4682B4/FFFFFF?text=⚙️",
+                            "titulo": "Optimización Procesos",
+                            "descripcion": "Mejoramos tus flujos de trabajo para maximizar la productividad y reducir costes."
+                        },
+                        {
+                            "icono": "https://via.placeholder.com/64x64/3CB371/FFFFFF?text=📈",
+                            "titulo": "Crecimiento Sostenible",
+                            "descripcion": "Diseñamos estrategias que impulsan tu negocio hacia un desarrollo duradero."
+                        }
+                    ]
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "section",
+                    "clase": "seccion-beneficios",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "contenedor-beneficios",
+                            "lista": "beneficios",
+                            "item": [
+                                {
+                                    "etiqueta": "div",
+                                    "clase": "beneficio-item",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "img",
+                                            "clase": "beneficio-icono",
+                                            "campo": "icono"
+                                        },
+                                        {
+                                            "etiqueta": "h3",
+                                            "clase": "beneficio-titulo",
+                                            "campo": "titulo"
+                                        },
+                                        {
+                                            "etiqueta": "p",
+                                            "clase": "beneficio-descripcion",
+                                            "campo": "descripcion"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--seccion_tres_beneficios { padding: clamp(2rem, 5vw, 4rem) 0; background-color: #f8f8f8; }\n.sofia-gen--seccion_tres_beneficios .sg-seccion-beneficios { text-align: center; }\n.sofia-gen--seccion_tres_beneficios .sg-contenedor-beneficios { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2.5rem; max-width: 1200px; margin: 0 auto; padding: 0 clamp(1rem, 3vw, 2rem); }\n.sofia-gen--seccion_tres_beneficios .sg-beneficio-item { background-color: #ffffff; border-radius: 12px; padding: 2rem; box-shadow: 0 10px 20px rgba(0,0,0,0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; }\n.sofia-gen--seccion_tres_beneficios .sg-beneficio-item:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }\n.sofia-gen--seccion_tres_beneficios .sg-beneficio-icono { width: 64px; height: 64px; margin-bottom: 1.5rem; object-fit: contain; }\n.sofia-gen--seccion_tres_beneficios .sg-beneficio-titulo { font-size: clamp(1.4rem, 2.5vw, 1.8rem); color: #333; margin-bottom: 0.8rem; font-weight: 700; line-height: 1.3; }\n.sofia-gen--seccion_tres_beneficios .sg-beneficio-descripcion { font-size: clamp(1rem, 1.8vw, 1.15rem); color: #666; line-height: 1.6; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--seccion_tres_beneficios\" data-sofia-bloque-id=\"lote12\" data-sofia-bloque-tipo=\"seccion_tres_beneficios\"  ><section class=\"sg-seccion-beneficios\"><div class=\"sg-contenedor-beneficios\" data-sofia-lista=\"lote12.beneficios\"><div class=\"sg-beneficio-item\" data-sofia-item=\"0\"><img class=\"sg-beneficio-icono\" data-sofia-campo=\"lote12.beneficios.0.icono\" src=\"\" alt=\"\" loading=\"lazy\"><h3 class=\"sg-beneficio-titulo\" data-sofia-campo=\"lote12.beneficios.0.titulo\" >Ideas Innovadoras</h3><p class=\"sg-beneficio-descripcion\" data-sofia-campo=\"lote12.beneficios.0.descripcion\" >Transformamos tus desafíos en soluciones creativas y eficientes para el futuro.</p></div><div class=\"sg-beneficio-item\" data-sofia-item=\"1\"><img class=\"sg-beneficio-icono\" data-sofia-campo=\"lote12.beneficios.1.icono\" src=\"\" alt=\"\" loading=\"lazy\"><h3 class=\"sg-beneficio-titulo\" data-sofia-campo=\"lote12.beneficios.1.titulo\" >Optimización Procesos</h3><p class=\"sg-beneficio-descripcion\" data-sofia-campo=\"lote12.beneficios.1.descripcion\" >Mejoramos tus flujos de trabajo para maximizar la productividad y reducir costes.</p></div><div class=\"sg-beneficio-item\" data-sofia-item=\"2\"><img class=\"sg-beneficio-icono\" data-sofia-campo=\"lote12.beneficios.2.icono\" src=\"\" alt=\"\" loading=\"lazy\"><h3 class=\"sg-beneficio-titulo\" data-sofia-campo=\"lote12.beneficios.2.titulo\" >Crecimiento Sostenible</h3><p class=\"sg-beneficio-descripcion\" data-sofia-campo=\"lote12.beneficios.2.descripcion\" >Diseñamos estrategias que impulsan tu negocio hacia un desarrollo duradero.</p></div></div></section></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "un bloque de llamada a la acción con botón",
+        "definicion": {
+            "tipo": "cta_boton",
+            "nombre": "Llamada a la Acción con Botón",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la CTA",
+                    "por_defecto": "¡No te quedes afuera! Descubre más ahora"
+                },
+                "descripcion": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción de la CTA",
+                    "por_defecto": "Únete a nuestra comunidad y sé el primero en recibir las últimas noticias, ofertas exclusivas y contenido de alto valor directamente en tu bandeja de entrada."
+                },
+                "texto_boton": {
+                    "tipo": "texto",
+                    "etiqueta": "Texto del botón",
+                    "por_defecto": "Regístrate Gratis"
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "cta-contenedor",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "cta-contenido",
+                            "hijos": [
+                                {
+                                    "etiqueta": "h2",
+                                    "clase": "cta-titulo",
+                                    "campo": "titulo"
+                                },
+                                {
+                                    "etiqueta": "p",
+                                    "clase": "cta-descripcion",
+                                    "campo": "descripcion"
+                                }
+                            ]
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "cta-boton-wrapper",
+                            "hijos": [
+                                {
+                                    "etiqueta": "span",
+                                    "clase": "cta-boton",
+                                    "campo": "texto_boton"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--cta_boton { padding: clamp(2rem, 8vw, 6rem) clamp(1rem, 5vw, 4rem); background-color: #f0f0f0; display: flex; justify-content: center; }\n.sofia-gen--cta_boton .sg-cta-contenedor { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 800px; gap: 2rem; padding: clamp(2rem, 5vw, 4rem); background-color: #212121; color: #ffffff; border-radius: 1.5rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden; }\n.sofia-gen--cta_boton .sg-cta-contenedor::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); opacity: 0.85; z-index: 0; transform: skewY(-2deg) scale(1.05); transform-origin: top left; }\n.sofia-gen--cta_boton .sg-cta-contenido, .sofia-gen--cta_boton .sg-cta-boton-wrapper { position: relative; z-index: 1; }\n.sofia-gen--cta_boton .sg-cta-titulo { font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 700; line-height: 1.2; margin-bottom: 1rem; color: #fff; text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); }\n.sofia-gen--cta_boton .sg-cta-descripcion { font-size: clamp(1rem, 2.5vw, 1.25rem); line-height: 1.6; color: #e0e0e0; margin-bottom: 1.5rem; max-width: 600px; }\n.sofia-gen--cta_boton .sg-cta-boton { display: inline-block; background-color: #ffb703; color: #1a1a1a; padding: 1rem 2.5rem; border-radius: 50px; text-decoration: none; font-size: clamp(1rem, 2.5vw, 1.15rem); font-weight: 600; letter-spacing: 0.05em; transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); cursor: pointer; }\n.sofia-gen--cta_boton .sg-cta-boton:hover { background-color: #fb8500; transform: translateY(-3px) scale(1.02); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--cta_boton\" data-sofia-bloque-id=\"lote13\" data-sofia-bloque-tipo=\"cta_boton\"  ><div class=\"sg-cta-contenedor\"><div class=\"sg-cta-contenido\"><h2 class=\"sg-cta-titulo\" data-sofia-campo=\"lote13.titulo\" >¡No te quedes afuera! Descubre más ahora</h2><p class=\"sg-cta-descripcion\" data-sofia-campo=\"lote13.descripcion\" >Únete a nuestra comunidad y sé el primero en recibir las últimas noticias, ofertas exclusivas y contenido de alto valor directamente en tu bandeja de entrada.</p></div><div class=\"sg-cta-boton-wrapper\"><span class=\"sg-cta-boton\" data-sofia-campo=\"lote13.texto_boton\" >Regístrate Gratis</span></div></div></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "algo moderno para presentar el equipo",
+        "definicion": {
+            "tipo": "equipo_moderno",
+            "nombre": "Equipo Moderno",
+            "campos": {
+                "titulo_seccion": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la sección",
+                    "por_defecto": "Conoce a nuestro equipo"
+                },
+                "descripcion_seccion": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción de la sección",
+                    "por_defecto": "Somos un grupo apasionado de profesionales dedicados a la innovación y la excelencia en cada proyecto que emprendemos."
+                },
+                "miembros": {
+                    "tipo": "lista",
+                    "etiqueta": "Miembros del Equipo",
+                    "campos": {
+                        "foto": {
+                            "tipo": "imagen",
+                            "etiqueta": "Foto del miembro",
+                            "por_defecto": ""
+                        },
+                        "nombre": {
+                            "tipo": "texto",
+                            "etiqueta": "Nombre",
+                            "por_defecto": "Juan Pérez"
+                        },
+                        "cargo": {
+                            "tipo": "texto",
+                            "etiqueta": "Cargo",
+                            "por_defecto": "Director Creativo"
+                        },
+                        "descripcion": {
+                            "tipo": "texto_largo",
+                            "etiqueta": "Descripción corta",
+                            "por_defecto": "Especialista en diseño de experiencias de usuario y branding."
+                        }
+                    },
+                    "por_defecto": [
+                        {
+                            "foto": "",
+                            "nombre": "Juan Pérez",
+                            "cargo": "Director Creativo",
+                            "descripcion": "Especialista en diseño de experiencias de usuario y branding."
+                        },
+                        {
+                            "foto": "",
+                            "nombre": "Juan Pérez",
+                            "cargo": "Director Creativo",
+                            "descripcion": "Especialista en diseño de experiencias de usuario y branding."
+                        }
+                    ]
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "div",
+                    "clase": "contenedor-equipo",
+                    "hijos": [
+                        {
+                            "etiqueta": "h2",
+                            "clase": "titulo-seccion",
+                            "campo": "titulo_seccion"
+                        },
+                        {
+                            "etiqueta": "p",
+                            "clase": "descripcion-seccion",
+                            "campo": "descripcion_seccion"
+                        },
+                        {
+                            "etiqueta": "div",
+                            "clase": "grilla-miembros",
+                            "lista": "miembros",
+                            "item": [
+                                {
+                                    "etiqueta": "div",
+                                    "clase": "tarjeta-miembro",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "div",
+                                            "clase": "foto-marco",
+                                            "hijos": [
+                                                {
+                                                    "etiqueta": "img",
+                                                    "clase": "foto-miembro",
+                                                    "campo": "foto"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "etiqueta": "h3",
+                                            "clase": "nombre-miembro",
+                                            "campo": "nombre"
+                                        },
+                                        {
+                                            "etiqueta": "p",
+                                            "clase": "cargo-miembro",
+                                            "campo": "cargo"
+                                        },
+                                        {
+                                            "etiqueta": "p",
+                                            "clase": "descripcion-miembro",
+                                            "campo": "descripcion"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--equipo_moderno { padding: 4rem 2rem; background-color: #f9f9f9; }\n.sofia-gen--equipo_moderno .sg-contenedor-equipo { max-width: 1200px; margin: 0 auto; text-align: center; }\n.sofia-gen--equipo_moderno .sg-titulo-seccion { font-size: clamp(2rem, 5vw, 3.5rem); color: #2c3e50; margin-bottom: 1rem; position: relative; display: inline-block; }\n.sofia-gen--equipo_moderno .sg-titulo-seccion::after { content: ''; display: block; width: 60%; height: 4px; background-color: #007bff; margin: 0.5rem auto 0; border-radius: 2px; }\n.sofia-gen--equipo_moderno .sg-descripcion-seccion { font-size: clamp(1rem, 2.5vw, 1.25rem); color: #555; margin-bottom: 3rem; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.6; }\n.sofia-gen--equipo_moderno .sg-grilla-miembros { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2.5rem; }\n.sofia-gen--equipo_moderno .sg-tarjeta-miembro { background-color: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); padding: 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; transition: transform 0.3s ease, box-shadow 0.3s ease; overflow: hidden; }\n.sofia-gen--equipo_moderno .sg-tarjeta-miembro:hover { transform: translateY(-10px); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }\n.sofia-gen--equipo_moderno .sg-foto-marco { width: 150px; height: 150px; border-radius: 50%; overflow: hidden; margin-bottom: 1.5rem; border: 5px solid #007bff; box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.3); transform: rotate(-5deg); transition: transform 0.4s ease; }\n.sofia-gen--equipo_moderno .sg-tarjeta-miembro:hover .sg-foto-marco { transform: rotate(5deg) scale(1.05); }\n.sofia-gen--equipo_moderno .sg-foto-miembro { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }\n.sofia-gen--equipo_moderno .sg-nombre-miembro { font-size: clamp(1.4rem, 3vw, 1.8rem); color: #2c3e50; margin-bottom: 0.5rem; font-weight: 700; }\n.sofia-gen--equipo_moderno .sg-cargo-miembro { font-size: clamp(0.9rem, 2vw, 1.1rem); color: #007bff; font-weight: 600; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }\n.sofia-gen--equipo_moderno .sg-descripcion-miembro { font-size: clamp(0.85rem, 1.8vw, 1rem); color: #666; line-height: 1.5; margin-bottom: 0; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--equipo_moderno\" data-sofia-bloque-id=\"lote14\" data-sofia-bloque-tipo=\"equipo_moderno\"  ><div class=\"sg-contenedor-equipo\"><h2 class=\"sg-titulo-seccion\" data-sofia-campo=\"lote14.titulo_seccion\" >Conoce a nuestro equipo</h2><p class=\"sg-descripcion-seccion\" data-sofia-campo=\"lote14.descripcion_seccion\" >Somos un grupo apasionado de profesionales dedicados a la innovación y la excelencia en cada proyecto que emprendemos.</p><div class=\"sg-grilla-miembros\" data-sofia-lista=\"lote14.miembros\"><div class=\"sg-tarjeta-miembro\" data-sofia-item=\"0\"><div class=\"sg-foto-marco\"><img class=\"sg-foto-miembro\" data-sofia-campo=\"lote14.miembros.0.foto\" src=\"\" alt=\"\" loading=\"lazy\"></div><h3 class=\"sg-nombre-miembro\" data-sofia-campo=\"lote14.miembros.0.nombre\" >Juan Pérez</h3><p class=\"sg-cargo-miembro\" data-sofia-campo=\"lote14.miembros.0.cargo\" >Director Creativo</p><p class=\"sg-descripcion-miembro\" data-sofia-campo=\"lote14.miembros.0.descripcion\" >Especialista en diseño de experiencias de usuario y branding.</p></div><div class=\"sg-tarjeta-miembro\" data-sofia-item=\"1\"><div class=\"sg-foto-marco\"><img class=\"sg-foto-miembro\" data-sofia-campo=\"lote14.miembros.1.foto\" src=\"\" alt=\"\" loading=\"lazy\"></div><h3 class=\"sg-nombre-miembro\" data-sofia-campo=\"lote14.miembros.1.nombre\" >Juan Pérez</h3><p class=\"sg-cargo-miembro\" data-sofia-campo=\"lote14.miembros.1.cargo\" >Director Creativo</p><p class=\"sg-descripcion-miembro\" data-sofia-campo=\"lote14.miembros.1.descripcion\" >Especialista en diseño de experiencias de usuario y branding.</p></div></div></div></section>",
+        "avisos": []
+    },
+    {
+        "pedido": "una sección que se vea premium",
+        "definicion": {
+            "tipo": "seccion_premium",
+            "nombre": "Sección Premium",
+            "campos": {
+                "titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título de la sección",
+                    "por_defecto": "Diseño Exclusivo y Funcionalidad Superior"
+                },
+                "subtitulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Subtítulo de la sección",
+                    "por_defecto": "Experimenta la diferencia de un producto pensado para ti."
+                },
+                "imagen_principal": {
+                    "tipo": "imagen",
+                    "etiqueta": "Imagen destacada",
+                    "por_defecto": ""
+                },
+                "destacado_titulo": {
+                    "tipo": "texto",
+                    "etiqueta": "Título del detalle destacado",
+                    "por_defecto": "Calidad en Cada Detalle"
+                },
+                "destacado_descripcion": {
+                    "tipo": "texto_largo",
+                    "etiqueta": "Descripción del detalle destacado",
+                    "por_defecto": "Cada aspecto de nuestros productos está meticulosamente diseñado y fabricado con los materiales más finos, asegurando durabilidad y una estética impecable. No solo vendemos productos, ofrecemos una experiencia."
+                }
+            },
+            "estructura": [
+                {
+                    "etiqueta": "section",
+                    "clase": "seccion-premium",
+                    "hijos": [
+                        {
+                            "etiqueta": "div",
+                            "clase": "contenido-principal",
+                            "hijos": [
+                                {
+                                    "etiqueta": "div",
+                                    "clase": "texto-header",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "h2",
+                                            "clase": "titulo",
+                                            "campo": "titulo"
+                                        },
+                                        {
+                                            "etiqueta": "p",
+                                            "clase": "subtitulo",
+                                            "campo": "subtitulo"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "etiqueta": "figure",
+                                    "clase": "imagen-area",
+                                    "hijos": [
+                                        {
+                                            "etiqueta": "img",
+                                            "clase": "imagen-principal",
+                                            "campo": "imagen_principal"
+                                        },
+                                        {
+                                            "etiqueta": "figcaption",
+                                            "clase": "detalle-destacado",
+                                            "hijos": [
+                                                {
+                                                    "etiqueta": "h3",
+                                                    "clase": "detalle-titulo",
+                                                    "campo": "destacado_titulo"
+                                                },
+                                                {
+                                                    "etiqueta": "p",
+                                                    "clase": "detalle-descripcion",
+                                                    "campo": "destacado_descripcion"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "css": ".sofia-gen--seccion_premium { padding: 80px 0; background-color: #f8f8f8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }\n.sofia-gen--seccion_premium .sg-seccion-premium { position: relative; max-width: 1200px; margin: 0 auto; padding: 0 20px; }\n.sofia-gen--seccion_premium .sg-contenido-principal { display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px; align-items: center; }\n.sofia-gen--seccion_premium .sg-texto-header { margin-bottom: 40px; }\n.sofia-gen--seccion_premium .sg-titulo { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 700; color: #1a1a1a; line-height: 1.1; margin-bottom: 20px; }\n.sofia-gen--seccion_premium .sg-subtitulo { font-size: clamp(1.1rem, 2.5vw, 1.6rem); color: #555; line-height: 1.5; margin-bottom: 0; }\n.sofia-gen--seccion_premium .sg-imagen-area { position: relative; width: 100%; aspect-ratio: 16/10; overflow: visible; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); transform: rotate(2deg) scale(0.98); transition: transform 0.3s ease; }\n.sofia-gen--seccion_premium .sg-imagen-area:hover { transform: rotate(0deg) scale(1.0); }\n.sofia-gen--seccion_premium .sg-imagen-principal { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; display: block; filter: brightness(0.9); }\n.sofia-gen--seccion_premium .sg-detalle-destacado { position: absolute; bottom: -40px; left: -40px; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); width: 60%; max-width: 350px; z-index: 10; transform: rotate(-3deg); transition: transform 0.3s ease; }\n.sofia-gen--seccion_premium .sg-imagen-area:hover .sg-detalle-destacado { transform: rotate(0deg); }\n.sofia-gen--seccion_premium .sg-detalle-titulo { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 600; color: #2a2a2a; margin-bottom: 15px; line-height: 1.2; }\n.sofia-gen--seccion_premium .sg-detalle-descripcion { font-size: clamp(0.9rem, 1.8vw, 1.1rem); color: #666; line-height: 1.6; }\n.sofia-gen--seccion_premium .sg-contenido-principal { grid-template-columns: 1fr; gap: 40px; }\n.sofia-gen--seccion_premium .sg-texto-header { text-align: center; margin-bottom: 20px; }\n.sofia-gen--seccion_premium .sg-imagen-area { transform: none; }\n.sofia-gen--seccion_premium .sg-detalle-destacado { position: relative; bottom: auto; left: auto; margin-top: 40px; width: 80%; max-width: none; transform: none; text-align: center; margin-left: auto; margin-right: auto; }\n.sofia-gen--seccion_premium .sg-imagen-area:hover { transform: none; }\n.sofia-gen--seccion_premium .sg-imagen-area:hover .sg-detalle-destacado { transform: none; }"
+        },
+        "html": "<section class=\"sofia-gen sofia-gen--seccion_premium\" data-sofia-bloque-id=\"lote15\" data-sofia-bloque-tipo=\"seccion_premium\"  ><section class=\"sg-seccion-premium\"><div class=\"sg-contenido-principal\"><div class=\"sg-texto-header\"><h2 class=\"sg-titulo\" data-sofia-campo=\"lote15.titulo\" >Diseño Exclusivo y Funcionalidad Superior</h2><p class=\"sg-subtitulo\" data-sofia-campo=\"lote15.subtitulo\" >Experimenta la diferencia de un producto pensado para ti.</p></div><figure class=\"sg-imagen-area\"><img class=\"sg-imagen-principal\" data-sofia-campo=\"lote15.imagen_principal\" src=\"\" alt=\"\" loading=\"lazy\"><figcaption class=\"sg-detalle-destacado\"><h3 class=\"sg-detalle-titulo\" data-sofia-campo=\"lote15.destacado_titulo\" >Calidad en Cada Detalle</h3><p class=\"sg-detalle-descripcion\" data-sofia-campo=\"lote15.destacado_descripcion\" >Cada aspecto de nuestros productos está meticulosamente diseñado y fabricado con los materiales más finos, asegurando durabilidad y una estética impecable. No solo vendemos productos, ofrecemos una experiencia.</p></figcaption></figure></div></section></section>",
+        "avisos": [
+            "El CSS usa @media, que todavía no está soportado — esas reglas se descartaron."
+        ]
+    }
+]

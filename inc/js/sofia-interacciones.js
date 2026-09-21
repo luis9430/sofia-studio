@@ -242,12 +242,61 @@
 		});
 	}
 
+	/**
+	 * Efectos de entrada: que un bloque aparezca al llegar a pantalla.
+	 *
+	 * IntersectionObserver nativo, no GSAP. El proyecto tiene GSAP
+	 * declarado y disponible, pero para "avisame cuando esto entra en
+	 * pantalla" el navegador ya trae la herramienta exacta — sumar 70 KB
+	 * de librería para eso sería peso sin beneficio. GSAP se justifica
+	 * cuando haga falta coreografiar varias animaciones en el tiempo, que
+	 * no es este caso.
+	 *
+	 * El estado inicial invisible lo pone ESTE script (la clase
+	 * --armado), nunca el CSS. Si el CSS dejara los bloques en opacity:0
+	 * y el script fallara en cargar, el contenido quedaría invisible para
+	 * siempre. Así, sin JS no hay animación y todo se ve — que es el peor
+	 * caso aceptable.
+	 *
+	 * Se desconecta el observer después de disparar: la animación es de
+	 * entrada, no un ida y vuelta cada vez que se scrollea.
+	 */
+	function activarEntradas(raiz) {
+		var bloques = Array.prototype.slice.call(
+			raiz.querySelectorAll(".sofia-fx-aparece, .sofia-fx-desde-abajo")
+		);
+		if (bloques.length === 0) return;
+
+		// Sin IntersectionObserver (navegador viejo) el contenido se ve
+		// normalmente: no se arma nada y no hay nada que revelar.
+		if (typeof window.IntersectionObserver !== "function") return;
+
+		var observer = new IntersectionObserver(
+			function (entradas) {
+				entradas.forEach(function (entrada) {
+					if (!entrada.isIntersecting) return;
+					entrada.target.classList.add("sofia-fx--listo");
+					observer.unobserve(entrada.target);
+				});
+			},
+			// El margen negativo abajo hace que dispare cuando el bloque
+			// ya entró de verdad, no apenas asoma un pixel.
+			{ rootMargin: "0px 0px -10% 0px", threshold: 0.05 }
+		);
+
+		bloques.forEach(function (bloque) {
+			bloque.classList.add("sofia-fx--armado");
+			observer.observe(bloque);
+		});
+	}
+
 	function activarTodo(raiz) {
 		activarTabs(raiz);
 		activarAccordion(raiz);
 		activarModal(raiz);
 		activarDropdown(raiz);
 		activarCarousel(raiz);
+		activarEntradas(raiz);
 	}
 
 	if (MODO_EDITOR) return;

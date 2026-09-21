@@ -540,6 +540,55 @@ abstract class Sofia_Componente {
 			'middle' => 'items-middle',
 			'bottom' => 'items-bottom',
 		),
+
+		/**
+		 * EFECTOS — tratamiento visual aplicable a CUALQUIER bloque.
+		 *
+		 * Son la respuesta a un problema concreto y medido: las 39
+		 * primitivas del catálogo están diseñadas para ser COMBINABLES, no
+		 * para verse bien. Combinar piezas neutras da un resultado neutro,
+		 * y de ahí salía la sensación de "todo se ve igual".
+		 *
+		 * El intento anterior fue que la IA describiera componentes nuevos
+		 * con CSS propio. Falló para composición espacial: se le pidieron
+		 * "dos tarjetas superpuestas" y devolvió dos bloques apilados. El
+		 * modelo ENTENDÍA el pedido; lo que no supo fue escribir el CSS
+		 * que lo produce, y como no se ve a sí mismo, no lo detectaba.
+		 *
+		 * Acá el CSS se escribe UNA VEZ, a mano, y funciona. La IA (y el
+		 * usuario) solo eligen cuál aplicar — que es justo lo que un
+		 * modelo hace bien. Un efecto roto es imposible: si el valor no
+		 * está en este mapa, no se emite ninguna clase.
+		 *
+		 * A diferencia del resto de este mapa, estas clases NO son de Core
+		 * Framework: las define el tema en style.css. Es la primera
+		 * entrada así, y es deliberado — son decisiones de diseño de
+		 * Sofia Studio, no utilidades genéricas de layout.
+		 */
+		'efecto_recorte'    => array(
+			'diagonal'        => 'sofia-fx-recorte-diagonal',
+			'diagonal-arriba' => 'sofia-fx-recorte-diagonal-arriba',
+			'onda'            => 'sofia-fx-recorte-onda',
+			'arco'            => 'sofia-fx-recorte-arco',
+		),
+		'efecto_fondo'      => array(
+			'degradado'       => 'sofia-fx-fondo-degradado',
+			'degradado-suave' => 'sofia-fx-fondo-degradado-suave',
+			'puntos'          => 'sofia-fx-fondo-puntos',
+		),
+		'efecto_profundidad' => array(
+			'elevado'  => 'sofia-fx-elevado',
+			'flotante' => 'sofia-fx-flotante',
+			'vidrio'   => 'sofia-fx-vidrio',
+		),
+		'efecto_superposicion' => array(
+			'sube' => 'sofia-fx-sube',
+			'baja' => 'sofia-fx-baja',
+		),
+		'efecto_entrada'    => array(
+			'aparece'   => 'sofia-fx-aparece',
+			'desde-abajo' => 'sofia-fx-desde-abajo',
+		),
 	);
 
 	/**
@@ -1309,6 +1358,65 @@ abstract class Sofia_Componente {
 					array( 'valor' => '10000', 'etiqueta' => __( '10000 (siempre encima)', 'sofia-studio' ) ),
 				),
 			),
+
+			// --- EFECTOS ---
+			//
+			// Tratamiento visual, aplicable a cualquier bloque. Ver el
+			// comentario largo de CLASES_UTILITARIAS_BLOQUE para el porqué
+			// de que existan: las primitivas son combinables pero neutras,
+			// y combinar cosas neutras da algo neutro.
+			//
+			// Cada opción es una clase CSS escrita a mano y probada. Ni el
+			// usuario ni la IA escriben CSS: eligen de esta lista.
+			'efecto_recorte'                => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Recorte del borde', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Sin recorte', 'sofia-studio' ) ),
+					array( 'valor' => 'diagonal', 'etiqueta' => __( 'Diagonal abajo', 'sofia-studio' ) ),
+					array( 'valor' => 'diagonal-arriba', 'etiqueta' => __( 'Diagonal arriba', 'sofia-studio' ) ),
+					array( 'valor' => 'onda', 'etiqueta' => __( 'Onda', 'sofia-studio' ) ),
+					array( 'valor' => 'arco', 'etiqueta' => __( 'Arco', 'sofia-studio' ) ),
+				),
+			),
+			'efecto_fondo'                  => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Fondo decorativo', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Sin fondo decorativo', 'sofia-studio' ) ),
+					array( 'valor' => 'degradado', 'etiqueta' => __( 'Degradado de marca', 'sofia-studio' ) ),
+					array( 'valor' => 'degradado-suave', 'etiqueta' => __( 'Degradado suave', 'sofia-studio' ) ),
+					array( 'valor' => 'puntos', 'etiqueta' => __( 'Patrón de puntos', 'sofia-studio' ) ),
+				),
+			),
+			'efecto_profundidad'            => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Profundidad', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Plano', 'sofia-studio' ) ),
+					array( 'valor' => 'elevado', 'etiqueta' => __( 'Elevado', 'sofia-studio' ) ),
+					array( 'valor' => 'flotante', 'etiqueta' => __( 'Flotante', 'sofia-studio' ) ),
+					array( 'valor' => 'vidrio', 'etiqueta' => __( 'Vidrio esmerilado', 'sofia-studio' ) ),
+				),
+			),
+			'efecto_superposicion'          => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Superposición', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Normal', 'sofia-studio' ) ),
+					array( 'valor' => 'sube', 'etiqueta' => __( 'Monta sobre el bloque de arriba', 'sofia-studio' ) ),
+					array( 'valor' => 'baja', 'etiqueta' => __( 'Se mete bajo el de abajo', 'sofia-studio' ) ),
+				),
+			),
+			'efecto_entrada'                => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Entrada al hacer scroll', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Sin animación', 'sofia-studio' ) ),
+					array( 'valor' => 'aparece', 'etiqueta' => __( 'Aparecer', 'sofia-studio' ) ),
+					array( 'valor' => 'desde-abajo', 'etiqueta' => __( 'Subir al aparecer', 'sofia-studio' ) ),
+				),
+			),
 		);
 	}
 
@@ -1342,6 +1450,13 @@ abstract class Sofia_Componente {
 	protected const PERFIL_SECCION = array(
 		'ancho', 'max_width', 'alineacion_bloque', 'offset_x',
 		'color_fondo', 'color_borde', 'radius', 'sombra', 'espaciado_vertical', 'z_index',
+		// Los EFECTOS (ver CLASES_UTILITARIAS_BLOQUE) van en los perfiles
+		// de bloques que ocupan el ancho de la pagina. No en
+		// PERFIL_PRIMITIVA ni PERFIL_IMAGEN: un recorte diagonal o una
+		// superposicion sobre un Badge o un Icono no significan nada, y
+		// ofrecer un control que no hace nada es el defecto que los
+		// perfiles existen para evitar.
+		'efecto_recorte', 'efecto_fondo', 'efecto_profundidad', 'efecto_superposicion', 'efecto_entrada',
 	);
 
 	/**
@@ -1378,6 +1493,7 @@ abstract class Sofia_Componente {
 		'ancho', 'max_width', 'alineacion_bloque', 'offset_x',
 		'color_fondo', 'color_borde', 'radius', 'sombra', 'espaciado_vertical', 'z_index',
 		'columnas', 'alineacion_contenido', 'alineacion_vertical_contenido',
+		'efecto_recorte', 'efecto_fondo', 'efecto_profundidad', 'efecto_superposicion', 'efecto_entrada',
 	);
 
 	/**

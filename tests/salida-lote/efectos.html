@@ -1,4 +1,4 @@
-/*
+<!doctype html><meta charset="utf-8"><title>Efectos</title><style>/*
 Theme Name: Sofia Studio
 Description: Tema de WordPress con edición de contenido in-place, construido sobre GoPress. Estructura de página fija (plantillas curadas), solo el contenido es editable — ver el editor en el panel de GoPress, no en wp-admin.
 Author: GoPress
@@ -324,386 +324,74 @@ h1, h2, h3, h4, h5, h6 {
    mide su contenido (incluida la imagen), así que height:100% no recorta
    nada. Con aspect-ratio, la sección ya tiene una altura fija propia y
    object-fit sí puede recortar la imagen dentro de esa caja. */
-/* Hero — la apertura de la página.
-   ---------------------------------------------------------------------
-   Rediseñado junto con su PHP (ver class-hero.php para el porqué). En
-   resumen: la versión anterior era un contenedor de título + imagen, y
-   ningún efecto CSS por encima arreglaba que le faltara CONTENIDO.
+/* Composición del Hero. "lado" lo resuelven las utility classes de Core
+   Framework que agrega el PHP (flex-row + gap + items-middle); acá va
+   solo lo que CF no cubre. */
 
-   Las cuatro composiciones comparten el MISMO HTML y cambian solo por la
-   clase de la sección — así cambiar de una a otra no mueve los
-   [data-sofia-campo] de lugar y el editor no pierde el campo
-   seleccionado. */
-
-.sofia-hero {
-	display: flex;
-	align-items: center;
-	gap: clamp(2rem, 4vw, 4rem);
-	overflow: hidden;
-}
-
-.sofia-hero__cuerpo {
-	flex: 1 1 54%;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 1.25rem;
-	/* Alineado a la izquierda aunque la sección esté centrada: un bloque
-	   de texto largo centrado es incómodo de leer. */
-	text-align: left;
-}
-
-.sofia-hero__medio {
-	/* 46% contra el 54% del texto. El desbalance es deliberado: dos
-	   columnas iguales se leen como plantilla. */
-	flex: 1 1 46%;
-	min-width: 0;
-	position: relative;
-	align-self: stretch;
-	display: flex;
-}
-
-.sofia-hero__imagen {
-	width: 100%;
-	height: 100%;
-	min-height: 320px;
-	object-fit: cover;
-	border-radius: var(--sofia-radio-borde);
-}
-
-.sofia-hero__etiqueta {
-	margin: 0;
-	font-size: 0.78rem;
-	font-weight: 600;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--sofia-color-primario);
-}
-
-.sofia-hero__titulo {
-	margin: 0;
-	/* clamp en vez de @media: escala continua entre teléfono y escritorio
-	   sin saltos, y sin necesitar breakpoints. */
-	font-size: clamp(2.2rem, 5.5vw, 3.9rem);
-	line-height: 1.04;
-	letter-spacing: -0.02em;
-	text-wrap: balance;
-}
-
-.sofia-hero__texto {
-	margin: 0;
-	/* 46ch: el ancho donde un párrafo se lee cómodo. Más largo y el ojo
-	   pierde el renglón al volver. */
-	max-width: 46ch;
-	font-size: 1.05rem;
-	line-height: 1.6;
-	color: var(--sofia-color-texto-suave);
-}
-
-/* --- Acciones --------------------------------------------------------
-   Dos pesos distintos a propósito: dos botones iguales no dicen cuál es
-   la acción que importa. */
-.sofia-hero__acciones {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.75rem;
-	padding-top: 0.5rem;
-}
-
-.sofia-hero__boton {
-	display: inline-flex;
-	align-items: center;
-	/* 15px de alto interno deja el botón en ~48px: por encima del mínimo
-	   de 44px que una mano necesita para acertarle en un teléfono. */
-	padding: 15px 30px;
-	border-radius: var(--sofia-radio-borde);
-	background: var(--sofia-color-primario);
-	color: var(--sofia-color-fondo);
-	font-weight: 500;
-	text-decoration: none;
-}
-
-.sofia-hero__link {
-	display: inline-flex;
-	align-items: center;
-	padding: 15px 20px;
-	color: var(--sofia-color-texto);
-	font-weight: 500;
-	text-decoration: none;
-	border-bottom: 1px solid var(--sofia-color-borde);
-}
-
-.sofia-hero__link:hover {
-	border-bottom-color: var(--sofia-color-primario);
-}
-
-/* --- Datos destacados ------------------------------------------------
-   No son adorno: le dan al visitante una razón concreta para quedarse,
-   que un título solo no da. */
-.sofia-hero__datos {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	display: flex;
-	flex-wrap: wrap;
-	gap: clamp(1.25rem, 3vw, 2rem);
-	padding: 1.75rem;
-	color: #fff;
-	/* El degradado asegura que los números se lean sobre cualquier foto
-	   — no hay forma de saber de antemano cuál va a subir el cliente. */
-	background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-	border-radius: 0 0 var(--sofia-radio-borde) var(--sofia-radio-borde);
-}
-
-.sofia-hero__dato {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.sofia-hero__numero {
-	font-size: 2rem;
-	font-weight: 600;
-	line-height: 1;
-	font-variant-numeric: tabular-nums;
-}
-
-.sofia-hero__dato-etiqueta {
-	font-size: 0.75rem;
-	letter-spacing: 0.06em;
-	opacity: 0.85;
-}
-
-/* --- B: invertido ---------------------------------------------------- */
+/* Invertido: mismo layout en fila, con la imagen primero. CF no trae una
+   utility de row-reverse. */
 .sofia-hero--invertido {
 	flex-direction: row-reverse;
 }
 
-/* --- C: inmersivo ----------------------------------------------------
-   La imagen ocupa todo y el texto va encima. El degradado garantiza que
-   el título se lea sin importar qué foto suban: es la falla clásica de
-   un hero con imagen de fondo, y por eso no es opcional. */
-.sofia-hero--inmersivo {
-	display: grid;
+.sofia-hero.flex-row > h1,
+.sofia-hero.flex-row > img {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* Fondo: el texto va encima de la imagen. Es superposición, no layout de
+   caja, así que no hay utility de CF que lo resuelva.
+   El degradado no es decoración — sin él, un título claro sobre una foto
+   clara queda ilegible, y no hay forma de saber de antemano qué imagen
+   va a cargar el usuario. */
+.sofia-hero--fondo {
 	position: relative;
+	display: grid;
+	overflow: hidden;
 	border-radius: var(--sofia-radio-borde);
 }
 
-.sofia-hero--inmersivo > .sofia-hero__medio,
-.sofia-hero--inmersivo > .sofia-hero__cuerpo {
+.sofia-hero--fondo > img {
 	grid-area: 1 / 1;
-}
-
-.sofia-hero--inmersivo .sofia-hero__imagen {
-	min-height: 480px;
-	border-radius: var(--sofia-radio-borde);
-}
-
-.sofia-hero--inmersivo > .sofia-hero__cuerpo {
-	position: relative;
-	z-index: 2;
-	align-self: end;
-	padding: clamp(2rem, 4vw, 4rem);
-	color: #fff;
-}
-
-.sofia-hero--inmersivo .sofia-hero__titulo {
-	font-size: clamp(2.4rem, 6.5vw, 4.9rem);
-	max-width: 17ch;
-}
-
-.sofia-hero--inmersivo .sofia-hero__texto {
-	color: rgba(255, 255, 255, 0.88);
-}
-
-.sofia-hero--inmersivo .sofia-hero__etiqueta {
-	color: rgba(255, 255, 255, 0.75);
-}
-
-.sofia-hero--inmersivo .sofia-hero__boton {
-	background: #fff;
-	color: var(--sofia-color-texto);
-}
-
-.sofia-hero--inmersivo .sofia-hero__link {
-	color: #fff;
-	border: 1px solid rgba(255, 255, 255, 0.45);
-	border-radius: var(--sofia-radio-borde);
-}
-
-/* El degradado va en el MEDIO, no en un ::after de la sección: así queda
-   sobre la imagen pero debajo del texto sin pelear por el z-index. */
-.sofia-hero--inmersivo > .sofia-hero__medio::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background: linear-gradient(to top, rgba(12, 28, 24, 0.9) 0%, rgba(12, 28, 24, 0.45) 45%, rgba(12, 28, 24, 0.05) 100%);
-	border-radius: var(--sofia-radio-borde);
-	pointer-events: none;
-}
-
-/* En inmersivo los datos irían sobre el texto: se ocultan. El mismo dato
-   ya está en el cuerpo. */
-.sofia-hero--inmersivo .sofia-hero__datos {
-	display: none;
-}
-
-/* --- D: editorial ----------------------------------------------------
-   El hero no termina: se convierte en la primera sección. Los datos
-   pasan a ser tarjetas cortadas abajo, que invitan a scrollear. */
-.sofia-hero--editorial {
-	flex-direction: column;
-	align-items: stretch;
-	gap: 2.25rem;
-}
-
-.sofia-hero--editorial > .sofia-hero__cuerpo {
-	flex: 0 0 auto;
-	/* order 1 contra el 2 del medio: el HTML emite la imagen PRIMERO
-	   (para que en "inmersivo" quede detrás del texto), y sin esto el
-	   editorial mostraba la imagen arriba del título. Se corrige con
-	   order y no reordenando el markup: las cuatro composiciones
-	   comparten HTML a propósito. */
-	order: 1;
-	/* El cuerpo en fila: título a la izquierda, texto y botones a la
-	   derecha. Es lo que hace que no se lea como un hero apilado más. */
-	display: grid;
-	grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-	align-items: start;
-	gap: 0.9rem clamp(2rem, 4vw, 3rem);
-}
-
-/* Cada hijo declara su celda. Sin esto el grid los acomoda en orden de
-   documento —etiqueta arriba a la izquierda, título arriba a la
-   derecha— y la composición queda al revés de lo diseñado. */
-.sofia-hero--editorial .sofia-hero__etiqueta {
-	grid-column: 1;
-	grid-row: 1;
-}
-
-.sofia-hero--editorial .sofia-hero__titulo {
-	grid-column: 1;
-	grid-row: 2 / span 2;
-	max-width: 15ch;
-}
-
-.sofia-hero--editorial .sofia-hero__texto {
-	grid-column: 2;
-	grid-row: 2;
-	padding-top: 0.6rem;
-}
-
-.sofia-hero--editorial .sofia-hero__acciones {
-	grid-column: 2;
-	grid-row: 3;
-	align-self: start;
-}
-
-.sofia-hero--editorial > .sofia-hero__medio {
-	order: 2;
-	flex: 1 1 auto;
-	position: static;
-	/* La imagen y las tarjetas apiladas: en esta composición la imagen es
-	   una banda ancha y las tarjetas van debajo. */
-	flex-direction: column;
-	gap: 1.25rem;
-}
-
-/* La imagen se achica: en esta composición el protagonismo lo tienen las
-   tarjetas. */
-.sofia-hero--editorial .sofia-hero__imagen {
-	min-height: 0;
-	height: 200px;
-	border-radius: var(--sofia-radio-borde) var(--sofia-radio-borde) 0 0;
-}
-
-.sofia-hero--editorial .sofia-hero__datos {
-	position: static;
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 1.25rem;
-	padding: 0;
-	background: none;
-	color: inherit;
-}
-
-.sofia-hero--editorial .sofia-hero__dato {
-	padding: 1.5rem;
-	background: color-mix(in srgb, var(--sofia-color-primario) 8%, var(--sofia-color-fondo));
-	border-radius: var(--sofia-radio-borde) var(--sofia-radio-borde) 0 0;
-}
-
-.sofia-hero--editorial .sofia-hero__numero {
-	color: var(--sofia-color-primario);
-}
-
-.sofia-hero--editorial .sofia-hero__dato-etiqueta {
-	color: var(--sofia-color-texto-suave);
-	opacity: 1;
-}
-
-/* --- Altura ---------------------------------------------------------- */
-.sofia-hero--alta .sofia-hero__imagen {
-	min-height: 520px;
-}
-
-.sofia-hero--pantalla {
-	/* 100svh y no 100vh: en un teléfono, vh cuenta la barra de
-	   direcciones que se oculta al scrollear, así que 100vh deja el
-	   contenido cortado al cargar. */
-	min-height: 100svh;
-}
-
-.sofia-hero--pantalla .sofia-hero__imagen {
-	min-height: 100%;
-}
-
-/* --- Teléfono --------------------------------------------------------
-   Una sola columna en las cuatro composiciones. El texto sobre imagen
-   sigue funcionando porque el degradado ya está. */
-@media (max-width: 782px) {
-	.sofia-hero,
-	.sofia-hero--invertido {
-		flex-direction: column;
-		align-items: stretch;
-	}
-
-	.sofia-hero--editorial > .sofia-hero__cuerpo {
-		grid-template-columns: 1fr;
-	}
-
-	.sofia-hero--editorial .sofia-hero__titulo {
-		grid-row: auto;
-	}
-
-	.sofia-hero__imagen,
-	.sofia-hero--inmersivo .sofia-hero__imagen {
-		min-height: 300px;
-	}
-
-	.sofia-hero__acciones {
-		flex-direction: column;
-		align-items: stretch;
-	}
-
-	.sofia-hero__boton,
-	.sofia-hero__link {
-		justify-content: center;
-	}
-}
-
-/* object-fit sobre la imagen, desde el control de Nivel 2. */
-.sofia-hero.fit-cover .sofia-hero__imagen {
+	width: 100%;
+	height: 100%;
+	min-height: 320px;
 	object-fit: cover;
 }
 
-.sofia-hero.fit-contain .sofia-hero__imagen {
+.sofia-hero--fondo > h1 {
+	grid-area: 1 / 1;
+	align-self: end;
+	position: relative;
+	z-index: 1;
+	margin: 0;
+	padding: var(--sofia-espaciado-base);
+	color: #fff;
+}
+
+.sofia-hero--fondo::after {
+	content: "";
+	grid-area: 1 / 1;
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent 60%);
+	pointer-events: none;
+}
+
+.sofia-hero.fit-cover > img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.sofia-hero.fit-contain > img {
+	width: 100%;
+	height: 100%;
 	object-fit: contain;
 }
 
-.sofia-hero.fit-fill .sofia-hero__imagen {
+.sofia-hero.fit-fill > img {
+	width: 100%;
+	height: 100%;
 	object-fit: fill;
 }
 
@@ -2146,3 +1834,4 @@ h1, h2, h3, h4, h5, h6 {
 		transform: none;
 	}
 }
+</style><style>:root{--sofia-color-primario:#4a7c6f;--sofia-color-acento:#c96f4a;--sofia-color-secundario:#9ab5ad;--sofia-color-texto:#1f2421;--sofia-color-texto-suave:#5c6b63;--sofia-color-fondo:#ffffff;--sofia-color-borde:#dde5e1;--sofia-radio-borde:10px;--sofia-espaciado-base:28px}</style><style>body{margin:0;font:16px/1.6 system-ui,sans-serif;background:#eef1f4}.etq{margin:0;padding:10px 16px;background:#18181b;color:#fafafa;font:600 12px/1 ui-monospace,monospace}.fondo-vidrio{background:linear-gradient(135deg,#2f5d50,#7fb8a5)}</style><p class="etq">Hero: recorte diagonal + degradado de marca</p><section class="sofia-hero sofia-fx-recorte-diagonal sofia-fx-fondo-degradado" data-sofia-bloque-id="fx850ab12603fc00376281c62bf72b09f7" data-sofia-bloque-tipo="hero"  ><h1 data-sofia-campo="fx850ab12603fc00376281c62bf72b09f7.titulo" >Escribe el título de tu página</h1></section><p class="etq">Hero: recorte en onda</p><section class="sofia-hero sofia-fx-recorte-onda sofia-fx-fondo-degradado" data-sofia-bloque-id="fx1b0651a8ae1f0a8f095f132522dde610" data-sofia-bloque-tipo="hero"  ><h1 data-sofia-campo="fx1b0651a8ae1f0a8f095f132522dde610.titulo" >Escribe el título de tu página</h1></section><p class="etq">Card: elevado</p><section class="sofia-card sofia-fx-elevado" data-sofia-bloque-id="fxaeb5de0f9f17d2902cf793d3f3e120b5" data-sofia-bloque-tipo="card"  ><div class="sofia-card__cuerpo"><h3 class="sofia-card__titulo" data-sofia-campo="fxaeb5de0f9f17d2902cf793d3f3e120b5.titulo" >Título de la tarjeta</h3><p class="sofia-card__texto" data-sofia-campo="fxaeb5de0f9f17d2902cf793d3f3e120b5.texto" >Describe brevemente este elemento.</p><a class="sofia-card__boton" href="#" data-sofia-campo="fxaeb5de0f9f17d2902cf793d3f3e120b5.boton_texto" >Ver más</a></div></section><p class="etq">Card: flotante, montando sobre el bloque de arriba</p><section class="sofia-card sofia-fx-flotante sofia-fx-sube" data-sofia-bloque-id="fxe84adc7f963316f1e2e4206743a1e013" data-sofia-bloque-tipo="card"  ><div class="sofia-card__cuerpo"><h3 class="sofia-card__titulo" data-sofia-campo="fxe84adc7f963316f1e2e4206743a1e013.titulo" >Título de la tarjeta</h3><p class="sofia-card__texto" data-sofia-campo="fxe84adc7f963316f1e2e4206743a1e013.texto" >Describe brevemente este elemento.</p><a class="sofia-card__boton" href="#" data-sofia-campo="fxe84adc7f963316f1e2e4206743a1e013.boton_texto" >Ver más</a></div></section><p class="etq">Franja de beneficios: fondo de puntos</p><section class="sofia-franja-beneficios sofia-fx-fondo-puntos" data-sofia-bloque-id="fxd099d4e10a45eac96c7a7402fd8bd766" data-sofia-bloque-tipo="franja_beneficios" data-sofia-grilla  ><div class="sofia-franja-beneficios__grid" data-sofia-lista="fxd099d4e10a45eac96c7a7402fd8bd766.items"><div class="sofia-franja-beneficios__item" data-sofia-item="0"><h3 data-sofia-campo="fxd099d4e10a45eac96c7a7402fd8bd766.items.0.titulo" >Beneficio 1</h3><p data-sofia-campo="fxd099d4e10a45eac96c7a7402fd8bd766.items.0.texto" >Describe este beneficio en una línea.</p></div><div class="sofia-franja-beneficios__item" data-sofia-item="1"><h3 data-sofia-campo="fxd099d4e10a45eac96c7a7402fd8bd766.items.1.titulo" >Beneficio 2</h3><p data-sofia-campo="fxd099d4e10a45eac96c7a7402fd8bd766.items.1.texto" >Describe este beneficio en una línea.</p></div><div class="sofia-franja-beneficios__item" data-sofia-item="2"><h3 data-sofia-campo="fxd099d4e10a45eac96c7a7402fd8bd766.items.2.titulo" >Beneficio 3</h3><p data-sofia-campo="fxd099d4e10a45eac96c7a7402fd8bd766.items.2.texto" >Describe este beneficio en una línea.</p></div></div></section><p class="etq">CTA: degradado suave + arco</p><section class="sofia-cta sofia-fx-recorte-arco sofia-fx-fondo-degradado-suave" data-sofia-bloque-id="fx10b71d874d126fcadcec3bef9fd28caf" data-sofia-bloque-tipo="cta"  ><h2 data-sofia-campo="fx10b71d874d126fcadcec3bef9fd28caf.titulo" >¿Listo para empezar?</h2><p data-sofia-campo="fx10b71d874d126fcadcec3bef9fd28caf.texto" >Escribe acá una invitación breve a la acción que querés que tome el visitante.</p><a class="sofia-cta__boton" href="#" data-sofia-campo="fx10b71d874d126fcadcec3bef9fd28caf.boton_texto" >Contactanos</a></section><p class="etq">Testimonios: vidrio sobre degradado</p><section class="sofia-testimonios sofia-fx-vidrio" data-sofia-bloque-id="fxe39a00da5328641f1c10742f345369a4" data-sofia-bloque-tipo="testimonios" data-sofia-grilla  ><div class="sofia-testimonios__grid" data-sofia-lista="fxe39a00da5328641f1c10742f345369a4.items"><div class="sofia-testimonios__item" data-sofia-item="0"><p class="sofia-testimonios__cita" data-sofia-campo="fxe39a00da5328641f1c10742f345369a4.items.0.cita" >Escribe acá lo que dijo este cliente sobre tu producto o servicio.</p><h3 class="sofia-testimonios__nombre" data-sofia-campo="fxe39a00da5328641f1c10742f345369a4.items.0.nombre" >Cliente 1</h3></div><div class="sofia-testimonios__item" data-sofia-item="1"><p class="sofia-testimonios__cita" data-sofia-campo="fxe39a00da5328641f1c10742f345369a4.items.1.cita" >Escribe acá lo que dijo este cliente sobre tu producto o servicio.</p><h3 class="sofia-testimonios__nombre" data-sofia-campo="fxe39a00da5328641f1c10742f345369a4.items.1.nombre" >Cliente 2</h3></div><div class="sofia-testimonios__item" data-sofia-item="2"><p class="sofia-testimonios__cita" data-sofia-campo="fxe39a00da5328641f1c10742f345369a4.items.2.cita" >Escribe acá lo que dijo este cliente sobre tu producto o servicio.</p><h3 class="sofia-testimonios__nombre" data-sofia-campo="fxe39a00da5328641f1c10742f345369a4.items.2.nombre" >Cliente 3</h3></div></div></section>
