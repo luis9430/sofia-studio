@@ -457,11 +457,16 @@ export function CamposDesdeSchema({
  * Solo muestra los subcampos que el canvas NO cubre. Duplicar acá los de
  * texto sería ofrecer dos lugares para lo mismo, con el riesgo de que se
  * pisen entre sí mientras se escribe.
+ *
+ * "icono" entra por el mismo criterio: hacer clic en un SVG del canvas no
+ * abre un selector, así que sin esto el ícono de cada item sería un campo
+ * declarado y sin forma de editarse — el defecto que este componente
+ * existe para tapar.
  */
 function CampoLista({ definicion, valor, onCambiar, restUrl, nonce }) {
   const items = Array.isArray(valor) ? valor : [];
   const subcampos = Object.entries(definicion.campos || {}).filter(
-    ([, d]) => d.tipo === "url" || d.tipo === "imagen"
+    ([, d]) => d.tipo === "url" || d.tipo === "imagen" || d.tipo === "icono"
   );
 
   if (subcampos.length === 0 || items.length === 0) return null;

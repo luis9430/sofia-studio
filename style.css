@@ -2146,3 +2146,431 @@ h1, h2, h3, h4, h5, h6 {
 		transform: none;
 	}
 }
+
+/* =====================================================================
+   BASE DE LAS PIEZAS DE DISEÑO
+   ---------------------------------------------------------------------
+   Lo compartido por los Componentes rediseñados como PIEZAS (Hero,
+   Beneficios y los que siguen), a diferencia de las primitivas de
+   maquetación (Container, Spacer, Divider), que siguen siendo
+   contenedores neutros porque ese ES su trabajo.
+
+   Existe para que cada pieza nueva no invente su propia escala. Antes de
+   esto el tema tenía breakpoints en 782, 600 y 480 sin criterio común:
+   tres piezas con tres ideas distintas de "cuándo es un teléfono".
+
+   Los tres breakpoints, y por qué esos:
+     - 1024px: una tablet en horizontal. Abajo de eso, tres columnas
+       quedan estrechas y pasan a dos.
+     - 768px: tablet vertical / teléfono grande. Todo pasa a una columna.
+     - 480px: teléfono chico. Se achica el espaciado, no el layout.
+
+   Nada de esto usa @media para TIPOGRAFÍA ni ESPACIADO: para eso está
+   clamp(), que escala de forma continua en vez de saltar en un punto.
+   Los @media quedan solo para lo que no se puede interpolar — cuántas
+   columnas tiene una grilla.
+   ===================================================================== */
+
+:root {
+	/* Escala de espaciado de las piezas. Cada paso escala con el ancho de
+	   la pantalla: el mismo token da 24px en un teléfono y 40px en un
+	   escritorio, sin un solo @media. */
+	--pieza-gap-xs: clamp(0.5rem, 1vw, 0.75rem);
+	--pieza-gap-s: clamp(0.75rem, 1.5vw, 1.25rem);
+	--pieza-gap-m: clamp(1.25rem, 2vw, 1.75rem);
+	--pieza-gap-l: clamp(1.75rem, 3vw, 2.75rem);
+	--pieza-gap-xl: clamp(2.5rem, 4.5vw, 4rem);
+
+	/* Aire interno de una sección completa. El horizontal nunca baja de
+	   20px: es el mínimo para que el texto no quede pegado al borde de un
+	   teléfono. */
+	--pieza-padding-y: clamp(3rem, 7vw, 5.5rem);
+	--pieza-padding-x: clamp(1.25rem, 5vw, 4rem);
+
+	/* Escala tipográfica. Un solo lugar donde cambiarla. */
+	--pieza-titulo: clamp(1.9rem, 4vw, 2.75rem);
+	--pieza-subtitulo: clamp(1.15rem, 1.6vw, 1.35rem);
+	--pieza-texto: clamp(0.95rem, 1.1vw, 1.05rem);
+	--pieza-etiqueta: 0.78rem;
+}
+
+/* --- Sección -----------------------------------------------------------
+   La caja de cualquier pieza. El ancho máximo evita que en un monitor
+   ancho una línea de texto cruce toda la pantalla: arriba de ~75
+   caracteres el ojo pierde el renglón al volver. */
+.sofia-pieza {
+	box-sizing: border-box;
+	padding: var(--pieza-padding-y) var(--pieza-padding-x);
+}
+
+.sofia-pieza__interior {
+	max-width: var(--sofia-ancho-maximo-pantalla, 1200px);
+	margin-inline: auto;
+}
+
+/* --- Encabezado de sección --------------------------------------------
+   Etiqueta, título y bajada. Lo comparten todas las piezas: es lo que le
+   da contexto a la lista de abajo, y es justamente lo que faltaba en la
+   versión anterior de Beneficios (tres bloques de texto sueltos sin
+   nada que dijera de qué eran). */
+.sofia-pieza__encabezado {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-s);
+	margin-bottom: var(--pieza-gap-xl);
+}
+
+/* Encabezado en dos columnas: título a la izquierda, bajada a la
+   derecha. Rompe la simetría del encabezado centrado, que es el que
+   todos los sitios usan. */
+.sofia-pieza__encabezado--partido {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	align-items: end;
+	gap: var(--pieza-gap-l);
+}
+
+.sofia-pieza__encabezado--centrado {
+	align-items: center;
+	text-align: center;
+}
+
+.sofia-pieza__encabezado--centrado .sofia-pieza__bajada {
+	margin-inline: auto;
+}
+
+.sofia-pieza__etiqueta {
+	margin: 0;
+	font-size: var(--pieza-etiqueta);
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--sofia-color-primario);
+}
+
+.sofia-pieza__titulo {
+	margin: 0;
+	max-width: 22ch;
+	font-size: var(--pieza-titulo);
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+}
+
+.sofia-pieza__bajada {
+	margin: 0;
+	max-width: 46ch;
+	font-size: var(--pieza-subtitulo);
+	line-height: 1.6;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- Grilla de items ---------------------------------------------------
+   auto-fit + minmax deja que el navegador decida cuántas columnas
+   entran, sin @media: con 3 items y espacio, tres columnas; en un
+   teléfono, una. Las variantes --2 y --4 cambian el ancho mínimo cuando
+   hace falta forzar menos o más columnas. */
+.sofia-pieza__grilla {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+	gap: var(--pieza-gap-m);
+}
+
+.sofia-pieza__grilla--2 {
+	grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+}
+
+.sofia-pieza__grilla--4 {
+	grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+/* --- Ícono -------------------------------------------------------------
+   Caja de tamaño fijo con el SVG adentro: sin esto, un ícono de trazo
+   fino y uno de trazo grueso hacen que las tarjetas no alineen. */
+.sofia-pieza__icono {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 44px;
+	height: 44px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--sofia-color-primario) 12%, var(--sofia-color-fondo));
+	color: var(--sofia-color-primario);
+}
+
+.sofia-pieza__icono svg {
+	width: 22px;
+	height: 22px;
+}
+
+/* --- Accesibilidad -----------------------------------------------------
+   Un foco visible en TODA pieza. El default del navegador desaparece en
+   cuanto alguien pone outline:none en cualquier lado, y entonces navegar
+   con teclado se vuelve adivinanza. */
+.sofia-pieza :is(a, button, summary):focus-visible {
+	outline: 2px solid var(--sofia-color-primario);
+	outline-offset: 3px;
+	border-radius: 3px;
+}
+
+/* --- Tablet ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+	.sofia-pieza__encabezado--partido {
+		grid-template-columns: 1fr;
+		align-items: start;
+		gap: var(--pieza-gap-m);
+	}
+}
+
+/* --- Teléfono ---------------------------------------------------------- */
+@media (max-width: 768px) {
+	.sofia-pieza__grilla,
+	.sofia-pieza__grilla--2,
+	.sofia-pieza__grilla--4 {
+		grid-template-columns: 1fr;
+	}
+
+	.sofia-pieza__titulo {
+		max-width: none;
+	}
+}
+
+/* =====================================================================
+   Beneficios — la sección que explica por qué elegir esto.
+
+   Rediseñado como PIEZA (ver class-franja-beneficios.php). Se apoya en
+   la base compartida: espaciado, encabezado, grilla y foco visible salen
+   de ahí. Acá va solo lo propio de esta sección.
+
+   Las tres composiciones comparten el MISMO HTML y cambian por la clase
+   de la sección — así cambiar de una a otra no mueve los
+   [data-sofia-campo] y el editor no pierde el campo seleccionado.
+   ===================================================================== */
+
+/* --- A: tarjetas (por defecto) ---------------------------------------- */
+.sofia-beneficios__item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-s);
+	box-sizing: border-box;
+	padding: var(--pieza-gap-m);
+	background: var(--sofia-color-fondo);
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 10px;
+}
+
+.sofia-beneficios__cuerpo {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.sofia-beneficios__titulo {
+	margin: 0;
+	font-size: 1.3rem;
+	line-height: 1.25;
+	letter-spacing: -0.01em;
+}
+
+.sofia-beneficios__texto {
+	margin: 0;
+	font-size: var(--pieza-texto);
+	line-height: 1.6;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* El número solo aparece en la composición numerada. Se emite siempre en
+   el HTML (es contenido, no decoración: cuenta pasos) y acá se oculta. */
+.sofia-beneficios__numero {
+	display: none;
+}
+
+/* --- B: numerada ------------------------------------------------------
+   Para cuando los items son un PROCESO y el orden significa algo. Sin
+   tarjeta: una línea arriba separa cada paso, y el número en serif es el
+   elemento gráfico. */
+.sofia-beneficios--numerada .sofia-beneficios__item {
+	padding: var(--pieza-gap-m) var(--pieza-gap-m) 0 0;
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--sofia-color-borde);
+	border-radius: 0;
+}
+
+.sofia-beneficios--numerada .sofia-beneficios__numero {
+	display: block;
+	font-size: 0.95rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var(--sofia-color-primario);
+}
+
+/* En numerada el ícono sobra: el número ya ordena y distingue. Dos
+   marcadores compiten entre sí. */
+.sofia-beneficios--numerada .sofia-beneficios__icono {
+	display: none;
+}
+
+/* --- C: lista al costado ----------------------------------------------
+   El encabezado se queda a la izquierda y los items bajan a la derecha.
+   Admite más items que las otras dos sin verse apretada. */
+.sofia-beneficios--lista .sofia-pieza__interior {
+	display: grid;
+	grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+	gap: var(--pieza-gap-xl);
+	align-items: start;
+}
+
+.sofia-beneficios--lista .sofia-pieza__encabezado {
+	margin-bottom: 0;
+	/* El encabezado acompaña el scroll de la lista: en una sección alta,
+	   perder de vista de qué se está hablando desorienta. */
+	position: sticky;
+	top: var(--pieza-gap-l);
+}
+
+.sofia-beneficios--lista .sofia-beneficios__items {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.sofia-beneficios--lista .sofia-beneficios__item {
+	flex-direction: row;
+	align-items: flex-start;
+	gap: var(--pieza-gap-s);
+	padding: var(--pieza-gap-s) 0;
+	background: none;
+	border: 0;
+	border-bottom: 1px solid var(--sofia-color-borde);
+	border-radius: 0;
+}
+
+.sofia-beneficios--lista .sofia-beneficios__item:last-child {
+	border-bottom: 0;
+}
+
+/* Ícono más chico y redondo: en una fila compacta, la caja de 44px del
+   default pesa demasiado. */
+.sofia-beneficios--lista .sofia-beneficios__icono {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	margin-top: 2px;
+}
+
+.sofia-beneficios--lista .sofia-beneficios__icono svg {
+	width: 16px;
+	height: 16px;
+}
+
+.sofia-beneficios--lista .sofia-beneficios__titulo {
+	font-size: 1.12rem;
+}
+
+/* --- Encabezado ------------------------------------------------------- */
+.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__encabezado {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	align-items: end;
+	gap: var(--pieza-gap-l);
+}
+
+/* En dos columnas, etiqueta y título van juntos a la izquierda y la
+   bajada sola a la derecha. */
+.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__etiqueta {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__titulo {
+	grid-column: 1;
+	grid-row: 2;
+}
+
+.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__bajada {
+	grid-column: 2;
+	grid-row: 2;
+}
+
+.sofia-beneficios--enc-centrado .sofia-pieza__encabezado {
+	align-items: center;
+	text-align: center;
+}
+
+.sofia-beneficios--enc-centrado .sofia-pieza__titulo,
+.sofia-beneficios--enc-centrado .sofia-pieza__bajada {
+	margin-inline: auto;
+}
+
+/* --- Tono oscuro ------------------------------------------------------
+   Una página entera en claro se vuelve monótona; un corte oscuro le da
+   ritmo. No es solo estética: marca dónde cambia el tema. */
+.sofia-beneficios--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-beneficios--oscuro .sofia-pieza__titulo,
+.sofia-beneficios--oscuro .sofia-beneficios__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro en vez de una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro, que una opacidad no garantiza. */
+.sofia-beneficios--oscuro .sofia-pieza__bajada,
+.sofia-beneficios--oscuro .sofia-beneficios__texto {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-beneficios--oscuro .sofia-pieza__etiqueta,
+.sofia-beneficios--oscuro .sofia-beneficios__numero {
+	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+}
+
+.sofia-beneficios--oscuro .sofia-beneficios__item {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 7%, transparent);
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+.sofia-beneficios--oscuro .sofia-pieza__icono {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 14%, transparent);
+	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+}
+
+.sofia-beneficios--oscuro.sofia-beneficios--numerada .sofia-beneficios__item,
+.sofia-beneficios--oscuro.sofia-beneficios--lista .sofia-beneficios__item {
+	background: none;
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+/* --- Tablet ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+	.sofia-beneficios--lista .sofia-pieza__interior {
+		grid-template-columns: 1fr;
+		gap: var(--pieza-gap-l);
+	}
+
+	.sofia-beneficios--lista .sofia-pieza__encabezado {
+		position: static;
+	}
+}
+
+/* --- Teléfono ---------------------------------------------------------- */
+@media (max-width: 768px) {
+	.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__encabezado {
+		grid-template-columns: 1fr;
+		align-items: start;
+		gap: var(--pieza-gap-s);
+	}
+
+	.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__bajada {
+		grid-column: 1;
+		grid-row: 3;
+	}
+
+	.sofia-beneficios--numerada .sofia-beneficios__item {
+		padding-right: 0;
+	}
+}
