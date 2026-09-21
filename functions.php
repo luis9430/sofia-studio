@@ -53,6 +53,7 @@ require_once __DIR__ . '/inc/componentes/class-gallery.php';
 require_once __DIR__ . '/inc/componentes/class-masonry.php';
 require_once __DIR__ . '/inc/componentes/class-marquee.php';
 require_once __DIR__ . '/inc/componentes/class-carousel.php';
+require_once __DIR__ . '/inc/componentes/class-header.php';
 
 /**
  * Componentes GENERADOS: su forma viene de una descripción guardada en

@@ -290,6 +290,47 @@
 		});
 	}
 
+	/**
+	 * Header: el menu en telefono.
+	 *
+	 * En escritorio el header no necesita una linea de JS — el menu ya esta
+	 * visible. Esto solo existe para el boton de hamburguesa.
+	 *
+	 * El estado vive en aria-expanded del boton, no en una variable: asi el
+	 * lector de pantalla y el CSS leen la MISMA fuente, y no hay forma de
+	 * que se desincronicen. Un aria-expanded que miente es peor que no
+	 * tenerlo.
+	 */
+	function activarHeader(raiz) {
+		raiz.querySelectorAll(".sofia-header").forEach(function (header) {
+			var boton = header.querySelector("[data-sofia-menu-boton]");
+			if (!boton) return;
+
+			function alternar(abrir) {
+				boton.setAttribute("aria-expanded", abrir ? "true" : "false");
+				header.classList.toggle("sofia-header--abierto", abrir);
+				boton.setAttribute("aria-label", abrir ? "Cerrar menú" : "Abrir menú");
+			}
+
+			boton.addEventListener("click", function () {
+				alternar(boton.getAttribute("aria-expanded") !== "true");
+			});
+
+			// Escape cierra, como cualquier capa que tapa contenido.
+			header.addEventListener("keydown", function (evento) {
+				if (evento.key === "Escape") alternar(false);
+			});
+
+			// Tocar un enlace cierra el menu: sin esto, al navegar a un ancla
+			// de la misma pagina el menu queda abierto tapando el destino.
+			header.querySelectorAll(".sofia-header__enlace").forEach(function (enlace) {
+				enlace.addEventListener("click", function () {
+					alternar(false);
+				});
+			});
+		});
+	}
+
 	function activarTodo(raiz) {
 		activarTabs(raiz);
 		activarAccordion(raiz);
@@ -297,6 +338,7 @@
 		activarDropdown(raiz);
 		activarCarousel(raiz);
 		activarEntradas(raiz);
+		activarHeader(raiz);
 	}
 
 	if (MODO_EDITOR) return;
