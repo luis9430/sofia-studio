@@ -35,7 +35,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
-const CAPTURAS = join(AQUI, "capturas");
+
 
 /** El .env de GoPress: un solo lugar para el secreto, no una copia acá. */
 const RUTA_ENV = "C:/laragon/www/GoPress/.env";
@@ -145,7 +145,7 @@ async function armarMensaje(pieza, medidas) {
   ];
 
   for (const m of medidas) {
-    const b64 = await readFile(join(CAPTURAS, m.captura), { encoding: "base64" });
+    const b64 = await readFile(join(AQUI, CAPTURAS_DE, m.captura), { encoding: "base64" });
     const duros = m.hallazgos.filter((h) => h.severidad !== "nota");
     partes.push({
       type: "text",
@@ -213,9 +213,19 @@ async function juzgarPieza(clave, pieza, medidas) {
 // --- Correr ---------------------------------------------------------------
 
 const clave = await leerClave();
-const { resultados } = JSON.parse(await readFile(join(AQUI, "medidas.json"), "utf8"));
 
-const soloPieza = process.argv[2];
+// Se puede juzgar el set de piezas a mano (el default) o el de paginas
+// generadas por IA: "node juzgar.mjs --ia". Mismo juez y misma rubrica para
+// los dos — si el generador se juzgara con otro criterio, comparar no
+// querria decir nada.
+const esIA = process.argv.includes("--ia");
+const ARCHIVO_MEDIDAS = esIA ? "medidas-ia.json" : "medidas.json";
+const ARCHIVO_JUICIO = esIA ? "juicio-ia.json" : "juicio.json";
+const CAPTURAS_DE = esIA ? "capturas-ia" : "capturas";
+
+const { resultados } = JSON.parse(await readFile(join(AQUI, ARCHIVO_MEDIDAS), "utf8"));
+
+const soloPieza = process.argv.slice(2).find((a) => !a.startsWith("--"));
 const piezas = [...new Set(resultados.map((r) => r.pieza))].filter(
   (p) => !soloPieza || p === soloPieza
 );
@@ -251,7 +261,7 @@ for (const pieza of piezas) {
 // tocar. Se fusiona con lo que ya había.
 let previos = [];
 try {
-  previos = JSON.parse(await readFile(join(AQUI, "juicio.json"), "utf8")).juicios ?? [];
+  previos = JSON.parse(await readFile(join(AQUI, ARCHIVO_JUICIO), "utf8")).juicios ?? [];
 } catch {
   /* primera corrida */
 }
@@ -261,7 +271,7 @@ const fusionados = [
 ];
 
 await writeFile(
-  join(AQUI, "juicio.json"),
+  join(AQUI, ARCHIVO_JUICIO),
   JSON.stringify(
     { generado: new Date().toISOString(), modelo: MODELO, juicios: fusionados },
     null,

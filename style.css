@@ -856,6 +856,11 @@ h1, h2, h3, h4, h5, h6 {
 	/* 15px de alto interno deja el botón en ~48px: por encima del mínimo
 	   de 44px que una mano necesita para acertarle en un teléfono. */
 	padding: 15px 30px;
+	/* Borde transparente para igualar altura con la acción secundaria, que
+	   lleva border-bottom: sin esto el primario mide 48px y el secundario
+	   50px, y en una fila el escalón se nota. Mismo defecto que ya tenía el
+	   CTA — los dos aparecieron midiendo, no mirando. */
+	border: 1px solid transparent;
 	border-radius: var(--sofia-radio-borde);
 	background: var(--sofia-color-primario);
 	color: var(--sofia-color-fondo);
@@ -2949,7 +2954,22 @@ h1, h2, h3, h4, h5, h6 {
 	display: grid;
 	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
 	align-items: end;
-	gap: var(--pieza-gap-l);
+	/* Los dos ejes por separado, no un gap único: el horizontal separa las
+	   dos COLUMNAS (etiqueta+título | bajada) y ahí 38px está bien; el
+	   vertical separa la etiqueta de su propio título, donde ese mismo
+	   valor abre un hueco que rompe el grupo. Con un solo gap, la misma
+	   etiqueta quedaba a 38px del título en la composición partida y a
+	   19px en las otras dos — lo notó el juez comparando páginas.
+
+	   align-items: end alinea el pie del título con el de la bajada, que
+	   es lo que hace que las dos columnas terminen parejas. El efecto
+	   lateral es que, cuando la bajada ocupa más alto que el título, el
+	   sobrante se acumula ARRIBA del título y la etiqueta parece alejarse
+	   — medido: 12px a 768px contra 36px a 1280px, con el mismo row-gap.
+	   Por eso la etiqueta se alinea aparte al fondo de SU fila, y deja de
+	   heredar el estiramiento de la fila de al lado. */
+	column-gap: var(--pieza-gap-l);
+	row-gap: var(--pieza-gap-s);
 }
 
 /* En dos columnas, etiqueta y título van juntos a la izquierda y la
@@ -2957,6 +2977,18 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__etiqueta {
 	grid-column: 1;
 	grid-row: 1;
+}
+
+/* El título arranca arriba de su fila; la bajada es la que se estira.
+   La fila 2 la define la bajada, que suele ser más alta que el título. Con
+   el align-items:end del contenedor, el título se pegaba al FONDO de esa
+   fila y el sobrante quedaba entre la etiqueta y él — 17px a 1280px que no
+   aparecían a 768px, con el mismo row-gap. El juez lo vio comparando
+   páginas; el número lo confirmó.
+   La bajada conserva el end para que los pies de las dos columnas sigan
+   coincidiendo, que es para lo que estaba puesto. */
+.sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__titulo {
+	align-self: start;
 }
 
 .sofia-beneficios:not(.sofia-beneficios--enc-apilado):not(.sofia-beneficios--enc-centrado):not(.sofia-beneficios--lista) .sofia-pieza__titulo {
