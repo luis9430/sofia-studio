@@ -29,6 +29,7 @@ Nueve chequeos deterministas en `medir.mjs`, sobre 3 anchos (1280 / 768 / 390).
 | `area-toque` | ≥ 44px en alguna dimensión, solo ≤ 480px | duda |
 | `encabezados` | un `h1`, sin saltos de nivel | duda |
 | `alineacion-repetidos` | lo primero de cada tarjeta de una fila arranca a la misma altura | duda |
+| `superficie-invisible` | un botón con fondo propio se distingue de lo que tiene detrás | error |
 | `color-sin-token` | los fondos salen de la paleta o de un mix de ella | nota |
 | `contraste-sobre-imagen` | no se puede afirmar: depende de la foto | nota |
 
@@ -150,6 +151,50 @@ secreto, sin copiarlo acá. El modelo se cambia con `SOFIA_MODELO_JUEZ`.
 ```bash
 npm run verificar:medir    # solo medir (los HTML ya están)
 ```
+
+## Medir lo que genera la IA
+
+```bash
+SOFIA_GOPRESS_TOKEN=... php tests/verificar/generar-paginas.php
+node tests/verificar/medir.mjs salida-ia
+```
+
+**La misma vara que las piezas a mano** — si el generador se midiera con
+chequeos distintos, comparar no querría decir nada. Los pedidos por defecto
+son de negocio ("una landing para una escuela de surf"), no de layout: si hay
+que dictarle la estructura, el generador no resuelve el problema, lo
+transcribe.
+
+### Lo que la primera corrida enseñó
+
+**Las 6 de 6 páginas salieron contaminadas con contenido de otro rubro.** El
+modelo llenaba 3 de los 9 campos del Hero y omitía el resto; un campo omitido
+no queda vacío, el tema cae a `props_por_defecto()`. Seis páginas de
+odontología, café y SaaS hablando de las nueve bahías de Jalisco.
+
+Se arregló con **una regla en el prompt de GoPress** (la 4b): llená todos los
+campos, y si uno no aplica poné `""` explícito. De 6 contaminadas a 0.
+
+**Y el arnés tuvo el mismo bug en su primera versión**, leyendo `contenido`
+donde el árbol trae `props`. Midió 18 mediciones con 0 errores — porque medir
+el default mide una pieza correcta. *Un arnés puede estar verde y estar
+midiendo otra cosa.* Ahora falla ruidosamente si un árbol no trae contenido.
+
+### Dos defectos del tema que solo aparecieron acá
+
+Ninguno se veía en las 7 piezas, porque dependen de combinaciones que los
+defaults no producen:
+
+- **Stepper desbordaba 105px en teléfono.** Es de la Fase 5 y nunca había
+  pasado por el arnés, que solo cubría las piezas. Le faltaba `min-width: 0`
+  y apilarse en móvil.
+- **El botón del CTA oscuro era negro sobre negro.** Usaba
+  `--sofia-color-primario`, que con la paleta por defecto es el mismo
+  `#1c1a17` del fondo. El texto contrastaba perfecto, así que el chequeo de
+  contraste lo daba por bueno — de ahí nació `superficie-invisible`.
+
+La IA no rompe las piezas: solo elige y ordena. Lo que hace es **usarlas en
+combinaciones que nadie probó**, y ahí aparecen los huecos.
 
 ## Cuando el arnés diga que todo está bien
 

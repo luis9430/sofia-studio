@@ -24,8 +24,15 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
-const SALIDA = join(AQUI, "salida");
-const CAPTURAS = join(AQUI, "capturas");
+
+// La carpeta a medir se puede pasar como argumento: "salida" (las piezas
+// hechas a mano, el default) o "salida-ia" (las páginas que genera la IA).
+// La misma vara para las dos — si el generador se midiera con chequeos
+// distintos, comparar los resultados no querría decir nada.
+const CARPETA = process.argv[2] || "salida";
+const SALIDA = join(AQUI, CARPETA);
+const CAPTURAS = join(AQUI, CARPETA === "salida" ? "capturas" : "capturas-" + CARPETA.replace(/^salida-/, ""));
+const ARCHIVO_MEDIDAS = CARPETA === "salida" ? "medidas.json" : "medidas-" + CARPETA.replace(/^salida-/, "") + ".json";
 
 /** Mínimo de WCAG AA para texto normal. */
 const CONTRASTE_MINIMO = 4.5;
@@ -372,6 +379,48 @@ const CHEQUEOS = ({ contrasteMinimo, toqueMinimo }) => {
     }
   }
 
+  // --- 11. Superficie que no se despega de su fondo ------------------------
+  // Un botón o una tarjeta con fondo propio tiene que distinguirse de lo
+  // que tiene detrás. Si coinciden, el elemento desaparece como objeto
+  // aunque su texto se lea perfecto — y el chequeo de contraste, que mira
+  // texto contra fondo, lo da por bueno.
+  //
+  // Caso real que lo motivó: el botón del CTA en tono oscuro usaba el
+  // color primario, que con la paleta por defecto es el mismo #1c1a17 del
+  // fondo. Botón negro sobre negro, contraste de TEXTO perfecto.
+  for (const el of document.querySelectorAll("a, button, [role=button]")) {
+    if (!visible(el) || enSvg(el)) continue;
+    const propio = aRgb(getComputedStyle(el).backgroundColor);
+    // Sin fondo propio no hay superficie que despegar: es un enlace de
+    // texto, y ahí manda el chequeo de contraste.
+    if (!propio || propio.alfa < 0.9) continue;
+
+    // Misma exención que el chequeo de contraste: sobre una imagen no se
+    // puede afirmar nada, porque el fondo real lo pone la foto. Sin esto,
+    // el botón blanco del Hero inmersivo (pensado para ir sobre una
+    // imagen) se reporta como invisible sobre el blanco del arnés.
+    if (sobreImagen(el)) continue;
+
+    const detras = el.parentElement ? fondoDe(el.parentElement) : [255, 255, 255];
+    const r = razon(propio.rgb, detras);
+    // 1.2:1 y no un umbral WCAG: no se pide que la superficie "contraste"
+    // como texto, solo que se vea que es un objeto aparte. Un borde
+    // visible ya cumple esa función, así que no se reporta.
+    const e2 = getComputedStyle(el);
+    const tieneBorde =
+      parseFloat(e2.borderTopWidth) > 0 &&
+      e2.borderTopStyle !== "none" &&
+      (aRgb(e2.borderTopColor)?.alfa ?? 0) > 0.15;
+    if (r < 1.2 && !tieneBorde) {
+      agregar(
+        "superficie-invisible",
+        "error",
+        `su fondo es casi igual al de atrás (${r.toFixed(2)}:1) y no tiene borde: se ve el texto pero no el botón`,
+        senalar(el)
+      );
+    }
+  }
+
   // --- 10. Alineación entre elementos repetidos ----------------------------
   // En una fila de tarjetas, los elementos equivalentes (el nombre, el
   // precio, el botón) tienen que arrancar a la misma altura. Un desfase de
@@ -562,7 +611,7 @@ for (const caso of indice.casos) {
 await navegador.close();
 
 await writeFile(
-  join(AQUI, "medidas.json"),
+  join(AQUI, ARCHIVO_MEDIDAS),
   JSON.stringify({ generado: new Date().toISOString(), resultados }, null, 2)
 );
 

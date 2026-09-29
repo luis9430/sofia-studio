@@ -595,9 +595,31 @@ h1, h2, h3, h4, h5, h6 {
 	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
 }
 
+/* La etiqueta sobre fondo oscuro o de marca.
+   .sofia-pieza__etiqueta usa --sofia-color-primario, que con la paleta por
+   defecto del tema es el mismo #1c1a17 del fondo oscuro: texto invisible,
+   1.00:1. El CTA lo arrastraba en sus tonos "marca" y "oscuro" — y no se
+   veía en las 7 piezas porque el CTA por defecto no trae etiqueta. Lo
+   encontró el arnés midiendo una página generada por IA, que sí le puso
+   una. El tono "suave" queda afuera: ahí el fondo es claro y el primario
+   contrasta bien. */
+.sofia-cta .sofia-pieza__etiqueta,
+.sofia-cta--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 78%, var(--sofia-color-texto));
+}
+
+.sofia-cta--suave .sofia-pieza__etiqueta {
+	color: var(--sofia-color-primario);
+}
+
+/* Sobre el tono oscuro el botón va CLARO, no con el primario: con la
+   paleta por defecto del tema el primario es el mismo #1c1a17 del fondo,
+   así que el botón quedaba negro sobre negro — solo se veía su texto, y
+   la acción secundaria (que sí tiene borde) pesaba más que la principal.
+   Invertirlo es además lo que ya hace el CTA en su tono de marca. */
 .sofia-cta--oscuro .sofia-cta__boton {
-	background: var(--sofia-color-primario);
-	color: var(--sofia-color-fondo);
+	background: var(--sofia-color-fondo);
+	color: var(--sofia-color-texto);
 }
 
 /* --- Tablet ------------------------------------------------------------ */
@@ -1910,7 +1932,13 @@ h1, h2, h3, h4, h5, h6 {
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
-	flex: 1;
+	/* min-width:0 junto al flex:1 — sin esto un item no puede encogerse
+	   por debajo del ancho de su texto y el stepper desborda la ventana.
+	   Lo encontró el arnés midiendo una página generada por IA: el
+	   Stepper es de la Fase 5 y nunca había pasado por la verificación,
+	   que hasta ahora solo cubría las 7 piezas. */
+	flex: 1 1 0;
+	min-width: 0;
 	padding-right: 16px;
 }
 
@@ -1999,6 +2027,36 @@ h1, h2, h3, h4, h5, h6 {
 	right: auto;
 	width: 2px;
 	height: auto;
+}
+
+/* En teléfono el stepper se apila siempre, sin importar la variante: tres
+   pasos en fila a 390px dejan ~120px por paso, y ahí el texto no se lee
+   aunque entre. Se reusan las reglas de la variante vertical, que ya
+   resuelven exactamente esto. */
+@media (max-width: 480px) {
+	.sofia-stepper__lista {
+		flex-direction: column;
+	}
+
+	.sofia-stepper__item {
+		flex: 0 0 auto;
+		padding-right: 0;
+		padding-bottom: 20px;
+	}
+
+	.sofia-stepper__item::before {
+		top: 36px;
+		bottom: -4px;
+		left: 15px;
+		right: auto;
+		width: 2px;
+		height: auto;
+	}
+
+	/* El último no lleva línea: no hay paso siguiente al que conectar. */
+	.sofia-stepper__item:last-child {
+		padding-bottom: 0;
+	}
 }
 
 /* ---------------------------------------------------------------------

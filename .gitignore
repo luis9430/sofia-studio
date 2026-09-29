@@ -8,7 +8,10 @@ tests/salida-lote/
 
 # Salida de tests/verificar/ — se regenera con `npm run verificar`.
 tests/verificar/salida/
+tests/verificar/salida-ia/
 tests/verificar/capturas/
+tests/verificar/capturas-ia/
 tests/verificar/medidas.json
+tests/verificar/medidas-ia.json
 tests/verificar/reporte.html
 tests/verificar/juicio.json
