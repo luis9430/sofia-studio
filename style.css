@@ -363,29 +363,269 @@ h1, h2, h3, h4, h5, h6 {
 	}
 }
 
+/* =====================================================================
+   Llamado a la acción — el pedido.
+
+   Rediseñado como PIEZA (ver class-cta.php). La versión anterior era
+   título + texto + botón: correcta, y exactamente igual a la de
+   cualquier otro sitio.
+
+   Lo que le faltaba no era diseño sino CONTENIDO que quite fricción: la
+   línea de garantía debajo del botón y una acción secundaria para quien
+   todavía no está listo.
+   ===================================================================== */
+
 .sofia-cta {
+	/* El color de marca por defecto: un CTA que no se distingue del resto
+	   de la página no pide nada. */
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-cta__interior {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--pieza-gap-m);
 	text-align: center;
 }
 
-/* CTA alineado a la izquierda: dentro de una columna angosta junto a
-   texto alineado a la izquierda, el centrado por defecto desentona. */
-.sofia-cta--izquierda {
-	text-align: left;
+.sofia-cta__texto {
+	display: flex;
+	flex-direction: column;
+	align-items: inherit;
+	gap: var(--pieza-gap-s);
 }
 
-.sofia-cta--izquierda .sofia-cta__boton {
-	margin-left: 0;
-	margin-right: auto;
+.sofia-cta__titulo {
+	margin: 0;
+	max-width: 20ch;
+	font-size: var(--pieza-titulo);
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+}
+
+.sofia-cta__bajada {
+	margin: 0;
+	max-width: 48ch;
+	font-size: var(--pieza-subtitulo);
+	line-height: 1.6;
+	/* color-mix contra el fondo y no una opacidad: mantiene el contraste
+	   en 4.5:1 sobre el color de marca, que una opacidad no garantiza. */
+	color: color-mix(in srgb, var(--sofia-color-fondo) 85%, var(--sofia-color-primario));
+}
+
+/* --- Acciones --------------------------------------------------------- */
+.sofia-cta__acciones {
+	display: flex;
+	flex-direction: column;
+	align-items: inherit;
+	gap: 10px;
+}
+
+.sofia-cta__botones {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
 }
 
 .sofia-cta__boton {
-	display: inline-block;
-	padding: 12px 28px;
+	display: inline-flex;
+	align-items: center;
+	padding: 16px 34px;
 	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-fondo);
+	color: var(--sofia-color-texto);
+	font-size: 1rem;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+/* La secundaria con borde y no sólida: dos botones del mismo peso no
+   dicen cuál es la acción que importa. */
+.sofia-cta__link {
+	display: inline-flex;
+	align-items: center;
+	padding: 16px 28px;
+	border: 1px solid color-mix(in srgb, var(--sofia-color-fondo) 45%, transparent);
+	border-radius: var(--sofia-radio-borde);
+	color: inherit;
+	font-size: 1rem;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.sofia-cta__link:hover {
+	border-color: var(--sofia-color-fondo);
+}
+
+/* La garantía responde la duda justo cuando aparece: debajo del botón,
+   no arriba. */
+.sofia-cta__garantia {
+	margin: 0;
+	font-size: 0.85rem;
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-primario));
+}
+
+/* --- Imagen -----------------------------------------------------------
+   Solo se ve en la composición partida. Se emite siempre (si existe)
+   para que cambiar de composición no mueva los data-sofia-campo. */
+.sofia-cta__medio {
+	display: none;
+}
+
+.sofia-cta__imagen {
+	width: 100%;
+	height: 100%;
+	min-height: 260px;
+	object-fit: cover;
+	border-radius: var(--sofia-radio-borde);
+}
+
+/* --- B: partido -------------------------------------------------------
+   Texto a la izquierda, acciones o imagen a la derecha. Con imagen son
+   dos columnas de contenido; sin ella, el texto y el botón se separan a
+   los extremos. */
+.sofia-cta--partido .sofia-cta__interior {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--pieza-gap-xl);
+	text-align: left;
+}
+
+.sofia-cta--partido .sofia-cta__texto {
+	align-items: flex-start;
+}
+
+.sofia-cta--partido .sofia-cta__acciones {
+	align-items: flex-start;
+	flex: none;
+}
+
+.sofia-cta--partido .sofia-cta__botones {
+	justify-content: flex-start;
+}
+
+.sofia-cta--partido .sofia-cta__medio {
+	display: block;
+	flex: 1 1 38%;
+	min-width: 0;
+	align-self: stretch;
+}
+
+/* --- C: franja --------------------------------------------------------
+   Compacto, para cortar entre dos secciones sin frenar la página. Sin
+   bajada ni garantía: en una franja son ruido. */
+.sofia-cta--franja {
+	padding-block: var(--pieza-gap-l);
+}
+
+.sofia-cta--franja .sofia-cta__interior {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--pieza-gap-l);
+	text-align: left;
+}
+
+.sofia-cta--franja .sofia-cta__texto {
+	align-items: flex-start;
+}
+
+.sofia-cta--franja .sofia-cta__titulo {
+	font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+	max-width: 28ch;
+}
+
+.sofia-cta--franja .sofia-cta__bajada,
+.sofia-cta--franja .sofia-cta__garantia,
+.sofia-cta--franja .sofia-pieza__etiqueta {
+	display: none;
+}
+
+.sofia-cta--franja .sofia-cta__acciones {
+	flex: none;
+}
+
+.sofia-cta--franja .sofia-cta__boton {
+	padding: 13px 28px;
+}
+
+.sofia-cta--franja .sofia-cta__link {
+	padding: 13px 24px;
+}
+
+/* --- Tonos ------------------------------------------------------------
+   Suave: para cuando la sección de al lado ya es fuerte y dos bloques de
+   color seguidos compiten entre sí. */
+.sofia-cta--suave {
+	background: color-mix(in srgb, var(--sofia-color-primario) 8%, var(--sofia-color-fondo));
+	color: var(--sofia-color-texto);
+}
+
+.sofia-cta--suave .sofia-cta__bajada,
+.sofia-cta--suave .sofia-cta__garantia {
+	color: var(--sofia-color-texto-suave);
+}
+
+.sofia-cta--suave .sofia-cta__boton {
 	background: var(--sofia-color-primario);
 	color: var(--sofia-color-fondo);
-	text-decoration: none;
-	margin-top: 12px;
+}
+
+.sofia-cta--suave .sofia-cta__link {
+	border-color: var(--sofia-color-borde);
+}
+
+.sofia-cta--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-cta--oscuro .sofia-cta__bajada,
+.sofia-cta--oscuro .sofia-cta__garantia {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-cta--oscuro .sofia-cta__boton {
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+}
+
+/* --- Tablet ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+	.sofia-cta--partido .sofia-cta__interior {
+		flex-wrap: wrap;
+	}
+
+	.sofia-cta--partido .sofia-cta__medio {
+		flex-basis: 100%;
+		order: 3;
+	}
+}
+
+/* --- Teléfono ---------------------------------------------------------- */
+@media (max-width: 768px) {
+	.sofia-cta--partido .sofia-cta__interior,
+	.sofia-cta--franja .sofia-cta__interior {
+		flex-direction: column;
+		align-items: stretch;
+		text-align: left;
+	}
+
+	.sofia-cta__botones {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.sofia-cta__boton,
+	.sofia-cta__link {
+		justify-content: center;
+	}
 }
 
 .sofia-button__enlace {
