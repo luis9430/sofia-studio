@@ -11,3 +11,4 @@ tests/verificar/salida/
 tests/verificar/capturas/
 tests/verificar/medidas.json
 tests/verificar/reporte.html
+tests/verificar/juicio.json

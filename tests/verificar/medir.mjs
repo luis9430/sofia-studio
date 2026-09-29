@@ -372,6 +372,80 @@ const CHEQUEOS = ({ contrasteMinimo, toqueMinimo }) => {
     }
   }
 
+  // --- 10. Alineación entre elementos repetidos ----------------------------
+  // En una fila de tarjetas, los elementos equivalentes (el nombre, el
+  // precio, el botón) tienen que arrancar a la misma altura. Un desfase de
+  // 1px no se ve mirando pero delata que algo empuja el contenido — un
+  // borde más grueso, un padding distinto.
+  //
+  // Lo encontró primero el juez (capa interpretable) en Precios: el plan
+  // destacado tenía border 2px contra 1px y su título quedaba 1px más
+  // abajo. Un número lo decide con certeza, así que pasa a medirse acá.
+  for (const padre of todos) {
+    const hijos = [...padre.children].filter((h) => visible(h) && !enSvg(h));
+    if (hijos.length < 2) continue;
+
+    // Solo filas: si los hermanos están apilados verticalmente, que sus
+    // topes difieran es el layout, no un defecto.
+    const enFila = hijos.every(
+      (h, i) =>
+        i === 0 ||
+        h.getBoundingClientRect().top < hijos[i - 1].getBoundingClientRect().bottom - 2
+    );
+    if (!enFila) continue;
+
+    // Elementos equivalentes = misma clase principal, uno por hermano.
+    const porClase = new Map();
+    for (const h of hijos) {
+      for (const desc of [h, ...h.querySelectorAll("*")]) {
+        if (enSvg(desc) || !visible(desc)) continue;
+        const cls = (desc.getAttribute("class") || "").trim().split(/\s+/)[0];
+        if (!cls) continue;
+        if (!porClase.has(cls)) porClase.set(cls, []);
+        porClase.get(cls).push(desc);
+      }
+    }
+
+    for (const [cls, nodos] of porClase) {
+      if (nodos.length !== hijos.length || nodos.length < 2) continue;
+
+      // Solo lo PRIMERO de cada tarjeta. Un elemento que viene después de
+      // texto de largo variable (el autor debajo de una cita larga, una
+      // feature en una grilla) queda a distinta altura por el contenido,
+      // no por un defecto — marcarlo convierte el chequeo en ruido.
+      // Arriba del todo, en cambio, nada lo empujó salvo la caja misma.
+      const primeroDeSuTarjeta = nodos.every((n) => {
+        const tarjeta = hijos.find((h) => h.contains(n));
+        if (!tarjeta) return false;
+        const arribaDeTodo = n.getBoundingClientRect().top;
+        return [...tarjeta.querySelectorAll("*")].every((otro) => {
+          if (!visible(otro) || enSvg(otro)) return true;
+          if (otro.contains(n) || n.contains(otro)) return true;
+          // Un elemento posicionado no empuja a nadie: la insignia "EL MÁS
+          // ELEGIDO" se dibuja sobre el borde superior de la tarjeta, por
+          // encima del nombre, pero el nombre sigue siendo lo primero del
+          // flujo. Sin esta excepción el chequeo se desactiva solo.
+          const pos = getComputedStyle(otro).position;
+          if (pos === "absolute" || pos === "fixed") return true;
+          return otro.getBoundingClientRect().top >= arribaDeTodo - 0.5;
+        });
+      });
+      if (!primeroDeSuTarjeta) continue;
+
+      const tops = nodos.map((n) => n.getBoundingClientRect().top);
+      const desfase = Math.max(...tops) - Math.min(...tops);
+      // 0.5px es redondeo subpíxel del navegador, no un defecto.
+      if (desfase > 0.5 && desfase < 40) {
+        agregar(
+          "alineacion-repetidos",
+          "duda",
+          `${nodos.length} elementos equivalentes arrancan a alturas distintas (desfase ${desfase.toFixed(2)}px)`,
+          "." + cls
+        );
+      }
+    }
+  }
+
   // --- 9. Color fuera de la paleta -----------------------------------------
   // Los tokens se leen POR NOMBRE: iterar getComputedStyle no enumera las
   // custom properties en Chromium, así que recorrer el objeto devuelve una

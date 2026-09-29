@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "verificar": "php tests/verificar/render-piezas.php && node tests/verificar/medir.mjs && node tests/verificar/reporte.mjs",
+    "juzgar": "node tests/verificar/juzgar.mjs",
     "verificar:medir": "node tests/verificar/medir.mjs",
     "verificar:reporte": "node tests/verificar/reporte.mjs"
   },

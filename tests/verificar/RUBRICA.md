@@ -28,6 +28,7 @@ Nueve chequeos deterministas en `medir.mjs`, sobre 3 anchos (1280 / 768 / 390).
 | `img-sin-alt` | toda imagen tiene `alt` | error |
 | `area-toque` | ≥ 44px en alguna dimensión, solo ≤ 480px | duda |
 | `encabezados` | un `h1`, sin saltos de nivel | duda |
+| `alineacion-repetidos` | lo primero de cada tarjeta de una fila arranca a la misma altura | duda |
 | `color-sin-token` | los fondos salen de la paleta o de un mix de ella | nota |
 | `contraste-sobre-imagen` | no se puede afirmar: depende de la foto | nota |
 
@@ -85,20 +86,69 @@ puede aparecer marcada. **Sirve para detectar problemas, no para aprobar
 diseño**: lo que cambia es que llegás a revisar con una lista de sospechas en
 vez de con 90 capturas en blanco.
 
+### Qué tan bien funciona, medido
+
+Primera corrida sobre las 7 piezas: **6 errores y 45 dudas**. Verificados uno
+por uno contra el CSS y las capturas:
+
+**Acertó en lo que ningún chequeo buscaba.** En Precios vio que el nombre del
+plan destacado arrancaba más abajo que los otros dos. Medido después: **1.00px
+exacto**, causado por el borde de 2px contra 1px de las demás tarjetas. Nadie
+lo había notado en semanas de mirar esa pieza. Eso solo ya paga la capa.
+
+**Se equivoca de tres formas, todas reconocibles:**
+
+1. **Llama error a lo deliberado.** En Precios `filas` dijo que la insignia
+   "EL MÁS ELEGIDO" estaba "desalineada respecto al centro" — está a la
+   izquierda a propósito, porque la tarjeta es ancha. Esperaba el centrado
+   convencional.
+2. **Alucina diferencias que no existen.** Cuatro de sus seis errores fueron
+   "los botones del CTA tienen anchos distintos". Medidos: **350.0px los dos,
+   mismo `left`**. Inventó el defecto.
+3. **Confunde un patrón con un defecto.** Insistió tres veces en que el
+   eyebrow de Testimonios ("LO QUE DICEN", 12.48px) es "demasiado chico
+   frente al título". Es un eyebrow: contextualiza, no compite.
+
+**Y aun equivocándose, sirvió.** El error falso de los botones del CTA hizo
+mirar de cerca, y ahí sí había algo: 44px contra 46px de alto, porque el
+secundario lleva borde y el primario no. El juez señaló el lugar correcto por
+la razón equivocada.
+
+**Regla práctica: tratá cada hallazgo como una sospecha, no como un veredicto.**
+Andá a la captura, y si se puede medir, medilo. De los seis "errores", uno era
+real, uno apuntaba a un defecto vecino, y cuatro eran invento.
+
+### Cuando el juez encuentre algo que un número podría decidir
+
+Pasalo a la capa 1. Así ocurrió con `alineacion-repetidos`: el juez lo vio
+primero, la medición lo confirmó con un número, y ahora es un chequeo
+determinista que no depende de que el modelo lo note la próxima vez.
+
 ---
 
 ## Correr
 
 ```bash
-npm run verificar          # renderiza, mide y arma el reporte
+npm run verificar          # renderiza, mide y arma el reporte (capa 1)
 ```
 
 Abrí `tests/verificar/reporte.html`. Los casos con errores van primero y
 abiertos; los limpios quedan colapsados.
 
+La capa 2 va aparte porque cuesta plata: son 7 llamadas con ~12 imágenes cada
+una.
+
+```bash
+npm run juzgar             # las 7 piezas
+npm run juzgar precios     # una sola, para probar
+npm run verificar:reporte  # rearma el reporte con el juicio incluido
+```
+
+El juez lee `OPENROUTER_API_KEY` del `.env` de GoPress — un solo lugar para el
+secreto, sin copiarlo acá. El modelo se cambia con `SOFIA_MODELO_JUEZ`.
+
 ```bash
 npm run verificar:medir    # solo medir (los HTML ya están)
-npm run verificar:reporte  # solo rearmar el reporte
 ```
 
 ## Cuando el arnés diga que todo está bien

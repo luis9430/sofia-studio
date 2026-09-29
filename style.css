@@ -436,6 +436,10 @@ h1, h2, h3, h4, h5, h6 {
 	display: inline-flex;
 	align-items: center;
 	padding: 16px 34px;
+	/* Borde transparente para igualar altura con la acción secundaria, que
+	   sí lleva borde: sin esto el primario mide 44px y el secundario 46px,
+	   y apilados en teléfono el escalón se nota. */
+	border: 1px solid transparent;
 	border-radius: var(--sofia-radio-borde);
 	background: var(--sofia-color-fondo);
 	color: var(--sofia-color-texto);
@@ -3822,9 +3826,16 @@ h1, h2, h3, h4, h5, h6 {
    Solo el destacado lleva el botón sólido: si todos fueran iguales,
    nada indicaría cuál conviene, que es justamente lo que una sección de
    precios tiene que comunicar. */
+/* El segundo píxel del borde va por fuera con outline, no engrosando el
+   border: un border de 2px contra los 1px de las otras tarjetas empujaba
+   el contenido 1px hacia abajo, y en una fila los nombres de los planes
+   quedaban desalineados. outline se dibuja fuera de la caja y no ocupa
+   lugar en el layout. Lo encontró el juez de tests/verificar y la
+   medición lo confirmó: 1.00px exacto. */
 .sofia-precios__plan--destacado {
 	border-color: var(--sofia-color-primario);
-	border-width: 2px;
+	outline: 1px solid var(--sofia-color-primario);
+	outline-offset: -2px;
 	box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--sofia-color-primario) 35%, transparent);
 }
 
