@@ -15,3 +15,4 @@ tests/verificar/medidas.json
 tests/verificar/medidas-ia.json
 tests/verificar/reporte.html
 tests/verificar/juicio.json
+tests/verificar/juicio-ia.json
