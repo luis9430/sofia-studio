@@ -141,6 +141,91 @@ class Sofia_Cliente_GoPress {
 	}
 
 	/**
+	 * Trae la CABECERA y el PIE del sitio vía
+	 * GET /sites/{sitio}/tema/cabecera-pie?token=... (ver
+	 * internal/server/cabecera_pie.go).
+	 *
+	 * Son del SITIO, no de cada página: se definen una vez y se dibujan en
+	 * todas. Antes eran dos bloques más de cada página, lo que obligaba a
+	 * editar el menú página por página y —medido sobre 6 páginas generadas
+	 * por IA— hacía que el generador simplemente no los pusiera: las seis
+	 * salían sin navegación ni pie.
+	 *
+	 * Se cachea en memoria durante la request por el mismo motivo que
+	 * obtener_componentes_generados(): la plantilla la consulta para la
+	 * cabecera y otra vez para el pie, y sin caché serían dos requests
+	 * HTTP idénticos por página.
+	 *
+	 * @return array{cabecera?:array{estructura:array,contenido:array},pie?:array{estructura:array,contenido:array}}
+	 *         Array vacío si GoPress no está configurado, la petición falla
+	 *         o el sitio todavía no tiene cabecera ni pie — nunca null.
+	 */
+	public static function obtener_cabecera_pie(): array {
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
+		}
+
+		$cache = array();
+
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return $cache;
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return $cache;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/tema/cabecera-pie';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_get( $url, array( 'timeout' => 5 ) );
+		if ( is_wp_error( $respuesta ) || 200 !== wp_remote_retrieve_response_code( $respuesta ) ) {
+			return $cache;
+		}
+
+		$cuerpo = json_decode( wp_remote_retrieve_body( $respuesta ), true );
+		$datos  = is_array( $cuerpo ) ? ( $cuerpo['cabecera_pie'] ?? null ) : null;
+		$cache  = is_array( $datos ) ? $datos : array();
+
+		return $cache;
+	}
+
+	/**
+	 * Guarda la cabecera y el pie del sitio vía
+	 * PUT /sites/{sitio}/cabecera-pie?token=... — mismo criterio que
+	 * guardar_estilo_global().
+	 *
+	 * @param array<string,mixed> $cabecera_pie
+	 * @return bool true si GoPress confirmó el guardado (200 OK).
+	 */
+	public static function guardar_cabecera_pie( array $cabecera_pie ): bool {
+		if ( ! defined( 'SOFIA_GOPRESS_URL' ) || ! defined( 'SOFIA_GOPRESS_TOKEN' ) ) {
+			return false;
+		}
+
+		$nombre_sitio = defined( 'SOFIA_GOPRESS_SITIO' ) ? SOFIA_GOPRESS_SITIO : '';
+		if ( '' === $nombre_sitio ) {
+			return false;
+		}
+
+		$url = trailingslashit( SOFIA_GOPRESS_URL ) . 'sites/' . rawurlencode( $nombre_sitio ) . '/cabecera-pie';
+		$url = add_query_arg( 'token', SOFIA_GOPRESS_TOKEN, $url );
+
+		$respuesta = wp_remote_request(
+			$url,
+			array(
+				'method'  => 'PUT',
+				'timeout' => 5,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array( 'cabecera_pie' => $cabecera_pie ) ),
+			)
+		);
+		return ! is_wp_error( $respuesta ) && 200 === wp_remote_retrieve_response_code( $respuesta );
+	}
+
+	/**
 	 * Trae el estilo GLOBAL del sitio (Nivel 3 — paleta de colores/
 	 * tipografía base, distinto del contenido de una página individual) vía
 	 * GET /sites/{sitio}/tema/estilo-global?token=... (ver

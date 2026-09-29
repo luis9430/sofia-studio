@@ -496,9 +496,27 @@ class Sofia_Componente_Factory {
 	 *
 	 * @return array<int,array{tipo:string,nombre:string,schema_estilo:array,schema_contenido:array}>
 	 */
+	/**
+	 * Tipos que NO se le ofrecen al generador de páginas.
+	 *
+	 * La cabecera y el pie son del SITIO, no de una página (ver
+	 * Sofia_Cliente_GoPress::obtener_cabecera_pie): se dibujan en todas, y
+	 * ofrecérselos a la IA como si fueran una decisión de contenido la
+	 * obligaba a acordarse de ponerlos en cada página. No se acordaba:
+	 * medido sobre 6 páginas generadas, ninguna incluyó header ni footer y
+	 * las seis salían sin navegación.
+	 *
+	 * Quitarlos de acá no los saca del tema — siguen siendo Componentes
+	 * normales, editables; lo que cambia es de dónde sale su contenido.
+	 */
+	private const TIPOS_FUERA_DEL_CATALOGO_IA = array( 'header', 'footer' );
+
 	public static function catalogo_para_ia(): array {
 		$catalogo = array();
 		foreach ( self::TIPOS_REGISTRADOS as $tipo ) {
+			if ( in_array( $tipo, self::TIPOS_FUERA_DEL_CATALOGO_IA, true ) ) {
+				continue;
+			}
 			$componente = self::crear( $tipo, 'catalogo' );
 			if ( null === $componente ) {
 				continue;

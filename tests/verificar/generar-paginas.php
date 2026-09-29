@@ -197,6 +197,22 @@ foreach ( $pedidos as $i => $pedido ) {
 	$pagina      = new Sofia_Pagina( $estructura, $contenido );
 	$componentes = $pagina->componentes();
 
+	// La cabecera y el pie del SITIO envuelven a toda página (ver page.php).
+	// El arnés tiene que medir la página COMPLETA: sin esto se estaría
+	// midiendo solo el medio, y justamente el motivo de haberlos movido a
+	// nivel sitio fue que las páginas generadas salían sin navegación.
+	//
+	// Van a decir el nombre del sitio de prueba (Costalegre) aunque el
+	// pedido sea de una cafetería o un consultorio, y eso es CORRECTO: son
+	// del sitio, no de la página. Un sitio real tiene un solo nombre. Lo
+	// que se mide acá es que la página quede bien armada de punta a punta,
+	// no que el texto del pie coincida con el rubro del pedido.
+	$componentes = array_merge(
+		componentes_del_sitio( 'cabecera' ),
+		$componentes,
+		componentes_del_sitio( 'pie' )
+	);
+
 	$html = '';
 	foreach ( $componentes as $c ) {
 		$html .= $c->render();
@@ -273,6 +289,48 @@ printf(
 echo "medilas con: node tests/verificar/medir.mjs salida-ia\n";
 
 // --- Funciones -------------------------------------------------------------
+
+/**
+ * La cabecera o el pie del SITIO, como componentes listos.
+ *
+ * Se piden a GoPress igual que lo hace el tema en cada render — no se
+ * reconstruyen de los defaults: lo que hay que medir es lo que el sitio
+ * realmente dibuja.
+ *
+ * @return Sofia_Componente[] Vacío si el sitio no tiene esa parte, que es
+ *         un estado legítimo (un sitio recién creado).
+ */
+function componentes_del_sitio( string $cual ): array {
+	static $cache = null;
+
+	if ( null === $cache ) {
+		global $url_gopress, $sitio, $token;
+		$url = rtrim( $url_gopress, '/' ) . '/sites/' . rawurlencode( $sitio )
+			. '/tema/cabecera-pie?token=' . rawurlencode( $token );
+
+		$ch = curl_init( $url );
+		curl_setopt_array( $ch, array( CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10 ) );
+		$cuerpo = curl_exec( $ch );
+		$codigo = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		curl_close( $ch );
+
+		$datos = 200 === $codigo ? json_decode( (string) $cuerpo, true ) : null;
+		$cache = is_array( $datos ) && is_array( $datos['cabecera_pie'] ?? null )
+			? $datos['cabecera_pie']
+			: array();
+	}
+
+	$parte = $cache[ $cual ] ?? null;
+	if ( ! is_array( $parte ) || empty( $parte['estructura'] ) ) {
+		return array();
+	}
+
+	$pieza = new Sofia_Pagina(
+		$parte['estructura'],
+		is_array( $parte['contenido'] ?? null ) ? $parte['contenido'] : array()
+	);
+	return $pieza->componentes();
+}
 
 /**
  * Separa el árbol de la IA en estructura + contenido.

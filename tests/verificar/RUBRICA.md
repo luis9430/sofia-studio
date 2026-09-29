@@ -196,6 +196,22 @@ defaults no producen:
 La IA no rompe las piezas: solo elige y ordena. Lo que hace es **usarlas en
 combinaciones que nadie probó**, y ahí aparecen los huecos.
 
+### El hueco más grande, y cómo se cerró
+
+**Ninguna de las 6 páginas traía header ni footer.** No es que la IA los
+evitara mal: eran dos bloques más del catálogo, y acordarse de ponerlos en
+cada página no es una decisión de contenido.
+
+Se movieron a **nivel sitio** (columna `cabecera_pie` en GoPress, ver
+`inc/class-cliente-gopress.php` y `page.php`) y se sacaron del catálogo que
+ve el generador. Ahora están siempre, sin que nadie los elija. **De 0 de 6 a
+6 de 6.**
+
+El arnés los incluye al medir, porque medir solo el medio de una página no
+dice si la página está bien. Van a decir el nombre del sitio de prueba
+aunque el pedido sea de otro rubro — eso es correcto: un sitio real tiene un
+solo nombre.
+
 ## Cuando el arnés diga que todo está bien
 
 Desconfiá y comprobalo. Un arnés que no encuentra nada puede estar roto:

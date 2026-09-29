@@ -103,6 +103,62 @@ const SOFIA_SCRIPTS_PROPIOS = array(
 );
 
 /**
+ * sofia_cabecera_pie_del_sitio devuelve la Sofia_Pagina de la cabecera o
+ * del pie del SITIO, o null si no hay ninguna configurada.
+ *
+ * Son del sitio y no de cada página (ver
+ * Sofia_Cliente_GoPress::obtener_cabecera_pie), pero se arman con la misma
+ * Sofia_Pagina que el contenido: son bloques como cualquier otro, solo que
+ * su estructura y contenido vienen de otro lado.
+ *
+ * @param string $cual "cabecera" o "pie".
+ */
+function sofia_cabecera_pie_del_sitio( string $cual ): ?Sofia_Pagina {
+	$datos = Sofia_Cliente_GoPress::obtener_cabecera_pie();
+	$parte = $datos[ $cual ] ?? null;
+	if ( ! is_array( $parte ) ) {
+		return null;
+	}
+
+	$estructura = is_array( $parte['estructura'] ?? null ) ? $parte['estructura'] : array();
+	if ( empty( $estructura ) ) {
+		return null;
+	}
+
+	$contenido = is_array( $parte['contenido'] ?? null ) ? $parte['contenido'] : array();
+	return new Sofia_Pagina( $estructura, $contenido );
+}
+
+/**
+ * sofia_render_cabecera_pie dibuja la cabecera o el pie del sitio.
+ *
+ * Encola sus dependencias además de renderizar: el Header trae el JS del
+ * menú de teléfono, y sin esta llamada el botón no haría nada — la página
+ * se vería bien en escritorio y el menú móvil estaría muerto.
+ *
+ * @param string $cual "cabecera" o "pie".
+ */
+function sofia_render_cabecera_pie( string $cual ): void {
+	$pieza = sofia_cabecera_pie_del_sitio( $cual );
+	if ( null === $pieza ) {
+		return;
+	}
+
+	sofia_encolar_dependencias( $pieza );
+
+	foreach ( $pieza->componentes() as $componente ) {
+		// Misma regla de visibilidad que los bloques de página (ver
+		// page.php): en visita pública un bloque no visible no se
+		// renderiza; en el editor siempre, para poder seguir editándolo.
+		$en_editor = class_exists( 'Sofia_Modo_Editor' ) && Sofia_Modo_Editor::activo();
+		if ( ! $componente->bloque_visible() && ! $en_editor ) {
+			continue;
+		}
+		echo $componente->render(); // phpcs:ignore WordPress.Security.EscapeOutput -- cada Componente escapa sus propios valores en render().
+	}
+}
+
+/**
  * sofia_encolar_dependencias encola SOLO las librerías que $pagina
  * realmente necesita — ver Sofia_Pagina::dependencias_js(). Una página sin
  * ningún bloque animado nunca carga GSAP, y una sin bloques interactivos

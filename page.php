@@ -12,6 +12,16 @@
 
 get_header();
 
+// La cabecera del SITIO, no de esta página (ver
+// Sofia_Cliente_GoPress::obtener_cabecera_pie). Va FUERA del <main>: son
+// landmarks distintos, y meter un <header> de navegación adentro del
+// contenido principal rompe la semántica que un lector de pantalla usa
+// para saltar entre secciones.
+//
+// Se dibuja incluso cuando GoPress no devuelve la página: un sitio con la
+// plantilla caída igual tiene que poder navegarse.
+sofia_render_cabecera_pie( 'cabecera' );
+
 global $post;
 $datos = Sofia_Cliente_GoPress::obtener_pagina( $post->post_name );
 
@@ -47,5 +57,7 @@ if ( null !== $datos ) {
 	the_content();
 	echo '</main>';
 }
+
+sofia_render_cabecera_pie( 'pie' );
 
 get_footer();
