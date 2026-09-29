@@ -55,6 +55,7 @@ require_once __DIR__ . '/inc/componentes/class-marquee.php';
 require_once __DIR__ . '/inc/componentes/class-carousel.php';
 require_once __DIR__ . '/inc/componentes/class-header.php';
 require_once __DIR__ . '/inc/componentes/class-footer.php';
+require_once __DIR__ . '/inc/componentes/class-precios.php';
 
 /**
  * Componentes GENERADOS: su forma viene de una descripción guardada en

@@ -3661,3 +3661,315 @@ h1, h2, h3, h4, h5, h6 {
 		grid-template-columns: 1fr;
 	}
 }
+
+/* =====================================================================
+   Precios — los planes.
+
+   Pieza nueva (ver class-precios.php). La sección más pedida
+   comercialmente y la que más estructura tiene.
+
+   Las tres composiciones comparten el MISMO HTML y cambian por la clase
+   de la sección.
+   ===================================================================== */
+
+.sofia-precios__planes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+	gap: var(--pieza-gap-m);
+	/* align-items: stretch (el default del grid) hace que todas las
+	   tarjetas midan lo mismo aunque tengan distinta cantidad de
+	   features — sin eso, los botones quedan a alturas distintas y la
+	   fila se ve desalineada. */
+}
+
+.sofia-precios__plan {
+	position: relative;
+	box-sizing: border-box;
+	padding: var(--pieza-gap-m);
+	background: var(--sofia-color-fondo);
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-s);
+}
+
+.sofia-precios__cabecera {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sofia-precios__nombre {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+.sofia-precios__precio {
+	margin: 0;
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.sofia-precios__monto {
+	font-size: clamp(2rem, 3.5vw, 2.6rem);
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: -0.02em;
+	/* tabular-nums para que dos precios de la misma fila alineen sus
+	   dígitos: sin esto, "$4.900" y "$12.500" se ven descalzados. */
+	font-variant-numeric: tabular-nums;
+}
+
+.sofia-precios__periodo {
+	font-size: 0.9rem;
+	color: var(--sofia-color-texto-suave);
+}
+
+.sofia-precios__descripcion {
+	margin: 0;
+	font-size: 0.92rem;
+	line-height: 1.55;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- Features ---------------------------------------------------------
+   El check va en ::before y no como SVG en el HTML: es decoración que se
+   repite en cada línea, y meterla al markup sería un ícono por feature
+   para nada. */
+.sofia-precios__features {
+	margin: 0;
+	padding: var(--pieza-gap-s) 0 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	border-top: 1px solid var(--sofia-color-borde);
+	/* Empuja el botón al fondo de la tarjeta: así todos los botones de la
+	   fila quedan alineados aunque los planes tengan distinta cantidad de
+	   features. */
+	flex-grow: 1;
+}
+
+.sofia-precios__feature {
+	position: relative;
+	padding-left: 26px;
+	font-size: 0.92rem;
+	line-height: 1.5;
+}
+
+.sofia-precios__feature::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0.42em;
+	width: 11px;
+	height: 6px;
+	border-left: 2px solid var(--sofia-color-primario);
+	border-bottom: 2px solid var(--sofia-color-primario);
+	transform: rotate(-45deg);
+}
+
+/* --- Botón ------------------------------------------------------------ */
+.sofia-precios__boton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: auto;
+	padding: 14px 24px;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+	background: none;
+	color: inherit;
+	font-size: 0.95rem;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.sofia-precios__boton:hover {
+	border-color: var(--sofia-color-primario);
+}
+
+/* --- Plan destacado ---------------------------------------------------
+   Solo el destacado lleva el botón sólido: si todos fueran iguales,
+   nada indicaría cuál conviene, que es justamente lo que una sección de
+   precios tiene que comunicar. */
+.sofia-precios__plan--destacado {
+	border-color: var(--sofia-color-primario);
+	border-width: 2px;
+	box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--sofia-color-primario) 35%, transparent);
+}
+
+.sofia-precios__plan--destacado .sofia-precios__boton {
+	background: var(--sofia-color-primario);
+	border-color: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-precios__insignia {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	padding: 5px 14px;
+	border-radius: 100px;
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+/* --- B: filas ---------------------------------------------------------
+   Para cuando los planes tienen muchas diferencias que leer. Cada uno
+   ocupa el ancho y las features se despliegan en columnas: se comparan
+   leyendo hacia abajo en vez de saltando entre tarjetas. */
+.sofia-precios--filas .sofia-precios__planes {
+	grid-template-columns: 1fr;
+	gap: var(--pieza-gap-s);
+}
+
+.sofia-precios--filas .sofia-precios__plan {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+	align-items: center;
+	gap: var(--pieza-gap-l);
+	padding: var(--pieza-gap-m) var(--pieza-gap-l);
+}
+
+.sofia-precios--filas .sofia-precios__features {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px var(--pieza-gap-m);
+	padding-top: 0;
+	border-top: 0;
+	flex-grow: 0;
+}
+
+.sofia-precios--filas .sofia-precios__boton {
+	margin-top: 0;
+	white-space: nowrap;
+}
+
+.sofia-precios--filas .sofia-precios__insignia {
+	left: var(--pieza-gap-l);
+	transform: translateY(-50%);
+}
+
+/* --- C: plan único ----------------------------------------------------
+   Un solo precio, sin comparación. Se centra y se angosta para que no
+   quede una tarjeta sola estirada a todo el ancho. */
+.sofia-precios--unico .sofia-precios__planes {
+	grid-template-columns: minmax(0, 420px);
+	justify-content: center;
+}
+
+.sofia-precios--unico .sofia-precios__plan {
+	padding: var(--pieza-gap-l);
+	text-align: center;
+}
+
+.sofia-precios--unico .sofia-precios__precio {
+	justify-content: center;
+}
+
+.sofia-precios--unico .sofia-precios__feature {
+	text-align: left;
+}
+
+/* --- Encabezado -------------------------------------------------------
+   Centrado por defecto: en una sección de precios el encabezado suele
+   ser corto y centrarlo lo alinea con las tarjetas de abajo. */
+.sofia-precios .sofia-pieza__encabezado {
+	align-items: center;
+	text-align: center;
+}
+
+.sofia-precios .sofia-pieza__titulo,
+.sofia-precios .sofia-pieza__bajada {
+	margin-inline: auto;
+}
+
+.sofia-precios--enc-izquierda .sofia-pieza__encabezado {
+	align-items: flex-start;
+	text-align: left;
+}
+
+.sofia-precios--enc-izquierda .sofia-pieza__titulo,
+.sofia-precios--enc-izquierda .sofia-pieza__bajada {
+	margin-inline: 0;
+}
+
+/* --- Tono oscuro ------------------------------------------------------ */
+.sofia-precios--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-precios--oscuro .sofia-pieza__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro y no una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro. */
+.sofia-precios--oscuro .sofia-pieza__bajada,
+.sofia-precios--oscuro .sofia-precios__descripcion,
+.sofia-precios--oscuro .sofia-precios__periodo {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-precios--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+}
+
+.sofia-precios--oscuro .sofia-precios__plan {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 7%, transparent);
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+.sofia-precios--oscuro .sofia-precios__features,
+.sofia-precios--oscuro .sofia-precios__boton {
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+.sofia-precios--oscuro .sofia-precios__feature::before {
+	border-color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+}
+
+.sofia-precios--oscuro .sofia-precios__plan--destacado {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 12%, transparent);
+	border-color: color-mix(in srgb, var(--sofia-color-primario) 60%, var(--sofia-color-fondo));
+}
+
+/* --- Tablet ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+	.sofia-precios--filas .sofia-precios__plan {
+		grid-template-columns: 1fr;
+		align-items: start;
+		gap: var(--pieza-gap-s);
+	}
+
+	.sofia-precios--filas .sofia-precios__boton {
+		margin-top: var(--pieza-gap-xs);
+	}
+}
+
+/* --- Teléfono ---------------------------------------------------------- */
+@media (max-width: 768px) {
+	.sofia-precios__planes,
+	.sofia-precios--unico .sofia-precios__planes {
+		grid-template-columns: 1fr;
+	}
+
+	/* El destacado primero en un teléfono: con las tarjetas apiladas, el
+	   que conviene tiene que verse sin scrollear. */
+	.sofia-precios__plan--destacado {
+		order: -1;
+	}
+}

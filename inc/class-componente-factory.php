@@ -108,6 +108,8 @@ class Sofia_Componente_Factory {
 				return new Sofia_Componente_Header( $tipo, $id, $props, $hijos );
 			case 'footer':
 				return new Sofia_Componente_Footer( $tipo, $id, $props, $hijos );
+			case 'precios':
+				return new Sofia_Componente_Precios( $tipo, $id, $props, $hijos );
 			default:
 				// Antes de darlo por desconocido: puede ser un Componente
 				// GENERADO, cuya forma vive en una descripción de GoPress
@@ -205,7 +207,7 @@ class Sofia_Componente_Factory {
 	 * agregar tipos nuevos acá — son presets de este mismo Componente, no
 	 * clases separadas.
 	 */
-	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout', 'list', 'nav', 'breadcrumb', 'stat', 'progress', 'rating', 'tabs', 'accordion', 'modal', 'dropdown', 'stepper', 'gallery', 'masonry', 'marquee', 'carousel', 'header', 'footer' );
+	private const TIPOS_REGISTRADOS = array( 'hero', 'franja_beneficios', 'testimonios', 'faq', 'cta', 'texto_libre', 'container', 'image', 'button', 'divider', 'spacer', 'aspect_ratio', 'heading', 'rich_text', 'icon', 'video', 'embed', 'avatar', 'badge', 'link', 'icon_button', 'card', 'surface', 'callout', 'list', 'nav', 'breadcrumb', 'stat', 'progress', 'rating', 'tabs', 'accordion', 'modal', 'dropdown', 'stepper', 'gallery', 'masonry', 'marquee', 'carousel', 'header', 'footer', 'precios' );
 
 	/**
 	 * Catálogo de bloques insertables — consumido por

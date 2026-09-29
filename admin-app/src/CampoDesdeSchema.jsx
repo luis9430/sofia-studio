@@ -462,11 +462,15 @@ export function CamposDesdeSchema({
  * abre un selector, así que sin esto el ícono de cada item sería un campo
  * declarado y sin forma de editarse — el defecto que este componente
  * existe para tapar.
+ *
+ * "toggle" igual: un interruptor no es texto contenteditable. Lo usa
+ * Precios para marcar qué plan va destacado, y sin esto ese campo se
+ * declararía y no habría dónde tocarlo.
  */
 function CampoLista({ definicion, valor, onCambiar, restUrl, nonce }) {
   const items = Array.isArray(valor) ? valor : [];
   const subcampos = Object.entries(definicion.campos || {}).filter(
-    ([, d]) => d.tipo === "url" || d.tipo === "imagen" || d.tipo === "icono"
+    ([, d]) => d.tipo === "url" || d.tipo === "imagen" || d.tipo === "icono" || d.tipo === "toggle"
   );
 
   if (subcampos.length === 0 || items.length === 0) return null;
