@@ -158,36 +158,209 @@ h1, h2, h3, h4, h5, h6 {
 	justify-content: flex-end;
 }
 
-/* Testimonios sin fotos: display:none y no visibility/opacity — el
-   espacio de la foto también tiene que desaparecer, no quedar en blanco.
-   En modo editor las fotos siguen visibles aunque estén ocultas, porque
-   si no no habría forma de volver a activarlas ni de cargar una imagen:
-   un elemento con display:none no se puede clickear. */
+/* =====================================================================
+   Testimonios — la prueba social.
+
+   Rediseñado como PIEZA (ver class-testimonios.php). La versión anterior
+   eran tres citas sueltas sin encabezado ni cargo de quien habla.
+
+   Las tres composiciones comparten el MISMO HTML y cambian por la clase
+   de la sección — así cambiar de una a otra no mueve los
+   [data-sofia-campo] y el editor no pierde el campo seleccionado.
+   ===================================================================== */
+
+/* --- A: tarjetas (por defecto) ---------------------------------------- */
+.sofia-testimonios__items {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+	gap: var(--pieza-gap-m);
+}
+
+.sofia-testimonios__item {
+	margin: 0;
+	box-sizing: border-box;
+	padding: var(--pieza-gap-m);
+	background: var(--sofia-color-fondo);
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-s);
+	/* El autor abajo aunque las citas midan distinto: sin esto, una
+	   tarjeta con cita corta deja el nombre flotando al medio y la fila
+	   se ve desalineada. */
+	justify-content: space-between;
+}
+
+.sofia-testimonios__cita {
+	margin: 0;
+	font-size: 1.02rem;
+	line-height: 1.6;
+}
+
+/* Las comillas en ::before y no en el texto: son decoración tipográfica,
+   y meterlas en el contenido las volvería editables por accidente (y un
+   lector de pantalla las leería). */
+.sofia-testimonios__cita::before {
+	content: "\201C";
+	display: block;
+	margin-bottom: -0.35em;
+	font-family: Georgia, serif;
+	font-size: 2.6rem;
+	line-height: 1;
+	color: color-mix(in srgb, var(--sofia-color-primario) 35%, transparent);
+}
+
+.sofia-testimonios__autor {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sofia-testimonios__foto {
+	width: 44px;
+	height: 44px;
+	flex: none;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.sofia-testimonios__datos {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+
+.sofia-testimonios__nombre {
+	font-size: 0.95rem;
+	font-weight: 600;
+	font-style: normal;
+}
+
+/* El cargo es lo que convierte una frase amable en prueba social:
+   "Marina G." no dice nada, "Marina G., viajó en marzo" sí. */
+.sofia-testimonios__cargo {
+	font-size: 0.82rem;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- Sin fotos --------------------------------------------------------
+   display:none y no visibility/opacity: el espacio también tiene que
+   desaparecer, no quedar en blanco.
+
+   En modo editor siguen visibles aunque estén ocultas — si no, no
+   habría forma de volver a activarlas ni de cargar una imagen: un
+   elemento con display:none no se puede clickear. */
 .sofia-testimonios--sin-fotos .sofia-testimonios__foto {
 	display: none;
 }
 
-.sofia-testimonios__grid {
-	display: grid;
-	grid-template-columns: repeat(var(--sofia-columnas, 3), 1fr);
-	gap: 24px;
+/* --- B: uno destacado -------------------------------------------------
+   Para cuando hay una cita que vale más que las otras. El primero ocupa
+   toda la fila y se lee grande; los demás quedan de apoyo. */
+.sofia-testimonios--destacado .sofia-testimonios__items {
+	grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
 }
 
-.sofia-testimonios__item {
-	text-align: center;
+.sofia-testimonios--destacado .sofia-testimonios__item:first-child {
+	grid-column: 1 / -1;
+	padding: var(--pieza-gap-l);
+	background: color-mix(in srgb, var(--sofia-color-primario) 6%, var(--sofia-color-fondo));
+	border-color: color-mix(in srgb, var(--sofia-color-primario) 18%, transparent);
 }
 
-.sofia-testimonios__foto {
-	width: 72px;
-	height: 72px;
-	border-radius: 50%;
-	object-fit: cover;
-	margin: 0 auto 12px;
+.sofia-testimonios--destacado .sofia-testimonios__item:first-child .sofia-testimonios__cita {
+	max-width: 40ch;
+	font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+	line-height: 1.45;
+}
+
+.sofia-testimonios--destacado .sofia-testimonios__item:first-child .sofia-testimonios__cita::before {
+	font-size: 3.4rem;
+}
+
+.sofia-testimonios--destacado .sofia-testimonios__item:first-child .sofia-testimonios__foto {
+	width: 56px;
+	height: 56px;
+}
+
+/* --- C: muro ----------------------------------------------------------
+   Para seis o más de largos distintos. column-count acomoda alturas
+   dispares sin dejar huecos, que es lo que una grilla no hace.
+
+   Contrapartida: el orden de lectura es por COLUMNA, no por fila. Para
+   testimonios da igual — nadie los lee en orden. */
+.sofia-testimonios--muro .sofia-testimonios__items {
 	display: block;
+	column-count: 3;
+	column-gap: var(--pieza-gap-m);
 }
 
-.sofia-testimonios__foto--vacia {
-	background: var(--sofia-color-borde);
+.sofia-testimonios--muro .sofia-testimonios__item {
+	break-inside: avoid;
+	/* margin-bottom y no gap: gap no aplica entre elementos de una misma
+	   columna CSS, solo entre las columnas. */
+	margin-bottom: var(--pieza-gap-m);
+	display: flow-root;
+}
+
+.sofia-testimonios--muro .sofia-testimonios__autor {
+	margin-top: var(--pieza-gap-s);
+}
+
+/* --- Tono oscuro ------------------------------------------------------ */
+.sofia-testimonios--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-testimonios--oscuro .sofia-pieza__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro en vez de una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro, que una opacidad no garantiza. */
+.sofia-testimonios--oscuro .sofia-pieza__bajada,
+.sofia-testimonios--oscuro .sofia-testimonios__cargo {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-testimonios--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+}
+
+.sofia-testimonios--oscuro .sofia-testimonios__item {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 7%, transparent);
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+.sofia-testimonios--oscuro.sofia-testimonios--destacado .sofia-testimonios__item:first-child {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 12%, transparent);
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 28%, transparent);
+}
+
+/* --- Tablet ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+	.sofia-testimonios--muro .sofia-testimonios__items {
+		column-count: 2;
+	}
+}
+
+/* --- Teléfono ---------------------------------------------------------- */
+@media (max-width: 768px) {
+	.sofia-testimonios__items,
+	.sofia-testimonios--destacado .sofia-testimonios__items {
+		grid-template-columns: 1fr;
+	}
+
+	.sofia-testimonios--muro .sofia-testimonios__items {
+		column-count: 1;
+	}
+
+	.sofia-testimonios--destacado .sofia-testimonios__item:first-child {
+		padding: var(--pieza-gap-m);
+	}
 }
 
 .sofia-cta {
