@@ -2887,3 +2887,364 @@ h1, h2, h3, h4, h5, h6 {
 		border-radius: var(--sofia-radio-borde);
 	}
 }
+
+/* =====================================================================
+   Footer — el cierre del sitio.
+
+   Pieza NUEVA igual que Header: footer.php solo cerraba el </body>. Es
+   lo último que ve cualquier visitante, y un sitio sin footer se siente
+   incompleto sin que nadie sepa bien por qué.
+
+   Por defecto va OSCURO: un footer claro sobre una página clara no
+   marca dónde termina el contenido. El tono claro existe para sitios
+   que lo pidan.
+   ===================================================================== */
+
+.sofia-footer {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-footer__interior {
+	box-sizing: border-box;
+	max-width: var(--sofia-ancho-maximo-pantalla, 1200px);
+	margin-inline: auto;
+	padding: var(--pieza-gap-xl) var(--pieza-padding-x) var(--pieza-gap-m);
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-l);
+}
+
+/* --- Bloque principal ------------------------------------------------
+   La marca se lleva más espacio que las columnas (1.4 contra 1): el
+   desbalance evita que se lea como cuatro columnas iguales, y la
+   descripción necesita ancho para respirar. */
+.sofia-footer__principal {
+	display: grid;
+	grid-template-columns: minmax(0, 1.4fr) minmax(0, 2.6fr);
+	gap: var(--pieza-gap-xl);
+}
+
+.sofia-footer__marca {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-s);
+}
+
+.sofia-footer__logo {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.sofia-footer__logo-img {
+	max-height: 40px;
+	width: auto;
+}
+
+.sofia-footer__descripcion {
+	margin: 0;
+	max-width: 34ch;
+	font-size: 0.92rem;
+	line-height: 1.6;
+	/* color-mix contra el fondo y no una opacidad: mantiene el contraste
+	   en 4.5:1 sobre el oscuro, que una opacidad no garantiza. */
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+/* --- Redes -----------------------------------------------------------
+   38px de diámetro: por debajo de los 44 de un botón principal, pero
+   son objetivos secundarios y agrupados, así que sigue siendo cómodo. */
+.sofia-footer__redes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding-top: 4px;
+}
+
+.sofia-footer__red {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	border: 1px solid color-mix(in srgb, var(--sofia-color-fondo) 24%, transparent);
+	border-radius: 50%;
+	color: inherit;
+}
+
+.sofia-footer__red:hover {
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 55%, transparent);
+}
+
+.sofia-footer__red span {
+	display: flex;
+}
+
+/* --- Columnas de enlaces --------------------------------------------- */
+.sofia-footer__columnas {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: var(--pieza-gap-l);
+}
+
+.sofia-footer__columna {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sofia-footer__columna-titulo {
+	margin: 0 0 4px;
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+}
+
+.sofia-footer__columna-enlaces {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sofia-footer__enlace {
+	font-size: 0.92rem;
+	color: color-mix(in srgb, var(--sofia-color-fondo) 85%, var(--sofia-color-texto));
+	text-decoration: none;
+}
+
+.sofia-footer__enlace:hover {
+	color: var(--sofia-color-fondo);
+}
+
+/* --- Legal ------------------------------------------------------------ */
+.sofia-footer__legal {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--pieza-gap-s);
+	padding-top: var(--pieza-gap-m);
+	border-top: 1px solid color-mix(in srgb, var(--sofia-color-fondo) 16%, transparent);
+}
+
+.sofia-footer__legal-texto {
+	margin: 0;
+	font-size: 0.82rem;
+	color: color-mix(in srgb, var(--sofia-color-fondo) 58%, var(--sofia-color-texto));
+}
+
+.sofia-footer__legal-enlaces {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pieza-gap-s);
+}
+
+.sofia-footer__legal-enlace {
+	font-size: 0.82rem;
+	color: color-mix(in srgb, var(--sofia-color-fondo) 58%, var(--sofia-color-texto));
+	text-decoration: none;
+}
+
+.sofia-footer__legal-enlace:hover {
+	color: var(--sofia-color-fondo);
+}
+
+/* --- B: con cierre ----------------------------------------------------
+   Una última invitación antes de que el visitante se vaya. Va en el
+   color primario para que se separe del footer y se lea como otra cosa,
+   no como más footer. */
+.sofia-footer__cierre {
+	background: var(--sofia-color-primario);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-footer__cierre-interior {
+	box-sizing: border-box;
+	max-width: var(--sofia-ancho-maximo-pantalla, 1200px);
+	margin-inline: auto;
+	padding: var(--pieza-padding-y) var(--pieza-padding-x);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--pieza-gap-xl);
+}
+
+.sofia-footer__cierre-texto {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sofia-footer__cierre-titulo {
+	margin: 0;
+	max-width: 18ch;
+	font-size: var(--pieza-titulo);
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+}
+
+.sofia-footer__cierre-bajada {
+	margin: 0;
+	max-width: 42ch;
+	font-size: 1rem;
+	line-height: 1.6;
+	color: color-mix(in srgb, var(--sofia-color-fondo) 82%, var(--sofia-color-primario));
+}
+
+.sofia-footer__cierre-boton {
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+	padding: 16px 34px;
+	border-radius: var(--sofia-radio-borde);
+	background: var(--sofia-color-fondo);
+	color: var(--sofia-color-texto);
+	font-size: 0.95rem;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+/* Con cierre, el cuerpo del footer se achica: el peso ya lo tiene el
+   bloque de arriba. */
+.sofia-footer--cierre .sofia-footer__principal {
+	grid-template-columns: auto 1fr auto;
+	align-items: start;
+	gap: var(--pieza-gap-l);
+}
+
+.sofia-footer--cierre .sofia-footer__descripcion {
+	display: none;
+}
+
+.sofia-footer--cierre .sofia-footer__columnas {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var(--pieza-gap-m);
+}
+
+.sofia-footer--cierre .sofia-footer__columna-titulo {
+	display: none;
+}
+
+.sofia-footer--cierre .sofia-footer__columna-enlaces {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--pieza-gap-m);
+}
+
+/* --- C: mínimo --------------------------------------------------------
+   Para sitios de pocas páginas: todo en una fila y la línea legal
+   abajo. */
+.sofia-footer--minimo .sofia-footer__principal {
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: var(--pieza-gap-l);
+}
+
+.sofia-footer--minimo .sofia-footer__descripcion,
+.sofia-footer--minimo .sofia-footer__columna-titulo {
+	display: none;
+}
+
+.sofia-footer--minimo .sofia-footer__logo {
+	font-size: 1.3rem;
+}
+
+.sofia-footer--minimo .sofia-footer__columnas {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var(--pieza-gap-m);
+}
+
+.sofia-footer--minimo .sofia-footer__columna-enlaces {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--pieza-gap-m);
+}
+
+.sofia-footer--minimo .sofia-footer__interior {
+	padding-top: var(--pieza-gap-l);
+}
+
+/* --- Tono claro -------------------------------------------------------
+   Se invierten los roles: el fondo pasa a ser el claro y el texto el
+   oscuro. Todo lo demás funciona igual porque los color-mix se calculan
+   contra esos dos tokens. */
+.sofia-footer--claro {
+	background: var(--sofia-color-fondo);
+	color: var(--sofia-color-texto);
+}
+
+.sofia-footer--claro .sofia-footer__descripcion,
+.sofia-footer--claro .sofia-footer__legal-texto,
+.sofia-footer--claro .sofia-footer__legal-enlace {
+	color: var(--sofia-color-texto-suave);
+}
+
+.sofia-footer--claro .sofia-footer__enlace {
+	color: var(--sofia-color-texto);
+}
+
+.sofia-footer--claro .sofia-footer__columna-titulo {
+	color: var(--sofia-color-primario);
+}
+
+.sofia-footer--claro .sofia-footer__red {
+	border-color: var(--sofia-color-borde);
+}
+
+.sofia-footer--claro .sofia-footer__legal {
+	border-top-color: var(--sofia-color-borde);
+}
+
+/* --- Tablet ----------------------------------------------------------- */
+@media (max-width: 1024px) {
+	.sofia-footer__principal,
+	.sofia-footer--cierre .sofia-footer__principal,
+	.sofia-footer--minimo .sofia-footer__principal {
+		grid-template-columns: 1fr;
+		gap: var(--pieza-gap-l);
+	}
+
+	.sofia-footer__cierre-interior {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--pieza-gap-m);
+	}
+}
+
+/* --- Teléfono ---------------------------------------------------------- */
+@media (max-width: 768px) {
+	.sofia-footer__columnas {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.sofia-footer--cierre .sofia-footer__columnas,
+	.sofia-footer--minimo .sofia-footer__columnas {
+		justify-content: flex-start;
+	}
+
+	.sofia-footer__legal {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.sofia-footer__cierre-boton {
+		width: 100%;
+		justify-content: center;
+	}
+}
+
+@media (max-width: 480px) {
+	.sofia-footer__columnas {
+		grid-template-columns: 1fr;
+	}
+}
