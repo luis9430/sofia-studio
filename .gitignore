@@ -2,3 +2,12 @@ admin-app/node_modules/
 
 # Salida de tests/lote-componentes.php — se regenera al correrlo.
 tests/salida-lote/
+
+# node_modules de la raíz (arnés de verificación).
+/node_modules/
+
+# Salida de tests/verificar/ — se regenera con `npm run verificar`.
+tests/verificar/salida/
+tests/verificar/capturas/
+tests/verificar/medidas.json
+tests/verificar/reporte.html

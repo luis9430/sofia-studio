@@ -60,3 +60,15 @@ if ( ! function_exists( 'get_option' ) ) {
 		return $d;
 	}
 }
+
+if ( ! function_exists( 'esc_attr__' ) ) {
+	function esc_attr__( $t, $d = '' ) {
+		return htmlspecialchars( (string) $t, ENT_QUOTES );
+	}
+}
+
+if ( ! function_exists( 'esc_html__' ) ) {
+	function esc_html__( $t, $d = '' ) {
+		return htmlspecialchars( (string) $t, ENT_QUOTES );
+	}
+}

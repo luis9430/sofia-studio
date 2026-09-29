@@ -1,0 +1,15 @@
+{
+  "name": "sofia-studio-verificar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Arnes de verificacion de piezas: mide lo medible antes de juzgar lo interpretable.",
+  "type": "module",
+  "scripts": {
+    "verificar": "php tests/verificar/render-piezas.php && node tests/verificar/medir.mjs && node tests/verificar/reporte.mjs",
+    "verificar:medir": "node tests/verificar/medir.mjs",
+    "verificar:reporte": "node tests/verificar/reporte.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

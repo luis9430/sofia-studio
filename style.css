@@ -327,7 +327,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sofia-testimonios--oscuro .sofia-pieza__etiqueta {
-	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
 }
 
 .sofia-testimonios--oscuro .sofia-testimonios__item {
@@ -2937,9 +2937,14 @@ h1, h2, h3, h4, h5, h6 {
 	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
 }
 
+/* El 50% no es estético, es el máximo que pasa WCAG AA.
+   Con la paleta por defecto del tema (primario y texto ambos #1c1a17) la
+   mezcla al 55% daba 4.33:1 sobre el fondo oscuro — por debajo de 4.5 y
+   demasiado parejo para notarlo a ojo. Lo encontró tests/verificar.
+   Subirlo vuelve a romperlo: 55% = 4.33:1, 60% = 3.70:1. */
 .sofia-beneficios--oscuro .sofia-pieza__etiqueta,
 .sofia-beneficios--oscuro .sofia-beneficios__numero {
-	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
 }
 
 .sofia-beneficios--oscuro .sofia-beneficios__item {
@@ -2949,7 +2954,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .sofia-beneficios--oscuro .sofia-pieza__icono {
 	background: color-mix(in srgb, var(--sofia-color-fondo) 14%, transparent);
-	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
 }
 
 .sofia-beneficios--oscuro.sofia-beneficios--numerada .sofia-beneficios__item,
@@ -3414,7 +3419,7 @@ h1, h2, h3, h4, h5, h6 {
 	font-weight: 600;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
 }
 
 .sofia-footer__columna-enlaces {
@@ -3637,6 +3642,25 @@ h1, h2, h3, h4, h5, h6 {
 @media (max-width: 768px) {
 	.sofia-footer__columnas {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	/* 44px es el mínimo táctil (WCAG 2.5.5). En escritorio 38px se apunta
+	   con el mouse y se ve mejor, así que el cambio va solo acá. Lo
+	   encontró tests/verificar midiendo a 390px. */
+	.sofia-footer__red {
+		width: 44px;
+		height: 44px;
+	}
+
+	/* En "cierre" y "mínimo" las columnas se angostan y los enlaces quedan
+	   de 29×17px — un blanco difícil de acertar con el pulgar. Se les da
+	   alto táctil sin tocar el texto: la línea sigue midiendo lo mismo,
+	   crece el área que responde al toque. */
+	.sofia-footer__enlace,
+	.sofia-footer__legal-enlace {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
 	}
 
 	.sofia-footer--cierre .sofia-footer__columnas,
@@ -3925,7 +3949,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sofia-precios--oscuro .sofia-pieza__etiqueta {
-	color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
 }
 
 .sofia-precios--oscuro .sofia-precios__plan {
@@ -3939,7 +3963,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sofia-precios--oscuro .sofia-precios__feature::before {
-	border-color: color-mix(in srgb, var(--sofia-color-primario) 55%, var(--sofia-color-fondo));
+	border-color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
 }
 
 .sofia-precios--oscuro .sofia-precios__plan--destacado {
