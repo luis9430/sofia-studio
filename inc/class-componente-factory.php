@@ -223,6 +223,21 @@ class Sofia_Componente_Factory {
 	public static function catalogo(): array {
 		$catalogo = array();
 		foreach ( self::TIPOS_REGISTRADOS as $tipo ) {
+			// La cabecera y el pie NO son insertables: son del SITIO (ver
+			// Sofia_Cliente_GoPress::obtener_cabecera_pie) y se dibujan en
+			// todas las páginas. Ofrecerlos acá deja meter un segundo
+			// header DENTRO del contenido, que es un bug esperando.
+			//
+			// A diferencia del catálogo de la IA (ver TIPOS_ATOMICOS), las
+			// primitivas atómicas SÍ siguen acá: una persona editando puede
+			// querer un heading o un botón suelto entre dos secciones. Lo
+			// que a la IA la confunde —tener que descartarlas en cada
+			// decisión— a un humano no le estorba, porque él ya sabe qué
+			// busca.
+			if ( in_array( $tipo, self::TIPOS_DEL_SITIO, true ) ) {
+				continue;
+			}
+
 			// ID dummy: este Componente nunca se renderiza como bloque real
 			// de página, solo se instancia para leer su nombre() — el ID de
 			// instancia real lo asigna GoPress (store.GenerarIDBloque) recién
