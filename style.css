@@ -2073,72 +2073,190 @@ h1, h2, h3, h4, h5, h6 {
    el desplazamiento).
    --------------------------------------------------------------------- */
 
-/* Gallery — la grilla NO se define acá: sale de las utility classes
-   columns-N de Core Framework, vía el control "columnas" del Nivel 2.
-   Lo de acá es solo el recorte y el pie de foto. */
+/* =====================================================================
+   Galería — las fotos.
+
+   Rediseñada como PIEZA (ver class-gallery.php). La versión anterior era
+   una grilla de imágenes sin encabezado: correcta, y sin forma de
+   componerse distinto.
+
+   Las tres composiciones comparten el MISMO HTML y cambian por la clase
+   de la sección.
+   ===================================================================== */
+
 .sofia-gallery__grilla {
 	display: grid;
 	/* Lee --sofia-columnas, la custom property que el control "columnas"
-	   del Nivel 2 escribe en el style de la <section> — igual que Franja
-	   de beneficios y Testimonios. La primera version usaba auto-fit, que
-	   se ve bien pero ignora el control: el panel ofrecia elegir columnas
-	   y no pasaba nada. Es justo el defecto que el plan describe como "el
-	   sistema sabe la respuesta en un lado y no la consulta en el otro".
-	   minmax con el segundo valor en 1fr evita que 4 columnas aplasten
-	   las fotos en pantallas angostas. */
+	   del Nivel 2 escribe en el style de la <section>. minmax(0, 1fr) y no
+	   1fr a secas: sin el 0, una imagen ancha impide que su columna se
+	   encoja y la grilla desborda. */
 	grid-template-columns: repeat(var(--sofia-columnas, 3), minmax(0, 1fr));
-	gap: var(--sofia-espaciado-base);
+	gap: var(--pieza-gap-s);
 }
 
-@media (max-width: 782px) {
-	.sofia-gallery__grilla {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-@media (max-width: 480px) {
-	.sofia-gallery__grilla {
-		grid-template-columns: 1fr;
-	}
-}
-
+/* El figure es una columna: la imagen se estira y el pie queda abajo, con
+   su alto reservado. Sin esto la imagen ocupaba el 100% de la celda y el
+   pie se dibujaba FUERA, encima de la fila siguiente — se veía como un
+   epígrafe tapado por la foto de abajo. */
 .sofia-gallery__item {
-	margin: 0;
+	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	margin: 0;
+	min-width: 0;
 }
 
 .sofia-gallery__imagen {
 	display: block;
 	width: 100%;
-	height: auto;
+	/* flex:1 en vez de height:100% — el 100% se calcula contra la celda
+	   entera e ignora que el pie también necesita lugar. */
+	flex: 1;
+	min-height: 0;
+	object-fit: cover;
 	border-radius: var(--sofia-radio-borde);
 }
 
-/* Las tres proporciones recortan con object-fit. "libre" no tiene regla
-   porque es la ausencia de recorte: la imagen pasa con su alto natural. */
+/* --- Recorte ----------------------------------------------------------
+   Sin aspect-ratio fijo, fotos de proporciones distintas producen filas
+   desparejas — el defecto clásico de una galería armada a mano. */
 .sofia-gallery--cuadrada .sofia-gallery__imagen {
 	aspect-ratio: 1 / 1;
-	object-fit: cover;
 }
 
 .sofia-gallery--apaisada .sofia-gallery__imagen {
 	aspect-ratio: 4 / 3;
-	object-fit: cover;
 }
 
 .sofia-gallery--panoramica .sofia-gallery__imagen {
 	aspect-ratio: 16 / 9;
-	object-fit: cover;
 }
 
-/* min-height para que un pie vacío siga siendo clickeable en el editor —
-   ver el comentario en render() de class-gallery.php. */
+/* --- Pie de foto ------------------------------------------------------
+   min-height para que se pueda clickear vacío: el campo se emite siempre,
+   y sin altura no habría dónde hacer click para escribirlo. */
 .sofia-gallery__pie {
+	margin-top: 8px;
 	min-height: 1.2em;
-	font-size: 0.9rem;
-	opacity: 0.75;
+	font-size: 0.88rem;
+	line-height: 1.45;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- B: destacada -----------------------------------------------------
+   Una foto manda y el resto acompaña. Es el patrón de cualquier galería
+   de producto o de lugar (Airbnb lo usa en cada publicación), y con una
+   grilla pareja no se puede: la primera foto tiene que valer más.
+
+   grid-row: span 2 sobre la primera, con dos filas del mismo alto, da la
+   proporción correcta sin hardcodear píxeles. */
+/* Tres columnas y la primera ocupa 2×2, así que la primera fila la
+   completan dos fotos chicas: es exactamente la proporción de Airbnb (una
+   grande, cuatro al lado).
+
+   dense en grid-auto-flow para que las fotos que siguen rellenen los
+   huecos en vez de dejar la fila a medias: con cinco fotos y sin esto, la
+   última fila quedaba con dos y un espacio vacío a la derecha. */
+.sofia-gallery--destacada .sofia-gallery__grilla {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-auto-rows: 1fr;
+	grid-auto-flow: dense;
+}
+
+.sofia-gallery--destacada .sofia-gallery__item:first-child {
+	grid-column: span 2;
+	grid-row: span 2;
+}
+
+/* La destacada ignora el recorte de las otras: su forma la define la
+   celda que ocupa, no una proporción fija. Sin esto, un aspect-ratio
+   cuadrado la achica y deja un hueco en su propia celda.
+
+   Solo aspect-ratio:auto — un min-height:100% acá volvía a empujar el pie
+   fuera de la celda, que es el defecto que el flex del figure resuelve.
+   El flex:1 de la imagen ya la estira hasta donde el pie se lo permite. */
+.sofia-gallery--destacada .sofia-gallery__item:first-child .sofia-gallery__imagen {
+	aspect-ratio: auto;
+}
+
+/* --- C: tira ----------------------------------------------------------
+   Se desliza de costado. Para cuando hay muchas fotos y apilarlas en
+   filas haría una página interminable.
+
+   scroll-snap para que cada foto quede alineada al soltar: sin eso el
+   deslizamiento libre deja medias fotos a los costados. */
+.sofia-gallery--tira .sofia-gallery__grilla {
+	display: flex;
+	gap: var(--pieza-gap-s);
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	/* Los bordes del riel se alinean con el interior de la pieza en vez de
+	   cortar la primera foto por la mitad. */
+	scroll-padding-inline: var(--pieza-padding-x);
+	scrollbar-width: none;
+}
+
+.sofia-gallery--tira .sofia-gallery__grilla::-webkit-scrollbar {
+	display: none;
+}
+
+.sofia-gallery--tira .sofia-gallery__item {
+	flex: 0 0 clamp(200px, 26vw, 320px);
+	scroll-snap-align: start;
+}
+
+/* --- Tono oscuro ------------------------------------------------------ */
+.sofia-gallery--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-gallery--oscuro .sofia-pieza__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro y no una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro, que una opacidad no garantiza. */
+.sofia-gallery--oscuro .sofia-pieza__bajada,
+.sofia-gallery--oscuro .sofia-gallery__pie {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-gallery--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
+}
+
+/* --- Tablet ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+	.sofia-gallery__grilla {
+		grid-template-columns: repeat(min(var(--sofia-columnas, 3), 2), minmax(0, 1fr));
+	}
+}
+
+/* --- Teléfono ----------------------------------------------------------
+   Una columna, y la destacada deja de serlo: en 390px de ancho, dos
+   columnas de foto son dos miniaturas ilegibles. */
+@media (max-width: 768px) {
+	.sofia-gallery__grilla,
+	.sofia-gallery--destacada .sofia-gallery__grilla {
+		grid-template-columns: 1fr;
+		grid-auto-rows: auto;
+	}
+
+	.sofia-gallery--destacada .sofia-gallery__item:first-child {
+		grid-column: auto;
+		grid-row: auto;
+	}
+
+	/* La tira SÍ se queda: deslizar de costado funciona mejor en un
+	   teléfono que en escritorio, no peor. */
+	.sofia-gallery--tira .sofia-gallery__grilla {
+		display: flex;
+	}
+
+	.sofia-gallery--tira .sofia-gallery__item {
+		flex-basis: 78%;
+	}
 }
 
 /* Masonry — column-count. El item lleva break-inside:avoid porque sin eso
