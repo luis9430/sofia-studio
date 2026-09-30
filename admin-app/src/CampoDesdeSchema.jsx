@@ -469,11 +469,17 @@ export function CamposDesdeSchema({
  */
 function CampoLista({ definicion, valor, onCambiar, restUrl, nonce }) {
   const items = Array.isArray(valor) ? valor : [];
-  const subcampos = Object.entries(definicion.campos || {}).filter(
+
+  // Los subcampos simples que el canvas no sabe editar, y —aparte— las
+  // listas ANIDADAS, que necesitan su propio tratamiento: no son un control
+  // sino otra lista adentro.
+  const entradas = Object.entries(definicion.campos || {});
+  const subcampos = entradas.filter(
     ([, d]) => d.tipo === "url" || d.tipo === "imagen" || d.tipo === "icono" || d.tipo === "toggle"
   );
+  const anidadas = entradas.filter(([, d]) => d.tipo === "lista");
 
-  if (subcampos.length === 0 || items.length === 0) return null;
+  if ((subcampos.length === 0 && anidadas.length === 0) || items.length === 0) return null;
 
   function cambiarSubcampo(indice, nombre, valorNuevo) {
     onCambiar(items.map((item, i) => (i === indice ? { ...item, [nombre]: valorNuevo } : item)));
@@ -503,8 +509,109 @@ function CampoLista({ definicion, valor, onCambiar, restUrl, nonce }) {
               nonce={nonce}
             />
           ))}
+          {anidadas.map(([nombre, d]) => (
+            <ListaAnidada
+              key={nombre}
+              definicion={d}
+              valor={item[nombre]}
+              onCambiar={(v) => cambiarSubcampo(indice, nombre, v)}
+              restUrl={restUrl}
+              nonce={nonce}
+            />
+          ))}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * ListaAnidada — una lista DENTRO de un item de otra lista.
+ *
+ * Es lo que hace posible un submenú: el enlace "Destinos" con Careyes,
+ * Chamela y Tenacatita adentro. Sin esto, un campo de tipo "lista" dentro
+ * de otra lista quedaba declarado y sin forma de editarse — el mismo
+ * defecto que este archivo ya tapó dos veces (con "icono" en Beneficios y
+ * con "toggle" en Precios).
+ *
+ * A diferencia de CampoLista, ésta SÍ edita el texto de cada hijo: un
+ * submenú puede estar cerrado en el canvas (se despliega al pasar el
+ * mouse), así que no hay garantía de que el usuario pueda llegar a él ahí.
+ * Duplicar el control es preferible a que un campo no tenga dónde tocarse.
+ *
+ * Empieza plegada y muestra cuántos hijos tiene: un menú de seis enlaces
+ * con submenús abiertos sería una pared de controles.
+ */
+function ListaAnidada({ definicion, valor, onCambiar, restUrl, nonce }) {
+  const hijos = Array.isArray(valor) ? valor : [];
+  const [abierta, setAbierta] = useState(false);
+  const campos = Object.entries(definicion.campos || {});
+
+  function cambiarHijo(indice, nombre, valorNuevo) {
+    onCambiar(hijos.map((h, i) => (i === indice ? { ...h, [nombre]: valorNuevo } : h)));
+  }
+
+  function agregar() {
+    // El hijo nuevo arranca con todos sus campos vacíos: clonar el último
+    // (como hace el canvas) duplicaría su texto, y acá el usuario ve la
+    // lista entera y notaría el duplicado.
+    const vacio = {};
+    for (const [nombre] of campos) vacio[nombre] = "";
+    onCambiar([...hijos, vacio]);
+    setAbierta(true);
+  }
+
+  function eliminar(indice) {
+    onCambiar(hijos.filter((_, i) => i !== indice));
+  }
+
+  return (
+    <div className="sofia-lista-anidada">
+      <button
+        type="button"
+        className="sofia-lista-anidada__cab"
+        aria-expanded={abierta}
+        onClick={() => setAbierta((a) => !a)}
+      >
+        <span className={`sofia-lista-anidada__flecha${abierta ? " sofia-lista-anidada__flecha--abierta" : ""}`} />
+        <span>{definicion.etiqueta || "Submenú"}</span>
+        <span className="sofia-lista-anidada__cuenta">
+          {hijos.length === 0 ? "vacío" : `${hijos.length}`}
+        </span>
+      </button>
+
+      {abierta && (
+        <div className="sofia-lista-anidada__cuerpo">
+          {hijos.map((hijo, indice) => (
+            <div key={indice} className="sofia-lista-anidada__hijo">
+              <div className="sofia-lista-anidada__hijo-campos">
+                {campos.map(([nombre, d]) => (
+                  <CampoDesdeSchema
+                    key={nombre}
+                    nombre={nombre}
+                    definicion={d}
+                    valor={hijo[nombre]}
+                    onCambiar={(v) => cambiarHijo(indice, nombre, v)}
+                    restUrl={restUrl}
+                    nonce={nonce}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                className="sofia-lista-anidada__quitar"
+                onClick={() => eliminar(indice)}
+                aria-label={`Quitar ${hijo[campos[0]?.[0]] || `elemento ${indice + 1}`}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" className="sofia-lista-anidada__agregar" onClick={agregar}>
+            + Agregar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

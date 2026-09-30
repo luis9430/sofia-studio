@@ -1051,6 +1051,119 @@ body {
   white-space: nowrap;
 }
 
+/* --- Lista anidada: un submenú dentro de un enlace --------------------
+   Arranca plegada y con la cuenta a la vista: un menú de seis enlaces con
+   todos los submenús abiertos sería una pared de controles. La sangría
+   izquierda del cuerpo es lo único que comunica "esto vive adentro del
+   item de arriba". */
+.sofia-lista-anidada {
+  margin-top: 2px;
+}
+
+.sofia-lista-anidada__cab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sofia-lista-anidada__cab:hover {
+  color: var(--gp-panel-text);
+}
+
+.sofia-lista-anidada__flecha {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.12s ease;
+}
+
+.sofia-lista-anidada__flecha--abierta {
+  transform: rotate(45deg);
+}
+
+.sofia-lista-anidada__cuenta {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--gp-panel-border);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sofia-lista-anidada__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0 4px 11px;
+  border-left: 1px solid var(--gp-panel-border);
+  margin-left: 3px;
+}
+
+.sofia-lista-anidada__hijo {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.sofia-lista-anidada__hijo-campos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  /* min-width:0 para que un campo largo se encoja en vez de empujar el
+     botón de quitar fuera del panel. */
+  min-width: 0;
+}
+
+.sofia-lista-anidada__quitar {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sofia-lista-anidada__quitar:hover {
+  background: var(--gp-panel-border);
+  color: var(--gp-panel-text);
+}
+
+.sofia-lista-anidada__agregar {
+  align-self: flex-start;
+  padding: 4px 9px;
+  border: 1px dashed var(--gp-panel-border);
+  border-radius: 5px;
+  background: none;
+  color: var(--gp-panel-text-dim);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.sofia-lista-anidada__agregar:hover {
+  border-style: solid;
+  color: var(--gp-panel-text);
+}
+
 /* Número acotado: deslizador + valor. El deslizador comunica el rango
    sin explicarlo y no deja escribir un valor inválido. */
 .sofia-drawer-estilo__numero {

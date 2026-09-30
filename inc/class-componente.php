@@ -1039,6 +1039,34 @@ abstract class Sofia_Componente {
 	}
 
 	/**
+	 * atributo_lista_anidada(): una lista DENTRO de un item de otra lista.
+	 *
+	 * La clave lleva el camino completo hasta acá —
+	 * "hdr.enlaces.0.hijos" — y no solo el nombre del campo. Es lo que hace
+	 * que dos submenús de enlaces distintos sean listas distintas para el
+	 * editor: sin el índice del padre, los dos dirían "hdr.hijos" y
+	 * cualquier gesto operaría siempre sobre el primero.
+	 *
+	 * El editor la reconstruye recursivamente (ver leerItemsDeLista en
+	 * editor-iframe.js) y guarda el array resultante DENTRO del item padre,
+	 * bajo el último segmento de la clave. Del lado PHP eso llega como un
+	 * subcampo más del item, así que un Componente lo lee igual que
+	 * cualquier otro: $item['hijos'].
+	 *
+	 * @param string $camino_padre El data-sofia-lista del padre sin el id,
+	 *                             más el índice del item: "enlaces.0".
+	 * @param string $nombre_campo El subcampo que contiene la lista anidada.
+	 */
+	protected function atributo_lista_anidada( string $camino_padre, string $nombre_campo ): string {
+		return sprintf(
+			'data-sofia-lista="%s.%s.%s"',
+			esc_attr( $this->id ),
+			esc_attr( $camino_padre ),
+			esc_attr( $nombre_campo )
+		);
+	}
+
+	/**
 	 * svg_icono(): un <svg> inline de ICONOS_PERMITIDOS, con el wrapper
 	 * completo ya armado. Antes esto estaba escrito carácter
 	 * por carácter en 5 Componentes (Icon, IconButton, Callout, List,

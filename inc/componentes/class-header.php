@@ -66,6 +66,17 @@ class Sofia_Componente_Header extends Sofia_Componente {
 				'campos'   => array(
 					'texto'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
 					'enlace' => array( 'tipo' => 'url', 'etiqueta' => __( 'Destino', 'sofia-studio' ) ),
+					// La lista anidada que hace posible un submenú. Un enlace
+					// sin hijos se dibuja igual que antes: la clave ni
+					// siquiera existe hasta que alguien agrega el primero.
+					'hijos'  => array(
+						'tipo'     => 'lista',
+						'etiqueta' => __( 'Submenú', 'sofia-studio' ),
+						'campos'   => array(
+							'texto'  => array( 'tipo' => 'texto', 'etiqueta' => __( 'Texto', 'sofia-studio' ) ),
+							'enlace' => array( 'tipo' => 'url', 'etiqueta' => __( 'Destino', 'sofia-studio' ) ),
+						),
+					),
 				),
 			),
 			'link_texto'   => array( 'tipo' => 'texto', 'etiqueta' => __( 'Enlace secundario', 'sofia-studio' ) ),
@@ -156,6 +167,11 @@ class Sofia_Componente_Header extends Sofia_Componente {
 			$this->clase_de_variante( self::CLASES_COMPOSICION, 'composicion' ),
 			$this->clase_de_variante( self::CLASES_TONO, 'tono' ),
 			! empty( $this->estilo_bloque()['fijo'] ) ? 'sofia-header--fijo' : '',
+			// En el editor los submenús quedan desplegados: si se
+			// escondieran al quitar el mouse, sus enlaces no se podrían
+			// editar en el canvas. Mismo criterio que
+			// sofia-carousel--estatico.
+			$en_editor ? 'sofia-header--editor' : '',
 		) );
 
 		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
@@ -233,15 +249,58 @@ class Sofia_Componente_Header extends Sofia_Componente {
 			. $this->atributo_lista( 'enlaces' ) . '>';
 
 		foreach ( array_values( $enlaces ) as $indice => $enlace ) {
-			$texto   = $this->texto_enriquecido( (string) ( $enlace['texto'] ?? '' ) );
-			$destino = esc_url( (string) ( $enlace['enlace'] ?? '' ) );
-			$html   .= '<a class="sofia-header__enlace" href="' . ( '' !== $destino ? $destino : '#' ) . '" '
-				. $this->atributo_item( $indice ) . ' ' . $this->atributo_editable( "enlaces.{$indice}.texto" ) . '>'
-				. $texto . '</a>';
+			$html .= $this->enlace_html( $indice, is_array( $enlace ) ? $enlace : array() );
 		}
 
 		$html .= '</nav>';
 		$html .= $this->boton_agregar_item( 'enlaces' );
+		return $html;
+	}
+
+	/**
+	 * Un enlace del menú, con su submenú si tiene.
+	 *
+	 * El [data-sofia-item] va en un <div> envolvente y NO en el <a>, que es
+	 * donde estaba antes: un submenú es contenido del item, así que tiene
+	 * que vivir adentro de él. Con el atributo en el <a>, la lista anidada
+	 * quedaría afuera y el editor la leería como si fuera del menú padre.
+	 *
+	 * Un enlace sin hijos rinde el mismo <a> de siempre más un <div> que no
+	 * cambia nada visualmente (ver .sofia-header__item en style.css): no se
+	 * paga estructura por una función que no se usa.
+	 */
+	private function enlace_html( int $indice, array $enlace ): string {
+		$texto   = $this->texto_enriquecido( (string) ( $enlace['texto'] ?? '' ) );
+		$destino = esc_url( (string) ( $enlace['enlace'] ?? '' ) );
+		$hijos   = is_array( $enlace['hijos'] ?? null ) ? array_values( $enlace['hijos'] ) : array();
+
+		$clases = 'sofia-header__item' . ( $hijos ? ' sofia-header__item--con-submenu' : '' );
+
+		$html = '<div class="' . $clases . '" ' . $this->atributo_item( $indice ) . '>';
+		$html .= '<a class="sofia-header__enlace" href="' . ( '' !== $destino ? $destino : '#' ) . '" '
+			. ( $hijos ? 'aria-expanded="false" ' : '' )
+			. $this->atributo_editable( "enlaces.{$indice}.texto" ) . '>'
+			. $texto . '</a>';
+
+		if ( $hijos ) {
+			// atributo_lista_anidada() lleva el camino completo
+			// ("hdr.enlaces.0.hijos"): sin el índice del padre, dos submenús
+			// distintos serían la misma lista para el editor y cualquier
+			// gesto operaría siempre sobre el primero.
+			$html .= '<div class="sofia-header__submenu" '
+				. $this->atributo_lista_anidada( "enlaces.{$indice}", 'hijos' ) . '>';
+			foreach ( $hijos as $i => $hijo ) {
+				$t = $this->texto_enriquecido( (string) ( $hijo['texto'] ?? '' ) );
+				$d = esc_url( (string) ( $hijo['enlace'] ?? '' ) );
+				$html .= '<a class="sofia-header__subenlace" href="' . ( '' !== $d ? $d : '#' ) . '" '
+					. $this->atributo_item( $i ) . ' '
+					. $this->atributo_editable( "enlaces.{$indice}.hijos.{$i}.texto" ) . '>'
+					. $t . '</a>';
+			}
+			$html .= '</div>';
+		}
+
+		$html .= '</div>';
 		return $html;
 	}
 

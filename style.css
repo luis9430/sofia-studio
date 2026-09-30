@@ -3185,6 +3185,96 @@ h1, h2, h3, h4, h5, h6 {
 	color: var(--sofia-color-primario);
 }
 
+/* --- Submenú ---------------------------------------------------------
+   Un enlace sin hijos rinde el mismo <div> envolvente, así que esta regla
+   no le cambia nada: position:relative sobre un elemento sin descendientes
+   posicionados no tiene efecto. Se paga estructura solo cuando se usa. */
+.sofia-header__item {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+/* La flecha marca que hay más abajo, antes de que el usuario pase el mouse:
+   un enlace con submenú que se ve igual que uno sin él no invita a
+   explorarlo. Va en ::after del propio <a> para no meter un nodo al HTML
+   que el editor tendría que aprender a ignorar. */
+.sofia-header__item--con-submenu > .sofia-header__enlace::after {
+	content: "";
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	margin-left: 6px;
+	border-right: 1.5px solid currentColor;
+	border-bottom: 1.5px solid currentColor;
+	transform: translateY(-2px) rotate(45deg);
+	opacity: 0.55;
+}
+
+.sofia-header__submenu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 20;
+	display: flex;
+	flex-direction: column;
+	min-width: 180px;
+	padding: 8px;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 10px;
+	background: var(--sofia-color-fondo);
+	box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.28);
+	/* visibility y no display:none — display corta la transición y, más
+	   importante, saca el submenú del árbol de accesibilidad de golpe.
+	   Con visibility el navegador sigue calculando su tamaño, que es lo que
+	   necesita el editor para medirlo aunque esté cerrado. */
+	visibility: hidden;
+	opacity: 0;
+	transform: translateY(-4px);
+	transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s;
+}
+
+/* :focus-within además de :hover — con el teclado no hay mouse que pasar,
+   y un submenú al que solo se llega con el puntero es un menú que la mitad
+   de la gente no puede abrir. */
+.sofia-header__item--con-submenu:hover > .sofia-header__submenu,
+.sofia-header__item--con-submenu:focus-within > .sofia-header__submenu {
+	visibility: visible;
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.sofia-header__subenlace {
+	padding: 7px 10px;
+	border-radius: 6px;
+	color: inherit;
+	font-size: 0.9rem;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.sofia-header__subenlace:hover {
+	background: color-mix(in srgb, var(--sofia-color-texto) 6%, transparent);
+}
+
+/* En el editor el submenú queda SIEMPRE visible: si se escondiera al
+   quitar el mouse, sus enlaces no se podrían editar en el canvas — el
+   mismo motivo por el que el Carousel apila sus diapositivas en el editor
+   (ver .sofia-carousel--estatico). */
+.sofia-header--editor .sofia-header__submenu {
+	position: static;
+	visibility: visible;
+	opacity: 1;
+	transform: none;
+	box-shadow: none;
+	margin-top: 4px;
+}
+
+.sofia-header--editor .sofia-header__item {
+	align-items: flex-start;
+	flex-direction: column;
+}
+
 /* --- Acciones -------------------------------------------------------- */
 .sofia-header__acciones {
 	flex: none;

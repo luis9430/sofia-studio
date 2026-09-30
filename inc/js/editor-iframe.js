@@ -692,13 +692,13 @@
 	// mecanismo que un reordenamiento. Quitar el elemento del DOM alcanza:
 	// no hay ningún estado de grid paralelo que sincronizar.
 	function alEliminarItemDeLista(campoLista, indiceItem) {
-		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
+		var contenedorLista = listaPorCampo(campoLista);
 		var item = contenedorLista ? contenedorLista.querySelector(':scope > [data-sofia-item="' + indiceItem + '"]') : null;
 		if (!item) return;
 
 		item.remove();
 		reindexarItemsDeLista(contenedorLista);
-		notificarListaActualizada(contenedorLista);
+		notificarListaRaizDe(contenedorLista);
 	}
 
 	// moverNodoAPosicion(contenedor, selector, nodo, posicion): mueve $nodo
@@ -741,13 +741,13 @@
 	// bloques — reemplaza el drag directo sobre el canvas que antes movía
 	// estos items.
 	function alMoverItemDeLista(campoLista, indiceItem, posicion) {
-		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
+		var contenedorLista = listaPorCampo(campoLista);
 		var item = contenedorLista ? contenedorLista.querySelector(':scope > [data-sofia-item="' + indiceItem + '"]') : null;
 		if (!item || !contenedorLista) return;
 
 		moverNodoAPosicion(contenedorLista, "[data-sofia-item]", item, posicion);
 		reindexarItemsDeLista(contenedorLista);
-		notificarListaActualizada(contenedorLista);
+		notificarListaRaizDe(contenedorLista);
 	}
 
 	// Agrega un item nuevo al final de una lista repetible — clona el
@@ -770,7 +770,7 @@
 	// falta, sería la vía de escape). Insertar en el DOM ya alcanza: no hay
 	// ningún grid paralelo al que avisarle del elemento nuevo.
 	function alAgregarItemALista(campoLista) {
-		var contenedorLista = document.querySelector('[data-sofia-lista="' + campoLista + '"]');
+		var contenedorLista = listaPorCampo(campoLista);
 		var ultimoItem = contenedorLista ? contenedorLista.querySelector(":scope > [data-sofia-item]:last-of-type") : null;
 		if (!ultimoItem) return;
 
@@ -779,7 +779,7 @@
 
 		reindexarItemsDeLista(contenedorLista);
 		activarCamposEditables(itemNuevo);
-		notificarListaActualizada(contenedorLista);
+		notificarListaRaizDe(contenedorLista);
 	}
 
 	// Inserta un bloque NUEVO recibido como HTML ya renderizado por PHP
@@ -1150,19 +1150,109 @@
 	// interpretar esta notación (ver asignar_valor_de_campo en
 	// class-rest-editor.php).
 	function notificarListaActualizada(contenedorLista) {
-		var campo = contenedorLista.getAttribute("data-sofia-lista");
-		var items = Array.prototype.map.call(contenedorLista.querySelectorAll(":scope > [data-sofia-item]"), function (item) {
-			var objeto = {};
-			item.querySelectorAll("[data-sofia-campo]").forEach(function (campoEl) {
-				// El subcampo es el último segmento de
-				// "tipo.lista.indice.subcampo" — ver
-				// Sofia_Componente_Franja_Beneficios::render().
-				var partes = campoEl.getAttribute("data-sofia-campo").split(".");
-				objeto[partes[partes.length - 1]] = campoEl.innerHTML.trim();
-			});
-			return objeto;
+		notificarCambio(contenedorLista.getAttribute("data-sofia-lista"), leerItemsDeLista(contenedorLista));
+	}
+
+	// Lee los items de UNA lista, sin mezclar lo que pertenece a una lista
+	// anidada adentro.
+	//
+	// El bug que esto evita: la versión anterior hacía
+	// item.querySelectorAll("[data-sofia-campo]"), que recorre TODO el
+	// subárbol. Con un submenú adentro de un enlace, el "texto" del hijo
+	// pisaba el "texto" del padre y el menú se guardaba con el nombre del
+	// último hijo. Es el mismo defecto que ya rompió las Pestañas una vez,
+	// cuando un campo quedó fuera de su [data-sofia-item].
+	//
+	// camposPropiosDe() y listasPropiasDe() cortan en el primer límite: un
+	// campo que vive dentro de otra lista pertenece a esa lista, no a esta.
+	function leerItemsDeLista(contenedorLista) {
+		return Array.prototype.map.call(
+			contenedorLista.querySelectorAll(":scope > [data-sofia-item]"),
+			function (item) {
+				var objeto = {};
+
+				camposPropiosDe(item).forEach(function (campoEl) {
+					// El subcampo es el último segmento de
+					// "tipo.lista.indice.subcampo" — ver
+					// Sofia_Componente_Franja_Beneficios::render().
+					var partes = campoEl.getAttribute("data-sofia-campo").split(".");
+					objeto[partes[partes.length - 1]] = campoEl.innerHTML.trim();
+				});
+
+				// Una lista anidada se guarda como un array adentro del item,
+				// bajo el nombre de su último segmento ("hijos" en
+				// "hdr.enlaces.0.hijos"). Recursivo: soporta cualquier
+				// profundidad sin código extra.
+				listasPropiasDe(item).forEach(function (listaEl) {
+					var partes = listaEl.getAttribute("data-sofia-lista").split(".");
+					objeto[partes[partes.length - 1]] = leerItemsDeLista(listaEl);
+				});
+
+				return objeto;
+			}
+		);
+	}
+
+	// Los [data-sofia-campo] que pertenecen a $raiz y no a una lista
+	// anidada más adentro.
+	//
+	// No hay selector CSS para "descendiente que no cruza otro límite", así
+	// que se filtra: un campo es propio si, subiendo hacia $raiz, no
+	// aparece ningún [data-sofia-item] en el medio.
+	function camposPropiosDe(raiz) {
+		// La raíz misma cuenta: un elemento puede ser a la vez el item y su
+		// propio campo de texto — el subenlace del Header es las dos cosas.
+		// querySelectorAll() solo mira descendientes, así que ese caso hay
+		// que sumarlo aparte o el item se lee vacío.
+		var propios = raiz.hasAttribute("data-sofia-campo") ? [raiz] : [];
+
+		Array.prototype.forEach.call(raiz.querySelectorAll("[data-sofia-campo]"), function (el) {
+			// closest() se incluye a sí mismo: si el descendiente es su
+			// propio item, el campo le pertenece a él y no a esta raíz.
+			if (el.closest("[data-sofia-item]") === raiz) propios.push(el);
 		});
-		notificarCambio(campo, items);
+
+		return propios;
+	}
+
+	// Las listas que cuelgan directamente de $raiz, sin pasar por otro item.
+	function listasPropiasDe(raiz) {
+		return Array.prototype.filter.call(raiz.querySelectorAll("[data-sofia-lista]"), function (el) {
+			// Una lista nunca lleva también data-sofia-item, así que acá
+			// closest() no puede devolverse a sí mismo y basta preguntarlo
+			// directo (a diferencia de camposPropiosDe, donde sí pasa).
+			return el.closest("[data-sofia-item]") === raiz;
+		});
+	}
+
+
+	// La lista que corresponde a un campo, acotada por profundidad.
+	//
+	// document.querySelector('[data-sofia-lista="X"]') devuelve la PRIMERA
+	// del documento, que con listas anidadas del mismo nombre de campo es
+	// casi siempre la equivocada. El id de bloque ya hace únicos los del
+	// nivel superior ("hdr.enlaces"); los anidados llevan además el índice
+	// del item padre ("hdr.enlaces.0.hijos"), así que el atributo completo
+	// SÍ identifica una sola. Esta función existe para dejarlo dicho en un
+	// lugar en vez de repetir el querySelector en tres.
+	function listaPorCampo(campoLista) {
+		return document.querySelector('[data-sofia-lista="' + campoLista + '"]');
+	}
+
+	// Al cambiar una lista anidada hay que notificar la lista RAÍZ, no la
+	// anidada: el valor que el editor guarda es el array del nivel
+	// superior, con los hijos adentro. Notificar solo la interna guardaría
+	// un campo que del lado PHP no existe como tal.
+	function notificarListaRaizDe(contenedorLista) {
+		var raiz = contenedorLista;
+		var arriba = contenedorLista.parentElement;
+		while (arriba) {
+			var candidata = arriba.closest("[data-sofia-lista]");
+			if (!candidata) break;
+			raiz = candidata;
+			arriba = candidata.parentElement;
+		}
+		notificarListaActualizada(raiz);
 	}
 
 	// Activa contenteditable/wp.media() sobre los [data-sofia-campo] bajo
