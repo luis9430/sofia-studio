@@ -207,6 +207,134 @@ comprobar(
   JSON.stringify(profundo)
 );
 
+// --- Reindexar sin destruir lo anidado -----------------------------------
+// Mover, eliminar o agregar un item reescribe los índices de la lista. La
+// versión anterior recorría TODO el subárbol, así que el campo de un hijo
+// ("hdr.enlaces.0.hijos.0.texto") quedaba convertido en
+// "hdr.enlaces.1.texto": el camino hasta el padre desaparecía y la
+// estructura se destruía en silencio.
+await pagina.setContent(`<!doctype html><meta charset="utf-8"><body>
+<nav data-sofia-lista="hdr.enlaces">
+  <div data-sofia-item="0">
+    <a data-sofia-campo="hdr.enlaces.0.texto">Destinos</a>
+    <div data-sofia-lista="hdr.enlaces.0.hijos">
+      <a data-sofia-item="0" data-sofia-campo="hdr.enlaces.0.hijos.0.texto">Careyes</a>
+    </div>
+  </div>
+  <div data-sofia-item="1">
+    <a data-sofia-campo="hdr.enlaces.1.texto">Hospedaje</a>
+  </div>
+</nav></body>`);
+
+await pagina.evaluate(
+  ([f1, f2, f3, f4]) => {
+    // eslint-disable-next-line no-eval
+    window.eval(`${f1}\n${f2}\n${f3}\n${f4}\nwindow.reindexar = reindexarItemsDeLista; window.leerItemsDeLista = leerItemsDeLista;`);
+    // Se invierte el orden de los dos enlaces, como haría un arrastre.
+    const lista = document.querySelector('[data-sofia-lista="hdr.enlaces"]');
+    lista.insertBefore(lista.children[1], lista.children[0]);
+    window.reindexar(lista);
+  },
+  [
+    extraer("reindexarItemsDeLista"),
+    extraer("camposPropiosDe"),
+    extraer("listasPropiasDe"),
+    extraer("leerItemsDeLista"),
+  ]
+);
+
+const reindexado = await pagina.evaluate(() => ({
+  lista: document.querySelector("[data-sofia-lista$='hijos']")?.getAttribute("data-sofia-lista"),
+  campoHijo: document.querySelector("[data-sofia-lista$='hijos'] [data-sofia-campo]")?.getAttribute("data-sofia-campo"),
+  leido: window.leerItemsDeLista(document.querySelector('[data-sofia-lista="hdr.enlaces"]')),
+}));
+
+comprobar(
+  "al reordenar, la lista anidada sigue el índice de su padre",
+  reindexado.lista === "hdr.enlaces.1.hijos",
+  `obtuve ${JSON.stringify(reindexado.lista)}, esperaba "hdr.enlaces.1.hijos"`
+);
+
+comprobar(
+  "y el campo del hijo conserva el camino completo",
+  reindexado.campoHijo === "hdr.enlaces.1.hijos.0.texto",
+  `obtuve ${JSON.stringify(reindexado.campoHijo)}`
+);
+
+comprobar(
+  "el submenú viajó con su enlace al reordenar",
+  reindexado.leido?.[1]?.texto === "Destinos" && reindexado.leido?.[1]?.hijos?.[0]?.texto === "Careyes",
+  JSON.stringify(reindexado.leido)
+);
+
+// --- Agregar un item no clona el submenú ---------------------------------
+// cloneNode(true) copia el subárbol entero: duplicar un enlace con submenú
+// traía también sus hijos. El usuario pide "un enlace más" y recibe una
+// copia completa del anterior.
+await pagina.setContent(`<!doctype html><meta charset="utf-8"><body>
+<nav data-sofia-lista="hdr.enlaces">
+  <div class="sofia-header__item sofia-header__item--con-submenu" data-sofia-item="0">
+    <a data-sofia-campo="hdr.enlaces.0.texto">Destinos</a>
+    <div data-sofia-lista="hdr.enlaces.0.hijos">
+      <a data-sofia-item="0" data-sofia-campo="hdr.enlaces.0.hijos.0.texto">Careyes</a>
+      <a data-sofia-item="1" data-sofia-campo="hdr.enlaces.0.hijos.1.texto">Chamela</a>
+    </div>
+  </div>
+</nav></body>`);
+
+await pagina.evaluate(
+  ([f1, f2, f3, f4, f5, f6, f7]) => {
+    // eslint-disable-next-line no-eval
+    window.eval(
+      `${f1}\n${f2}\n${f3}\n${f4}\n${f5}\n${f6}\n${f7}\n` +
+        // notificarCambio habla con el padre por postMessage, que acá no
+        // existe: se reemplaza por un registro de lo que habría mandado.
+        `window.__notificado = null;\n` +
+        `function notificarCambio(campo, valor) { window.__notificado = { campo: campo, valor: valor }; }\n` +
+        `window.agregar = alAgregarItemALista;`
+    );
+    window.agregar("hdr.enlaces");
+  },
+  [
+    extraer("alAgregarItemALista"),
+    extraer("listaPorCampo"),
+    extraer("reindexarItemsDeLista"),
+    extraer("camposPropiosDe"),
+    extraer("listasPropiasDe"),
+    extraer("activarCamposEditables"),
+    extraer("notificarListaRaizDe") + "\n" + extraer("notificarListaActualizada") + "\n" + extraer("leerItemsDeLista") + "\n" + extraer("activarTexto") + "\n" + extraer("activarImagen"),
+  ]
+);
+
+const trasAgregar = await pagina.evaluate(() => ({
+  items: document.querySelectorAll('[data-sofia-lista="hdr.enlaces"] > [data-sofia-item]').length,
+  submenusRestantes: document.querySelectorAll("[data-sofia-lista$='hijos']").length,
+  segundoTieneClase: document
+    .querySelectorAll('[data-sofia-lista="hdr.enlaces"] > [data-sofia-item]')[1]
+    ?.classList.contains("sofia-header__item--con-submenu"),
+  notificado: window.__notificado,
+}));
+
+comprobar("agregar suma un item", trasAgregar.items === 2, `obtuve ${trasAgregar.items}`);
+
+comprobar(
+  "el item nuevo NO hereda el submenú del que se clonó",
+  trasAgregar.submenusRestantes === 1,
+  `quedaron ${trasAgregar.submenusRestantes} submenús, esperaba 1 (solo el original)`
+);
+
+comprobar(
+  "y pierde la clase que dibuja la flecha de submenú",
+  trasAgregar.segundoTieneClase === false,
+  "el item nuevo sigue marcado como si tuviera submenú"
+);
+
+comprobar(
+  "el original conserva sus dos hijos",
+  trasAgregar.notificado?.valor?.[0]?.hijos?.length === 2,
+  JSON.stringify(trasAgregar.notificado?.valor)
+);
+
 await navegador.close();
 
 console.log(`\n${pasadas} pasadas, ${falladas} falladas`);

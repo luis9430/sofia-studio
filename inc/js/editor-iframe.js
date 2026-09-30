@@ -775,6 +775,35 @@
 		if (!ultimoItem) return;
 
 		var itemNuevo = ultimoItem.cloneNode(true);
+
+		// Un item nuevo NO hereda el submenú del que se clonó.
+		//
+		// cloneNode(true) copia el subárbol entero, así que duplicar un
+		// enlace con submenú traía también sus hijos: el usuario pedía "un
+		// enlace más" y recibía una copia completa del anterior, con tres
+		// subenlaces que no pidió. Un submenú es contenido propio de SU
+		// enlace, no parte de la forma de un enlace.
+		var teniaListaAnidada = false;
+		Array.prototype.forEach.call(itemNuevo.querySelectorAll("[data-sofia-lista]"), function (lista) {
+			// Se quita el contenedor entero y no solo sus items: sin items,
+			// un contenedor de lista vacío deja un hueco en el layout y no
+			// hay forma de agregarle el primero (el botón "+" del canvas
+			// clona el último, y no hay ninguno).
+			lista.remove();
+			teniaListaAnidada = true;
+		});
+
+		// Las clases "--con-submenu" y similares las pone PHP cuando el item
+		// tiene hijos, y son las que dibujan la flecha de "hay más acá".
+		// Sobre un item recién agregado —que ya no tiene lista— esa flecha
+		// estaría prometiendo un submenú vacío. Se quita cualquier clase que
+		// termine en "--con-submenu".
+		if (teniaListaAnidada) {
+			Array.prototype.slice.call(itemNuevo.classList).forEach(function (clase) {
+				if (/--con-submenu$/.test(clase)) itemNuevo.classList.remove(clase);
+			});
+		}
+
 		ultimoItem.after(itemNuevo);
 
 		reindexarItemsDeLista(contenedorLista);
@@ -893,11 +922,32 @@
 	// posición equivocada del array guardado.
 	function reindexarItemsDeLista(contenedorLista) {
 		var campoLista = contenedorLista.getAttribute("data-sofia-lista");
+
 		Array.prototype.forEach.call(contenedorLista.querySelectorAll(":scope > [data-sofia-item]"), function (item, indice) {
 			item.setAttribute("data-sofia-item", indice);
-			item.querySelectorAll("[data-sofia-campo]").forEach(function (campoEl) {
+
+			// Solo los campos PROPIOS del item, no los de una lista anidada
+			// adentro.
+			//
+			// La versión anterior recorría todo el subárbol y le pegaba
+			// "{lista}.{indice}.{ultimo segmento}" a cada campo que
+			// encontrara. Con un submenú, el hijo "hdr.enlaces.0.hijos.0.
+			// texto" quedaba convertido en "hdr.enlaces.1.texto": el camino
+			// hasta el padre desaparecía y la estructura se destruía. Pasa
+			// al mover, al eliminar y al agregar — las tres llamadas.
+			camposPropiosDe(item).forEach(function (campoEl) {
 				var subcampo = campoEl.getAttribute("data-sofia-campo").split(".").pop();
 				campoEl.setAttribute("data-sofia-campo", campoLista + "." + indice + "." + subcampo);
+			});
+
+			// Las listas anidadas llevan el índice del padre en su propia
+			// clave ("hdr.enlaces.0.hijos"), así que al reordenar el padre
+			// hay que reescribirlas también — y de forma recursiva, porque
+			// lo que cuelgue más abajo tiene el camino entero adentro.
+			listasPropiasDe(item).forEach(function (listaEl) {
+				var nombre = listaEl.getAttribute("data-sofia-lista").split(".").pop();
+				listaEl.setAttribute("data-sofia-lista", campoLista + "." + indice + "." + nombre);
+				reindexarItemsDeLista(listaEl);
 			});
 		});
 	}
