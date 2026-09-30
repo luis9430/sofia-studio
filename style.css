@@ -709,17 +709,168 @@ h1, h2, h3, h4, h5, h6 {
 	font-size: 1.1rem;
 }
 
+/* =====================================================================
+   Preguntas frecuentes — lo que la gente pregunta antes de decidir.
+
+   Rediseñada como PIEZA (ver class-faq.php). Estaba partida en dos
+   lugares de este archivo; ahora vive junta.
+
+   Una FAQ es un PROPÓSITO y un acordeón es un MECANISMO: a veces
+   coinciden y a veces no. Por eso el plegado es una composición de esta
+   pieza, no un componente aparte.
+   ===================================================================== */
+
+.sofia-faq__lista {
+	display: flex;
+	flex-direction: column;
+}
+
 .sofia-faq__item {
-	padding: 16px 0;
+	padding: var(--pieza-gap-s) 0;
 	border-bottom: 1px solid var(--sofia-color-borde);
 }
 
-.sofia-faq__pregunta {
+.sofia-faq__item:last-child {
+	border-bottom: 0;
+}
+
+.sofia-faq__pregunta,
+.sofia-faq__pregunta-texto {
 	margin: 0 0 8px;
+	font-size: 1.02rem;
+	font-weight: 600;
+	line-height: 1.4;
 }
 
 .sofia-faq__respuesta {
 	margin: 0;
+	max-width: 68ch;
+	line-height: 1.65;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- B: plegadas ------------------------------------------------------
+   <details>/<summary> nativo: abre y cierra sin JavaScript y sigue
+   funcionando si el script no carga. */
+.sofia-faq--plegadas .sofia-faq__pregunta {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+	/* Alto mínimo táctil (WCAG 2.5.5): en la composición plegada la
+	   pregunta ES el control que abre el panel, y con el padding anterior
+	   medía 31px — difícil de acertar con el pulgar. */
+	min-height: 44px;
+	padding: 6px 0;
+	cursor: pointer;
+	/* Saca el triángulo del navegador: se reemplaza por el signo de abajo,
+	   que es el mismo en todos y se puede animar. */
+	list-style: none;
+}
+
+.sofia-faq--plegadas .sofia-faq__pregunta::-webkit-details-marker {
+	display: none;
+}
+
+/* Un punto más grande que en las composiciones abiertas: acá la pregunta
+   es el único texto visible cuando el panel está cerrado, así que carga
+   sola el peso de la sección. En las abiertas compite con su respuesta,
+   que está siempre a la vista. */
+.sofia-faq--plegadas .sofia-faq__pregunta-texto {
+	flex: 1;
+	margin: 0;
+	min-width: 0;
+	font-size: 1.12rem;
+}
+
+/* El signo + que gira a × al abrir. Dos líneas cruzadas en un ::after del
+   summary: una sola forma, sin nodos de más en el HTML que el editor
+   tendría que aprender a ignorar. */
+.sofia-faq--plegadas .sofia-faq__pregunta::after {
+	content: "";
+	flex: none;
+	width: 12px;
+	height: 12px;
+	background:
+		linear-gradient(currentColor, currentColor) center / 100% 1.5px no-repeat,
+		linear-gradient(currentColor, currentColor) center / 1.5px 100% no-repeat;
+	transition: transform 0.18s ease;
+}
+
+.sofia-faq--plegadas .sofia-faq__item[open] .sofia-faq__pregunta::after {
+	transform: rotate(135deg);
+}
+
+.sofia-faq--plegadas .sofia-faq__respuesta {
+	padding: 4px 23px 8px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sofia-faq--plegadas .sofia-faq__pregunta::after {
+		transition: none;
+	}
+}
+
+/* --- C: dos columnas --------------------------------------------------
+   Para respuestas cortas que entran de a pares. El borde de abajo se
+   quita: con dos columnas, una línea horizontal cruzaría las dos y
+   sugeriría una relación entre preguntas que no existe. */
+.sofia-faq--dos-columnas .sofia-faq__lista {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--pieza-gap-m) var(--pieza-gap-l);
+}
+
+.sofia-faq--dos-columnas .sofia-faq__item {
+	padding: 0;
+	border-bottom: 0;
+}
+
+/* --- Tarjetas ---------------------------------------------------------
+   Cada pregunta como unidad propia: útil cuando las respuestas son largas
+   y la línea divisoria no alcanza para separarlas. */
+.sofia-faq--tarjetas .sofia-faq__lista {
+	gap: 8px;
+}
+
+.sofia-faq--tarjetas .sofia-faq__item {
+	padding: var(--pieza-gap-s) var(--pieza-gap-m);
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: var(--sofia-radio-borde);
+}
+
+/* --- Tono oscuro ------------------------------------------------------ */
+.sofia-faq--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-faq--oscuro .sofia-pieza__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro y no una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro. */
+.sofia-faq--oscuro .sofia-pieza__bajada,
+.sofia-faq--oscuro .sofia-faq__respuesta {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-faq--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
+}
+
+.sofia-faq--oscuro .sofia-faq__item {
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+/* --- Teléfono ----------------------------------------------------------
+   Dos columnas de preguntas a 390px son dos columnas de palabras sueltas. */
+@media (max-width: 768px) {
+	.sofia-faq--dos-columnas .sofia-faq__lista {
+		grid-template-columns: 1fr;
+		gap: var(--pieza-gap-s);
+	}
 }
 
 /* max-width-*/width-* de Core Framework (Nivel 2, "Ancho máximo"/"Ancho")
@@ -1178,19 +1329,6 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-container--invertida.flex-row { flex-direction: row-reverse; }
 .sofia-container--invertida.flex-column { flex-direction: column-reverse; }
 
-/* FAQ en tarjetas: cada pregunta se lee como una unidad propia, útil
-   cuando las respuestas son largas y la línea divisoria no alcanza para
-   separarlas visualmente. */
-.sofia-faq--tarjetas .sofia-faq__item {
-	padding: var(--sofia-espaciado-base);
-	border: 1px solid var(--sofia-color-borde);
-	border-radius: var(--sofia-radio-borde);
-	margin-bottom: 8px;
-}
-
-.sofia-faq--tarjetas .sofia-faq__item:last-child {
-	margin-bottom: 0;
-}
 
 /* Divider (Fase 1, plan "50 primitivas") — <hr> nativo despojado de su
    estilo default del navegador (que ya trae borde 3D/inset feo en la
