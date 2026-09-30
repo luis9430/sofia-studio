@@ -101,8 +101,30 @@ const CHEQUEOS = ({ contrasteMinimo, toqueMinimo }) => {
   // --- 2. Elemento que sale de la ventana ----------------------------------
   // Se reporta solo el culpable más ancho por rama para no listar al
   // elemento y a sus 6 padres diciendo lo mismo.
+  /**
+   * ¿Está dentro de un contenedor que scrollea de costado a propósito?
+   *
+   * Un carrusel tiene sus slides fuera de la ventana por definición: para
+   * eso existe. Reportarlos como desborde llena el informe de falsos
+   * positivos y esconde el desborde real —que en el mismo carrusel eran las
+   * flechas empujando el scroll de la página entera.
+   *
+   * Lo que sí se sigue midiendo es el chequeo 1 (desborde de la PÁGINA): un
+   * scroller interno no debe hacer scrollear el documento.
+   */
+  const enScrollerHorizontal = (el) => {
+    let capa = el.parentElement;
+    while (capa && capa !== document.body) {
+      const ox = getComputedStyle(capa).overflowX;
+      if (ox === "auto" || ox === "scroll") return true;
+      capa = capa.parentElement;
+    }
+    return false;
+  };
+
   const fuera = [];
   for (const el of todos) {
+    if (enScrollerHorizontal(el)) continue;
     const r = el.getBoundingClientRect();
     if (r.right > ancho + 1 || r.left < -1) {
       fuera.push({ el, exceso: Math.round(Math.max(r.right - ancho, -r.left)) });

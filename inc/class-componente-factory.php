@@ -509,12 +509,74 @@ class Sofia_Componente_Factory {
 	 * Quitarlos de acá no los saca del tema — siguen siendo Componentes
 	 * normales, editables; lo que cambia es de dónde sale su contenido.
 	 */
-	private const TIPOS_FUERA_DEL_CATALOGO_IA = array( 'header', 'footer' );
+	private const TIPOS_DEL_SITIO = array( 'header', 'footer' );
+
+	/**
+	 * Primitivas que son ÁTOMOS, no bloques que alguien inserte en una
+	 * página.
+	 *
+	 * Un badge con un solo campo de texto, un link con texto y destino, un
+	 * stat con número y etiqueta: eso no es una sección, es algo que vive
+	 * DENTRO de una. Nadie arma un hero apilando heading + rich_text +
+	 * button si existe el tipo "hero".
+	 *
+	 * Medido, y el número no deja lugar a dudas: en 6 páginas generadas la
+	 * IA eligió 5 tipos —hero, beneficios, testimonios, cta, faq— y ninguna
+	 * de estas 19, ni una sola vez. No están rotas; es que para componer
+	 * una página una sección completa gana siempre. Ofrecérselas solo la
+	 * obliga a descartarlas en cada decisión.
+	 *
+	 * Salen del catálogo, NO del tema: siguen existiendo como clases PHP y
+	 * las piezas las usan internamente. Es reversible — si aparece un caso
+	 * real que necesite insertar una suelta, se saca de esta lista.
+	 */
+	private const TIPOS_ATOMICOS = array(
+		'texto_libre',
+		'image',
+		'button',
+		'divider',
+		'spacer',
+		'aspect_ratio',
+		'heading',
+		'rich_text',
+		'icon',
+		'video',
+		'embed',
+		'avatar',
+		'badge',
+		'link',
+		'surface',
+		'callout',
+		'stat',
+		'progress',
+		'rating',
+	);
+
+	/**
+	 * Tipos que NO se le ofrecen al generador de páginas, por dos motivos
+	 * distintos que conviene no mezclar:
+	 *
+	 * - TIPOS_DEL_SITIO: la cabecera y el pie son del SITIO, no de una
+	 *   página (ver Sofia_Cliente_GoPress::obtener_cabecera_pie). Se
+	 *   dibujan en todas, y ofrecérselos a la IA como decisión de contenido
+	 *   la obligaba a acordarse de ponerlos en cada una. No se acordaba:
+	 *   medido sobre 6 páginas, ninguna incluía header ni footer.
+	 *
+	 * - TIPOS_ATOMICOS: son piezas de una sección, no secciones.
+	 *
+	 * En los dos casos, quitarlos de acá no los saca del tema — siguen
+	 * siendo Componentes normales; lo que cambia es que dejan de ser una
+	 * opción que el generador tiene que evaluar.
+	 */
+	private static function tipos_fuera_del_catalogo_ia(): array {
+		return array_merge( self::TIPOS_DEL_SITIO, self::TIPOS_ATOMICOS );
+	}
 
 	public static function catalogo_para_ia(): array {
+		$fuera    = self::tipos_fuera_del_catalogo_ia();
 		$catalogo = array();
 		foreach ( self::TIPOS_REGISTRADOS as $tipo ) {
-			if ( in_array( $tipo, self::TIPOS_FUERA_DEL_CATALOGO_IA, true ) ) {
+			if ( in_array( $tipo, $fuera, true ) ) {
 				continue;
 			}
 			$componente = self::crear( $tipo, 'catalogo' );

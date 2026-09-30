@@ -2262,6 +2262,14 @@ h1, h2, h3, h4, h5, h6 {
    las flechas y los puntos. */
 .sofia-carousel {
 	position: relative;
+	/* Margen propio del ancho de las flechas: sobresalen 18px a cada lado
+	   (ver .sofia-carousel__flecha--anterior) y, cuando el carrusel ocupa
+	   todo el ancho disponible, ese sobrante empujaba el scroll horizontal
+	   de la PÁGINA entera — medido: 18px de más a 1280px. Reservando el
+	   espacio acá, las flechas siguen sobresaliendo del riel sin salirse de
+	   la ventana. Lo encontró el arnés cuando la IA eligió un carrusel por
+	   primera vez. */
+	margin-inline: 18px;
 }
 
 .sofia-carousel__pista {
@@ -2325,8 +2333,10 @@ h1, h2, h3, h4, h5, h6 {
 	position: absolute;
 	top: 30%;
 	z-index: 2;
-	width: 40px;
-	height: 40px;
+	/* 44px y no 40: es el mínimo táctil (WCAG 2.5.5), y en un teléfono
+	   estas flechas son el único control del carrusel. */
+	width: 44px;
+	height: 44px;
 	border: 1px solid var(--sofia-color-borde);
 	border-radius: 50%;
 	background: var(--sofia-color-fondo);
@@ -2374,17 +2384,34 @@ h1, h2, h3, h4, h5, h6 {
 	padding-top: 14px;
 }
 
+/* El punto se DIBUJA de 9px pero se TOCA en 44: el círculo va en ::before y
+   el botón queda del tamaño mínimo táctil, transparente. Agrandar el punto
+   en sí lo convertiría en una bolita fea; dejarlo en 9px lo hace imposible
+   de acertar con el pulgar (WCAG 2.5.5 pide 44). Lo encontró el arnés
+   cuando la IA eligió un carrusel por primera vez. */
 .sofia-carousel__punto {
-	width: 9px;
-	height: 9px;
+	position: relative;
+	width: 44px;
+	height: 44px;
 	padding: 0;
 	border: 0;
-	border-radius: 50%;
-	background: var(--sofia-color-borde);
+	background: none;
 	cursor: pointer;
 }
 
-.sofia-carousel__punto[aria-current="true"] {
+.sofia-carousel__punto::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 9px;
+	height: 9px;
+	margin: -4.5px 0 0 -4.5px;
+	border-radius: 50%;
+	background: var(--sofia-color-borde);
+}
+
+.sofia-carousel__punto[aria-current="true"]::before {
 	background: var(--sofia-color-primario);
 }
 
