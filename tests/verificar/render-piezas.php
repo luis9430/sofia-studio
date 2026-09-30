@@ -42,7 +42,7 @@ foreach ( glob( $base . 'inc/componentes/class-*.php' ) as $archivo ) {
  * que el código pueda deducir: precios y card ambos rinden HTML, pero
  * solo una es una sección compuesta que se juzga como unidad.
  */
-const PIEZAS = array( 'header', 'hero', 'franja_beneficios', 'testimonios', 'precios', 'cta', 'footer', 'gallery', 'faq', 'tabs' );
+const PIEZAS = array( 'header', 'hero', 'franja_beneficios', 'testimonios', 'precios', 'cta', 'footer', 'gallery', 'faq', 'tabs', 'tarjetas' );
 
 /** Los anchos donde se mide. Los mismos breakpoints del CSS del tema. */
 const ANCHOS = array(

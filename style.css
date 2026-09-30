@@ -4664,3 +4664,251 @@ h1, h2, h3, h4, h5, h6 {
 		order: -1;
 	}
 }
+
+/* =====================================================================
+   Tarjetas — una grilla de cosas comparables.
+
+   Pieza nueva (ver class-tarjetas.php). El tipo "card" que ya existía es
+   UNA tarjeta suelta; esto es la sección que las agrupa, que es lo que
+   muestran las referencias de sitios reales.
+
+   Las tres composiciones comparten el MISMO HTML y cambian por la clase
+   de la sección.
+   ===================================================================== */
+
+.sofia-tarjetas__grilla {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+	gap: var(--pieza-gap-m);
+	/* align-items: stretch (el default) hace que todas midan lo mismo
+	   aunque tengan distinta cantidad de datos — sin eso, el dato
+	   destacado queda a alturas distintas y la fila se ve desalineada. */
+}
+
+.sofia-tarjetas__item {
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 12px;
+	background: var(--sofia-color-fondo);
+	color: inherit;
+	text-decoration: none;
+	overflow: hidden;
+}
+
+/* Solo las que son enlace reaccionan: una tarjeta sin destino que se
+   mueve al pasar el mouse promete un clic que no hace nada. */
+a.sofia-tarjetas__item {
+	transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+a.sofia-tarjetas__item:hover {
+	transform: translateY(-2px);
+	border-color: color-mix(in srgb, var(--sofia-color-primario) 40%, var(--sofia-color-borde));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	a.sofia-tarjetas__item {
+		transition: none;
+	}
+
+	a.sofia-tarjetas__item:hover {
+		transform: none;
+	}
+}
+
+.sofia-tarjetas__imagen {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+}
+
+.sofia-tarjetas__cuerpo {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 8px;
+	padding: var(--pieza-gap-s) var(--pieza-gap-m) var(--pieza-gap-m);
+}
+
+.sofia-tarjetas__titulo {
+	margin: 0;
+	font-size: 1.12rem;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -0.01em;
+}
+
+.sofia-tarjetas__texto {
+	margin: 0;
+	font-size: 0.92rem;
+	line-height: 1.55;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- Datos ------------------------------------------------------------
+   La fila que hace comparable una tarjeta con otra ("2h 12m, sin escalas"
+   en KAYAK). Separados por un punto medio en ::before, no por un nodo de
+   más que el editor tendría que aprender a ignorar. */
+.sofia-tarjetas__datos {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	margin: 2px 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.85rem;
+	color: var(--sofia-color-texto-suave);
+}
+
+.sofia-tarjetas__dato + .sofia-tarjetas__dato::before {
+	content: "\00b7";
+	margin-right: 10px;
+	opacity: 0.5;
+}
+
+/* --- Dato destacado ---------------------------------------------------
+   Al pie y separado del resto: es lo que la gente compara primero cuando
+   mira varias tarjetas juntas (el "from $46" de KAYAK).
+
+   margin-top:auto lo empuja al fondo, así queda alineado entre tarjetas
+   con distinta cantidad de texto. */
+.sofia-tarjetas__destacado {
+	margin: auto 0 0;
+	padding-top: var(--pieza-gap-s);
+	font-size: 1.05rem;
+	font-weight: 600;
+	/* tabular-nums para que dos precios de la misma fila alineen sus
+	   dígitos. */
+	font-variant-numeric: tabular-nums;
+}
+
+/* --- B: lista ---------------------------------------------------------
+   Imagen al costado, para descripciones largas que en una grilla
+   obligarían a tarjetas altísimas. */
+.sofia-tarjetas--lista .sofia-tarjetas__grilla {
+	grid-template-columns: 1fr;
+	gap: var(--pieza-gap-s);
+}
+
+.sofia-tarjetas--lista .sofia-tarjetas__item {
+	flex-direction: row;
+	align-items: stretch;
+}
+
+.sofia-tarjetas--lista .sofia-tarjetas__imagen {
+	flex: 0 0 clamp(140px, 22%, 260px);
+	height: auto;
+	aspect-ratio: auto;
+}
+
+.sofia-tarjetas--lista .sofia-tarjetas__cuerpo {
+	padding: var(--pieza-gap-m);
+}
+
+/* --- C: tira ----------------------------------------------------------
+   Se desliza de costado. Para cuando hay muchas y apilarlas haría una
+   página interminable.
+
+   scroll-snap para que cada tarjeta quede alineada al soltar: sin eso el
+   deslizamiento libre deja medias tarjetas a los costados. */
+.sofia-tarjetas--tira .sofia-tarjetas__grilla {
+	display: flex;
+	gap: var(--pieza-gap-s);
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scroll-padding-inline: var(--pieza-padding-x);
+	scrollbar-width: none;
+	/* El padding vertical deja lugar al translateY del hover: sin eso, la
+	   tarjeta levantada se corta contra el borde del riel. */
+	padding-block: 4px;
+}
+
+.sofia-tarjetas--tira .sofia-tarjetas__grilla::-webkit-scrollbar {
+	display: none;
+}
+
+.sofia-tarjetas--tira .sofia-tarjetas__item {
+	flex: 0 0 clamp(240px, 28vw, 320px);
+	scroll-snap-align: start;
+}
+
+/* --- Superficies ------------------------------------------------------ */
+.sofia-tarjetas--elevada .sofia-tarjetas__item {
+	border-color: transparent;
+	box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.08), 0 12px 28px -12px rgba(0, 0, 0, 0.16);
+}
+
+.sofia-tarjetas--elevada a.sofia-tarjetas__item:hover {
+	box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.1), 0 18px 36px -12px rgba(0, 0, 0, 0.22);
+}
+
+/* Plana: sin caja, para cuando la imagen ya separa una tarjeta de la
+   siguiente y el borde solo agrega ruido. */
+.sofia-tarjetas--plana .sofia-tarjetas__item {
+	border: 0;
+	background: none;
+	border-radius: 0;
+}
+
+.sofia-tarjetas--plana .sofia-tarjetas__imagen {
+	border-radius: 10px;
+}
+
+.sofia-tarjetas--plana .sofia-tarjetas__cuerpo {
+	padding: var(--pieza-gap-s) 0 0;
+}
+
+/* --- Tono oscuro ------------------------------------------------------ */
+.sofia-tarjetas--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-tarjetas--oscuro .sofia-pieza__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro y no una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro. */
+.sofia-tarjetas--oscuro .sofia-pieza__bajada,
+.sofia-tarjetas--oscuro .sofia-tarjetas__texto,
+.sofia-tarjetas--oscuro .sofia-tarjetas__datos {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-tarjetas--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
+}
+
+.sofia-tarjetas--oscuro .sofia-tarjetas__item {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 7%, transparent);
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+.sofia-tarjetas--oscuro.sofia-tarjetas--plana .sofia-tarjetas__item {
+	background: none;
+}
+
+/* --- Teléfono ----------------------------------------------------------
+   La lista pasa a columna: 140px de imagen sobre 390px de ancho dejan el
+   texto en una franja ilegible. */
+@media (max-width: 768px) {
+	.sofia-tarjetas--lista .sofia-tarjetas__item {
+		flex-direction: column;
+	}
+
+	.sofia-tarjetas--lista .sofia-tarjetas__imagen {
+		flex: none;
+		width: 100%;
+		aspect-ratio: 16 / 9;
+	}
+
+	/* La tira SÍ se queda: deslizar de costado funciona mejor en un
+	   teléfono que en escritorio, no peor. */
+	.sofia-tarjetas--tira .sofia-tarjetas__item {
+		flex-basis: 78%;
+	}
+}
