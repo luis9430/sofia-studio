@@ -1844,6 +1844,13 @@ h1, h2, h3, h4, h5, h6 {
    juntas arriba y los paneles abajo. Eso lo resuelve grid: dos filas
    declaradas en el contenedor, y cada hijo colocado en la que le toca sin
    importar su orden en el HTML. */
+/* =====================================================================
+   Pestañas — mucho que contar, sin alargar la página.
+
+   Rediseñado como PIEZA (ver class-tabs.php). Las tres composiciones
+   comparten el MISMO HTML y cambian por la clase de la sección.
+   ===================================================================== */
+
 .sofia-tabs__grupo {
 	display: flex;
 	flex-wrap: wrap;
@@ -1852,8 +1859,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Cada item aporta su pestaña a la fila de arriba y su panel a la franja
    de abajo. El orden del HTML los agrupa por item (lo exige el mecanismo
-   de listas del editor, ver Sofia_Componente_Tabs::render), así que el
-   reparto visual lo hace `order`: las pestañas van todas antes que
+   de listas del editor, ver Sofia_Componente_Tabs::pestana_html), así que
+   el reparto visual lo hace `order`: las pestañas van todas antes que
    cualquier panel, sin importar en qué item estén. */
 .sofia-tabs__item {
 	display: contents;
@@ -1861,13 +1868,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .sofia-tabs__pestana {
 	order: 1;
+	margin: 0;
+	/* 44px de alto mínimo: la pestaña ES el control que cambia el panel, y
+	   con padding solo quedaba en 40px — por debajo del mínimo táctil. */
+	min-height: 44px;
 	padding: 10px 16px;
 	border: 0;
 	border-bottom: 2px solid transparent;
 	background: none;
 	color: var(--sofia-color-texto-suave);
 	font: inherit;
+	font-weight: 500;
 	cursor: pointer;
+	text-align: left;
 }
 
 .sofia-tabs__pestana[aria-selected="true"] {
@@ -1881,11 +1894,51 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-tabs__panel {
 	order: 2;
 	flex: 1 0 100%;
-	padding-top: var(--sofia-espaciado-base);
+	padding-top: var(--pieza-gap-s);
 	border-top: 1px solid var(--sofia-color-borde);
 	margin-top: -1px;
 }
 
+.sofia-tabs__texto {
+	margin: 0;
+	max-width: 68ch;
+	line-height: 1.65;
+	color: var(--sofia-color-texto-suave);
+}
+
+/* --- Puntos ------------------------------------------------------------
+   La lista anidada de cada pestaña. El check va en ::before y no como SVG
+   en el HTML: es decoración que se repite en cada línea, y meterla al
+   markup sería un ícono por punto para nada. */
+.sofia-tabs__puntos {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 8px var(--pieza-gap-m);
+	margin: var(--pieza-gap-s) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sofia-tabs__punto {
+	position: relative;
+	padding-left: 24px;
+	font-size: 0.93rem;
+	line-height: 1.5;
+}
+
+.sofia-tabs__punto::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0.42em;
+	width: 10px;
+	height: 6px;
+	border-left: 2px solid var(--sofia-color-primario);
+	border-bottom: 2px solid var(--sofia-color-primario);
+	transform: rotate(-45deg);
+}
+
+/* --- Píldoras --------------------------------------------------------- */
 .sofia-tabs--pildoras .sofia-tabs__grupo {
 	gap: 0 6px;
 }
@@ -1898,6 +1951,146 @@ h1, h2, h3, h4, h5, h6 {
 .sofia-tabs--pildoras .sofia-tabs__pestana[aria-selected="true"] {
 	background: var(--sofia-color-primario);
 	color: var(--sofia-color-fondo);
+}
+
+/* --- B: al costado ----------------------------------------------------
+   Para títulos largos o más de cuatro pestañas: en fila se apretarían o
+   pasarían a dos renglones, y ahí se pierde cuál está activa.
+
+   Grid de dos columnas en vez de flex: las pestañas van todas a la
+   izquierda por `order`, y el panel activo ocupa la derecha. */
+.sofia-tabs--lateral .sofia-tabs__grupo {
+	display: grid;
+	grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+	gap: 0 var(--pieza-gap-l);
+	align-items: start;
+}
+
+.sofia-tabs--lateral .sofia-tabs__pestana {
+	grid-column: 1;
+	border-bottom: 0;
+	border-left: 2px solid var(--sofia-color-borde);
+	padding: 12px 16px;
+}
+
+.sofia-tabs--lateral .sofia-tabs__pestana[aria-selected="true"] {
+	border-left-color: var(--sofia-color-primario);
+}
+
+/* Los paneles van en la columna derecha, uno debajo del otro.
+   El script oculta los inactivos al cargar, así que en el sitio publicado
+   se ve uno solo.
+
+   Se apilan y NO comparten celda (grid-row: 1 / -1, que fue el primer
+   intento): sin JavaScript los tres se dibujaban SUPERPUESTOS, texto
+   sobre texto, y el propio docblock del componente promete que el HTML
+   sale usable sin script. Compartir celda también tapaba el contenido
+   dentro del editor, donde el script no corre. */
+.sofia-tabs--lateral .sofia-tabs__panel {
+	grid-column: 2;
+	padding-top: 0;
+	border-top: 0;
+	margin-top: 0;
+}
+
+/* El primer panel arranca en la fila 1 para quedar a la altura de la
+   primera pestaña; los demás siguen abajo. */
+.sofia-tabs--lateral .sofia-tabs__item:first-child .sofia-tabs__panel {
+	grid-row: 1;
+}
+
+/* --- C: apiladas ------------------------------------------------------
+   Todo abierto, sin hacer clic. Para cuando el contenido es corto y
+   esconderlo obliga a explorar lo que entraba a la vista. */
+.sofia-tabs--apiladas .sofia-tabs__grupo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pieza-gap-m);
+}
+
+.sofia-tabs--apiladas .sofia-tabs__item {
+	display: block;
+}
+
+.sofia-tabs--apiladas .sofia-tabs__pestana {
+	min-height: 0;
+	padding: 0 0 8px;
+	border-bottom: 0;
+	color: inherit;
+	font-size: 1.08rem;
+	font-weight: 600;
+	cursor: default;
+}
+
+.sofia-tabs--apiladas .sofia-tabs__panel {
+	padding-top: 0;
+	border-top: 0;
+	margin-top: 0;
+}
+
+/* --- Tono oscuro ------------------------------------------------------ */
+.sofia-tabs--oscuro {
+	background: var(--sofia-color-texto);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-tabs--oscuro .sofia-pieza__titulo {
+	color: var(--sofia-color-fondo);
+}
+
+/* color-mix contra el fondo claro y no una opacidad: mantiene el
+   contraste en 4.5:1 sobre el oscuro. */
+.sofia-tabs--oscuro .sofia-pieza__bajada,
+.sofia-tabs--oscuro .sofia-tabs__texto,
+.sofia-tabs--oscuro .sofia-tabs__pestana {
+	color: color-mix(in srgb, var(--sofia-color-fondo) 72%, var(--sofia-color-texto));
+}
+
+.sofia-tabs--oscuro .sofia-pieza__etiqueta {
+	color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
+}
+
+.sofia-tabs--oscuro .sofia-tabs__pestana[aria-selected="true"],
+.sofia-tabs--oscuro .sofia-tabs--apiladas .sofia-tabs__pestana {
+	color: var(--sofia-color-fondo);
+	border-bottom-color: var(--sofia-color-fondo);
+}
+
+.sofia-tabs--oscuro .sofia-tabs__panel,
+.sofia-tabs--oscuro .sofia-tabs__pestana {
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 18%, transparent);
+}
+
+.sofia-tabs--oscuro .sofia-tabs__punto::before {
+	border-color: color-mix(in srgb, var(--sofia-color-primario) 50%, var(--sofia-color-fondo));
+}
+
+/* --- Teléfono ----------------------------------------------------------
+   Lateral vuelve a arriba: 200px de columna de pestañas sobre 390px de
+   ancho dejan 150px para el panel. */
+@media (max-width: 768px) {
+	.sofia-tabs--lateral .sofia-tabs__grupo {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 4px;
+	}
+
+	.sofia-tabs--lateral .sofia-tabs__pestana {
+		border-left: 0;
+		border-bottom: 2px solid transparent;
+		padding: 10px 16px;
+	}
+
+	.sofia-tabs--lateral .sofia-tabs__pestana[aria-selected="true"] {
+		border-bottom-color: var(--sofia-color-primario);
+	}
+
+	.sofia-tabs--lateral .sofia-tabs__panel {
+		flex: 1 0 100%;
+		padding-top: var(--pieza-gap-s);
+		border-top: 1px solid var(--sofia-color-borde);
+		margin-top: -1px;
+	}
 }
 
 /* Accordion — <details> nativo. El marcador por defecto del navegador se
