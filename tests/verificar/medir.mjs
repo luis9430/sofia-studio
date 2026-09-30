@@ -353,11 +353,44 @@ const CHEQUEOS = ({ contrasteMinimo, toqueMinimo }) => {
     const e = getComputedStyle(el);
     return e.position === "static" && e.transform === "none" && e.float === "none";
   };
+  /**
+   * Los elementos que un padre APORTA al layout.
+   *
+   * Un hijo con display:contents desaparece de la caja pero no del árbol
+   * DOM: sus propios hijos pasan a ser los que el abuelo dispone. Así que
+   * comparar solo padre.children deja fuera a elementos que el navegador
+   * sí está colocando uno al lado del otro.
+   *
+   * Es exactamente el caso que dejó pasar los paneles superpuestos de
+   * Pestañas: .sofia-tabs__item usa display:contents, así que los tres
+   * paneles eran primos y no hermanos, y el chequeo no los comparaba
+   * aunque estuvieran dibujados uno encima del otro.
+   */
+  const hijosDeLayout = (padre) => {
+    const salida = [];
+    for (const hijo of padre.children) {
+      if (enSvg(hijo)) continue;
+
+      // El display:contents se evalúa ANTES que visible(): un elemento así
+      // no genera caja propia, así que mide 0×0 y visible() lo descarta.
+      // Con el orden al revés nunca se llegaba a recursar en sus hijos, que
+      // es justamente lo que esta función existe para alcanzar.
+      if (getComputedStyle(hijo).display === "contents") {
+        salida.push(...hijosDeLayout(hijo));
+        continue;
+      }
+
+      if (visible(hijo)) salida.push(hijo);
+    }
+    return salida;
+  };
+
   for (const padre of todos) {
-    // padre.children NO viene filtrado por `todos`: sin excluir el interior
-    // de los SVG acá, se comparan los <path> de cada ícono entre sí y se
-    // reportan como solapamiento los trazos del propio dibujo.
-    const hijos = [...padre.children].filter((h) => visible(h) && enFlujo(h) && !enSvg(h));
+    // Se salta el que no aporta caja propia: sus hijos ya se comparan
+    // desde el abuelo, y hacerlo dos veces duplicaría cada hallazgo.
+    if (getComputedStyle(padre).display === "contents") continue;
+
+    const hijos = hijosDeLayout(padre).filter(enFlujo);
     for (let i = 0; i < hijos.length; i++) {
       for (let j = i + 1; j < hijos.length; j++) {
         const a = hijos[i].getBoundingClientRect();
