@@ -20,6 +20,11 @@ class Sofia_Componente_CTA extends Sofia_Componente {
 		return __( 'Llamado a la acción', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'El pedido. Una sola acción clara al cerrar la página o entre dos secciones.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'etiqueta'     => '',

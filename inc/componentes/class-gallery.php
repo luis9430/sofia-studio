@@ -26,6 +26,11 @@ class Sofia_Componente_Gallery extends Sofia_Componente {
 		return __( 'Galería', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Fotos de algo real. Para mostrar un lugar, un producto o un trabajo cuando verlo convence más que leerlo.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'etiqueta' => '',

@@ -26,6 +26,11 @@ class Sofia_Componente_Tarjetas extends Sofia_Componente {
 		return __( 'Tarjetas', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Varias cosas comparables, cada una con su foto y sus datos. Para un catálogo corto: destinos, servicios, propiedades, cursos, miembros del equipo.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'etiqueta' => '',

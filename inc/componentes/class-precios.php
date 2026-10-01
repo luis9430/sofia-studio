@@ -27,6 +27,11 @@ class Sofia_Componente_Precios extends Sofia_Componente {
 		return __( 'Precios', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Los planes y qué incluye cada uno. Para que el visitante compare y elija sin tener que preguntar cuánto sale.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'etiqueta' => __( 'Planes', 'sofia-studio' ),

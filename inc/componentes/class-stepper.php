@@ -17,6 +17,11 @@ class Sofia_Componente_Stepper extends Sofia_Componente {
 		return __( 'Pasos', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Cómo funciona, paso a paso. Para un proceso de tres a cinco etapas que la gente necesita entender antes de empezar.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'actual' => '1',

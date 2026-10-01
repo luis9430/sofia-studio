@@ -614,6 +614,12 @@ class Sofia_Componente_Factory {
 			$catalogo[] = array(
 				'tipo'             => $tipo,
 				'nombre'           => $componente->nombre(),
+				// Para qué sirve, en una frase (ver
+				// Sofia_Componente::proposito). Es lo único que distingue a
+				// piezas que declaran los mismos campos: FAQ, Pestañas,
+				// Galería y Tarjetas son todas "etiqueta, titulo, texto,
+				// items" desde afuera.
+				'proposito'        => $componente->proposito(),
 				// schema_estilo_ia_de() (no schema_de()/schema_bloque_generico()
 				// completo) — la IA solo puede llenar el subconjunto acotado
 				// de estilo (ver el comentario largo en

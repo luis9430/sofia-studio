@@ -33,6 +33,11 @@ class Sofia_Componente_Hero extends Sofia_Componente {
 		return __( 'Hero', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'La primera pantalla. Dice de qué se trata el sitio y qué hacer a continuación, antes de que nadie scrollee.', 'sofia-studio' );
+	}
+
 	/**
 	 * Los valores por defecto describen un sitio REAL (una costa de
 	 * Jalisco), no "Lorem ipsum" ni "Escribe acá tu título".

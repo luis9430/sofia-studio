@@ -26,6 +26,11 @@ class Sofia_Componente_Franja_Beneficios extends Sofia_Componente {
 		return __( 'Beneficios', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Las razones para elegir esto y no otra cosa. Tres o cuatro ventajas cortas, cada una con su ícono o su número.', 'sofia-studio' );
+	}
+
 	/**
 	 * Los defaults describen un caso REAL (una costa de Jalisco), no
 	 * "Beneficio 1 / Describe este beneficio en una línea".

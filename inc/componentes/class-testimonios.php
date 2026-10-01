@@ -20,6 +20,11 @@ class Sofia_Componente_Testimonios extends Sofia_Componente {
 		return __( 'Testimonios', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Lo que dicen los que ya compraron. Para cuando la confianza pesa más que la explicación.', 'sofia-studio' );
+	}
+
 	/**
 	 * Defaults de un caso REAL. Un placeholder genérico enseña a dejarlo
 	 * genérico, y hace imposible juzgar la composición hasta que alguien

@@ -23,6 +23,11 @@ class Sofia_Componente_Footer extends Sofia_Componente {
 		return __( 'Footer', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'El cierre del sitio. Enlaces secundarios, contacto y lo legal.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'logo_texto'    => __( 'Costalegre', 'sofia-studio' ),

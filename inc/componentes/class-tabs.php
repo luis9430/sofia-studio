@@ -25,6 +25,11 @@ class Sofia_Componente_Tabs extends Sofia_Componente {
 		return __( 'Pestañas', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Mucho que contar sin alargar la página. Para varias opciones, planes o categorías que el visitante compara eligiendo una a la vez.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'etiqueta' => '',

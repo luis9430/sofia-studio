@@ -26,6 +26,11 @@ class Sofia_Componente_FAQ extends Sofia_Componente {
 		return __( 'Preguntas frecuentes', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'Lo que la gente pregunta antes de decidir. Para despejar las dudas que frenan una compra o una reserva: precios, cancelación, requisitos, qué pasa si algo sale mal.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'etiqueta' => '',

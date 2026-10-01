@@ -28,6 +28,11 @@ class Sofia_Componente_Header extends Sofia_Componente {
 		return __( 'Header', 'sofia-studio' );
 	}
 
+	/** Ver Sofia_Componente::proposito(). */
+	public function proposito(): string {
+		return __( 'La navegación del sitio. Logo, menú y la acción principal, en todas las páginas.', 'sofia-studio' );
+	}
+
 	protected function props_por_defecto(): array {
 		return array(
 			'logo_texto'   => __( 'Costalegre', 'sofia-studio' ),

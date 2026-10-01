@@ -184,6 +184,32 @@ abstract class Sofia_Componente {
 	abstract public function nombre(): string;
 
 	/**
+	 * Para qué sirve este bloque, en una frase.
+	 *
+	 * Es lo único que el generador por IA tiene para decidir si una pieza
+	 * encaja con lo que le piden. Sin esto solo ve el nombre y los
+	 * schemas, y varias piezas se ven idénticas desde afuera: FAQ,
+	 * Pestañas, Galería y Tarjetas declaran todas "etiqueta, titulo,
+	 * texto, items", porque la diferencia está DENTRO de items.
+	 *
+	 * Medido: al agregar las piezas nuevas, FAQ pasó de aparecer en 4 de 6
+	 * páginas generadas a 0. No porque empeorara —se había rediseñado—
+	 * sino porque el catálogo creció y nada en su descripción decía para
+	 * qué sirve.
+	 *
+	 * Se escribe en términos del PROBLEMA que resuelve, no de lo que
+	 * dibuja: "lo que la gente pregunta antes de decidir" sirve para
+	 * elegir, "una lista de preguntas y respuestas" no agrega nada que el
+	 * schema no diga ya.
+	 *
+	 * Vacío por defecto: un Componente sin descripción no rompe nada, solo
+	 * entra al catálogo como está hoy.
+	 */
+	public function proposito(): string {
+		return '';
+	}
+
+	/**
 	 * Atributos class="{clase_base} {utility classes}" +
 	 * data-sofia-bloque-id/data-sofia-bloque-tipo (+ el style="..." de
 	 * atributo_estilo_bloque(), si el bloque tiene uno guardado) en la
