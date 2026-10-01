@@ -567,6 +567,17 @@ class Sofia_Componente_Factory {
 		'stat',
 		'progress',
 		'rating',
+		// Carousel sale por otro motivo que el resto: no es un átomo, pero
+		// tiene exactamente los mismos campos que Tarjetas en su
+		// composición "tira" (imagen + título + texto) y lo único que
+		// agregaba eran las flechas y los puntos. Eso pasó a ser una prop
+		// de Tarjetas, así que ofrecer los dos obliga al generador a
+		// elegir entre opciones que hacen lo mismo.
+		//
+		// Sigue existiendo como clase PHP y en el menú de insertar: alguien
+		// editando a mano puede querer un carrusel suelto dentro de un
+		// Container.
+		'carousel',
 	);
 
 	/**

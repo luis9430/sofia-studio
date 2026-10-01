@@ -115,6 +115,20 @@ class Sofia_Componente_Tarjetas extends Sofia_Componente {
 					array( 'valor' => 'tira', 'etiqueta' => __( 'Tira — se desliza de costado, para muchas', 'sofia-studio' ) ),
 				),
 			),
+			// Solo tiene efecto en la composición "tira": en una grilla no
+			// hay nada que recorrer. Se declara igual porque el panel no
+			// sabe mostrar un control condicionado a otro, y esconderlo
+			// sería peor que ofrecerlo sin efecto.
+			'controles'   => array(
+				'tipo'     => 'select',
+				'etiqueta' => __( 'Controles (solo en tira)', 'sofia-studio' ),
+				'opciones' => array(
+					array( 'valor' => '', 'etiqueta' => __( 'Ninguno — se desliza con el dedo', 'sofia-studio' ) ),
+					array( 'valor' => 'flechas', 'etiqueta' => __( 'Flechas — con mouse no hay gesto de deslizar', 'sofia-studio' ) ),
+					array( 'valor' => 'puntos', 'etiqueta' => __( 'Puntos — muestran cuántas hay', 'sofia-studio' ) ),
+					array( 'valor' => 'ambos', 'etiqueta' => __( 'Flechas y puntos', 'sofia-studio' ) ),
+				),
+			),
 			'superficie'  => array(
 				'tipo'     => 'select',
 				'etiqueta' => __( 'Superficie', 'sofia-studio' ),
@@ -154,10 +168,34 @@ class Sofia_Componente_Tarjetas extends Sofia_Componente {
 		return parent::PERFIL_SECCION;
 	}
 
-	/** render(): una estructura para las tres composiciones. */
+	/**
+	 * El JS de los controles de la tira.
+	 *
+	 * Se pide SIEMPRE, no solo cuando la composición es tira: cambiar de
+	 * composición en el editor no vuelve a encolar scripts, así que sin
+	 * esto la tira quedaría sin controles hasta recargar la página. Es un
+	 * archivo compartido y Sofia_Pagina::dependencias_js() deduplica, así
+	 * que el costo de pedirlo de más es cero.
+	 */
+	public function dependencias_js(): array {
+		return array( 'interacciones' );
+	}
+
+	/**
+	 * render(): una estructura para las tres composiciones.
+	 *
+	 * Los controles de la tira reusan el mecanismo del Carousel, no uno
+	 * propio: activarCarousel() (sofia-interacciones.js) ya resuelve
+	 * flechas, puntos y sincronización, y lo hace sobre cualquier riel con
+	 * [data-sofia-pista]. Un segundo JS casi idéntico sería dos lugares
+	 * donde arreglar el mismo bug.
+	 */
 	public function render(): string {
 		$en_editor = class_exists( 'Sofia_Modo_Editor' ) && Sofia_Modo_Editor::activo();
 		$items     = is_array( $this->props['items'] ?? null ) ? $this->props['items'] : array();
+		$estilo    = $this->estilo_bloque();
+		$es_tira   = 'tira' === ( $estilo['composicion'] ?? '' );
+		$controles = $es_tira ? (string) ( $estilo['controles'] ?? '' ) : '';
 
 		$clases = array_filter( array(
 			'sofia-pieza',
@@ -165,21 +203,72 @@ class Sofia_Componente_Tarjetas extends Sofia_Componente {
 			$this->clase_de_variante( self::CLASES_COMPOSICION, 'composicion' ),
 			$this->clase_de_variante( self::CLASES_SUPERFICIE, 'superficie' ),
 			$this->clase_de_variante( self::CLASES_TONO, 'tono' ),
+			'' !== $controles ? 'sofia-tarjetas--con-controles' : '',
 		) );
 
-		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) ) . '>';
+		$html  = '<section ' . $this->atributos_seccion( implode( ' ', $clases ) )
+			. ( '' !== $controles ? ' data-sofia-carousel' : '' ) . '>';
 		$html .= '<div class="sofia-pieza__interior">';
 		$html .= $this->encabezado_html( $en_editor );
-		$html .= '<div class="sofia-tarjetas__grilla" ' . $this->atributo_lista( 'items' ) . '>';
+
+		// El riel se envuelve solo cuando hay controles: las flechas se
+		// posicionan contra él, y sin controles ese <div> sería un nodo de
+		// más que el editor tendría que ignorar.
+		if ( '' !== $controles ) {
+			$html .= '<div class="sofia-tarjetas__riel">';
+		}
+
+		$html .= '<div class="sofia-tarjetas__grilla"'
+			. ( '' !== $controles ? ' data-sofia-pista' : '' ) . ' '
+			. $this->atributo_lista( 'items' ) . '>';
 
 		foreach ( array_values( $items ) as $indice => $item ) {
-			$html .= $this->tarjeta_html( $indice, is_array( $item ) ? $item : array() );
+			$html .= $this->tarjeta_html( $indice, is_array( $item ) ? $item : array(), '' !== $controles );
 		}
 
 		$html .= '</div>';
+
+		if ( '' !== $controles ) {
+			$html .= $this->controles_html( $controles, count( $items ) );
+			$html .= '</div>';
+		}
+
 		$html .= $this->boton_agregar_item( 'items' );
 		$html .= '</div>';
 		$html .= '</section>';
+		return $html;
+	}
+
+	/**
+	 * Flechas y puntos de la tira.
+	 *
+	 * Mismo contrato de atributos que el Carousel (data-sofia-carousel-
+	 * anterior, -siguiente, -punto): es lo que activarCarousel() busca, y
+	 * cambiarlo acá exigiría un segundo camino en el JS.
+	 *
+	 * 44px de lado los dos, que es el mínimo táctil (WCAG 2.5.5) — el
+	 * Carousel los tenía en 40 y 9px, y fue un defecto real que el arnés
+	 * encontró midiendo.
+	 */
+	private function controles_html( string $controles, int $cuantos ): string {
+		$html = '';
+
+		if ( 'puntos' !== $controles ) {
+			$html .= '<button type="button" class="sofia-tarjetas__flecha sofia-tarjetas__flecha--anterior"'
+				. ' data-sofia-carousel-anterior aria-label="' . esc_attr__( 'Anterior', 'sofia-studio' ) . '"></button>';
+			$html .= '<button type="button" class="sofia-tarjetas__flecha sofia-tarjetas__flecha--siguiente"'
+				. ' data-sofia-carousel-siguiente aria-label="' . esc_attr__( 'Siguiente', 'sofia-studio' ) . '"></button>';
+		}
+
+		if ( 'flechas' !== $controles ) {
+			$html .= '<div class="sofia-tarjetas__puntos">';
+			for ( $i = 0; $i < $cuantos; $i++ ) {
+				$html .= '<button type="button" class="sofia-tarjetas__punto" data-sofia-carousel-punto="' . (int) $i . '"'
+					. ' aria-label="' . esc_attr( sprintf( __( 'Ir a la tarjeta %d', 'sofia-studio' ), $i + 1 ) ) . '"></button>';
+			}
+			$html .= '</div>';
+		}
+
 		return $html;
 	}
 
@@ -218,7 +307,7 @@ class Sofia_Componente_Tarjetas extends Sofia_Componente {
 	 * El dato destacado va al pie y separado: es lo que se compara primero
 	 * cuando hay varias tarjetas juntas (ver el "from $46" de KAYAK).
 	 */
-	private function tarjeta_html( int $indice, array $item ): string {
+	private function tarjeta_html( int $indice, array $item, bool $es_slide = false ): string {
 		$imagen    = $this->imagen_o_placeholder( (string) ( $item['imagen'] ?? '' ) );
 		$titulo    = $this->texto_enriquecido( (string) ( $item['titulo'] ?? '' ) );
 		$texto     = $this->texto_enriquecido( (string) ( $item['texto'] ?? '' ) );
@@ -229,7 +318,11 @@ class Sofia_Componente_Tarjetas extends Sofia_Componente {
 		$etiqueta = '' !== $destino ? 'a' : 'div';
 		$href     = '' !== $destino ? ' href="' . $destino . '"' : '';
 
-		$html = '<' . $etiqueta . ' class="sofia-tarjetas__item"' . $href . ' ' . $this->atributo_item( $indice ) . '>';
+		// data-sofia-slide es lo que activarCarousel() cuenta para saber a
+		// dónde desplazarse. Solo cuando hay controles: en una grilla no
+		// hay nada que recorrer.
+		$html = '<' . $etiqueta . ' class="sofia-tarjetas__item"' . $href
+			. ( $es_slide ? ' data-sofia-slide' : '' ) . ' ' . $this->atributo_item( $indice ) . '>';
 
 		if ( $imagen ) {
 			$html .= '<img class="sofia-tarjetas__imagen" src="' . esc_url( $imagen ) . '" alt="" loading="lazy" '

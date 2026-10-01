@@ -85,6 +85,24 @@ function combinaciones_de( string $tipo ): array {
 			$combos[] = array( 'composicion' => $comp, 'tono' => $tono );
 		}
 	}
+
+	// Una combinación extra por cada prop que CAMBIA LA ESTRUCTURA del
+	// HTML, no solo el color. Hoy es "controles" de Tarjetas: con la tira
+	// sin controles no se emiten ni las flechas ni los puntos, así que
+	// medir solo la composición dejaría ese HTML sin verificar nunca.
+	//
+	// Se mide con su valor más completo: si el caso con todos los
+	// controles anda, los parciales son un subconjunto.
+	$extras = array(
+		'controles' => array( 'tira', 'ambos' ),
+	);
+	foreach ( $extras as $clave => list( $composicion, $valor ) ) {
+		if ( ! isset( $schema[ $clave ] ) ) {
+			continue;
+		}
+		$combos[] = array( 'composicion' => $composicion, 'tono' => '', $clave => $valor );
+	}
+
 	return $combos;
 }
 
@@ -147,9 +165,19 @@ foreach ( PIEZAS as $tipo ) {
 			array( '_estilo_bloque' => array_filter( $combo, static fn( $v ) => '' !== $v ) )
 		);
 
+		// El nombre lleva TODAS las props de la combinación, no solo
+		// composición y tono: con dos entradas que comparten composición
+		// (la tira sola y la tira con controles), una pisaría a la otra y
+		// el arnés mediría la misma pieza dos veces.
 		$nombre = $tipo
 			. ( '' !== $combo['composicion'] ? '--' . $combo['composicion'] : '--base' )
 			. ( '' !== $combo['tono'] ? '--' . $combo['tono'] : '' );
+		foreach ( $combo as $clave => $valor ) {
+			if ( in_array( $clave, array( 'composicion', 'tono' ), true ) || '' === $valor ) {
+				continue;
+			}
+			$nombre .= '--' . $clave . '-' . $valor;
+		}
 
 		$html = $componente->render();
 		file_put_contents( $dir . '/' . $nombre . '.html', pagina( $html, $css, $nombre ) );

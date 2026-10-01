@@ -167,7 +167,16 @@
 	 */
 	function activarCarousel(raiz) {
 		raiz.querySelectorAll("[data-sofia-carousel]").forEach(function (carrusel) {
-			var pista = carrusel.querySelector(".sofia-carousel__pista");
+			// La pista se marca con un atributo, no con la clase del
+			// Carousel: así el mismo mecanismo sirve a cualquier pieza que
+			// se deslice de costado. Lo usa Tarjetas en su composición
+			// "tira", que tiene los mismos campos que una diapositiva y
+			// solo le faltaban los controles.
+			//
+			// Se mantiene el fallback a la clase vieja para no romper el
+			// HTML que haya guardado de antes en un sitio en producción.
+			var pista =
+				carrusel.querySelector("[data-sofia-pista]") || carrusel.querySelector(".sofia-carousel__pista");
 			var slides = Array.prototype.slice.call(carrusel.querySelectorAll("[data-sofia-slide]"));
 			var puntos = Array.prototype.slice.call(carrusel.querySelectorAll("[data-sofia-carousel-punto]"));
 			var anterior = carrusel.querySelector("[data-sofia-carousel-anterior]");

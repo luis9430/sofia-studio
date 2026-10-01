@@ -4835,6 +4835,123 @@ a.sofia-tarjetas__item:hover {
 	scroll-snap-align: start;
 }
 
+/* --- Controles de la tira ---------------------------------------------
+   Reusan el JS del Carousel (activarCarousel en sofia-interacciones.js),
+   que opera sobre cualquier riel con [data-sofia-pista]. Un segundo
+   script casi idéntico serían dos lugares donde arreglar el mismo bug.
+
+   El riel existe solo cuando hay controles: las flechas se posicionan
+   contra él. */
+.sofia-tarjetas__riel {
+	position: relative;
+	/* Margen del ancho de las flechas, que sobresalen a cada lado. Sin
+	   esto empujan el scroll horizontal de la PÁGINA entera cuando la
+	   sección ocupa todo el ancho — el mismo defecto que ya tuvo el
+	   Carousel y que el arnés encontró midiendo. */
+	margin-inline: 22px;
+}
+
+.sofia-tarjetas__flecha {
+	position: absolute;
+	top: 38%;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* 44px, el mínimo táctil (WCAG 2.5.5): en un teléfono estas flechas
+	   son el único control además del gesto de deslizar. */
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 1px solid var(--sofia-color-borde);
+	border-radius: 50%;
+	background: var(--sofia-color-fondo);
+	color: inherit;
+	cursor: pointer;
+}
+
+.sofia-tarjetas__flecha::before {
+	content: "";
+	width: 9px;
+	height: 9px;
+	border-top: 2px solid currentColor;
+	border-right: 2px solid currentColor;
+}
+
+.sofia-tarjetas__flecha--anterior {
+	left: -22px;
+}
+
+.sofia-tarjetas__flecha--anterior::before {
+	transform: translateX(2px) rotate(-135deg);
+}
+
+.sofia-tarjetas__flecha--siguiente {
+	right: -22px;
+}
+
+.sofia-tarjetas__flecha--siguiente::before {
+	transform: translateX(-2px) rotate(45deg);
+}
+
+/* Deshabilitada en los extremos: el JS lo marca, y un control que no
+   puede hacer nada tiene que verse así en vez de no responder. */
+.sofia-tarjetas__flecha[disabled] {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.sofia-tarjetas__puntos {
+	display: flex;
+	justify-content: center;
+	gap: 2px;
+	margin-top: 6px;
+}
+
+/* El punto se DIBUJA de 9px pero se TOCA en 44: el círculo va en ::before
+   y el botón queda del tamaño mínimo táctil, transparente. Agrandar el
+   punto en sí lo convertiría en una bolita fea; dejarlo en 9px lo hace
+   imposible de acertar con el pulgar. */
+.sofia-tarjetas__punto {
+	position: relative;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+}
+
+.sofia-tarjetas__punto::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 9px;
+	height: 9px;
+	margin: -4.5px 0 0 -4.5px;
+	border-radius: 50%;
+	background: var(--sofia-color-borde);
+}
+
+.sofia-tarjetas__punto[aria-current="true"]::before {
+	background: var(--sofia-color-primario);
+}
+
+.sofia-tarjetas--oscuro .sofia-tarjetas__flecha {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 12%, var(--sofia-color-texto));
+	border-color: color-mix(in srgb, var(--sofia-color-fondo) 25%, transparent);
+	color: var(--sofia-color-fondo);
+}
+
+.sofia-tarjetas--oscuro .sofia-tarjetas__punto::before {
+	background: color-mix(in srgb, var(--sofia-color-fondo) 35%, transparent);
+}
+
+.sofia-tarjetas--oscuro .sofia-tarjetas__punto[aria-current="true"]::before {
+	background: var(--sofia-color-fondo);
+}
+
 /* --- Superficies ------------------------------------------------------ */
 .sofia-tarjetas--elevada .sofia-tarjetas__item {
 	border-color: transparent;
